@@ -1,42 +1,33 @@
 import pg from 'pg';
+import fs from 'fs';
 
 export async function setupDatabase() {
-    const db = new pg.Pool({
+    const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
-        max: 20,                 // Maximum number of clients
-        idleTimeoutMillis: 30000, // Close idle clients after 30s
-        connectionTimeoutMillis: 2000 // Return an error after 2s if connection not established
+        ssl: {
+            ca: fs.readFileSync('ca-certificate.crt').toString(),
+            rejectUnauthorized: true
+        }
     });
 
-    // Add error logging
-    db.on('connect', () => {
-        console.log('Database connected');
+    // Add error logging on pool
+    pool.on('connect', () => {
+        console.log('Database pool client connected');
     });
 
-    db.on('error', (err) => {
-        console.error('Unexpected database error:', err);
+    pool.on('error', (err, client) => {
+        console.error('Unexpected error on idle client', err);
     });
 
-    db.on('acquire', () => {
-        console.debug('Client acquired from pool');
-    });
-
-    db.on('remove', () => {
-        console.debug('Client removed from pool');
-    });
-
-    // Test connection
     try {
-        const client = await db.connect();
-        await client.query('SELECT NOW()');
-        client.release();
-        console.log('Database connection verified');
+        // Test the connection
+        await pool.query('SELECT NOW()');
+        console.log('Database connection successful');
+        return pool;
     } catch (error) {
         console.error('Database connection failed:', error);
         throw error;
     }
-
-    return db;
 }
 
 // Helper functions for common operations
