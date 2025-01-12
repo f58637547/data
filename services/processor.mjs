@@ -27,105 +27,79 @@ const schemas = {
 
 export async function processMessage({ message, db, templates, channelMapping }) {
     try {
-        const combinedDescription = message.embeds
-            .map((embed) => embed.description)
-            .filter((description) => description)
+        // 1. Get and clean text from Discord
+        const rawText = message.embeds
+            .map(embed => embed.description)
+            .filter(Boolean)
             .join(' ');
 
-        if (!combinedDescription) {
+        if (!rawText) {
             return { skip: true, reason: 'no_content' };
         }
 
-        // 1. First check similarity with existing posts using text (cheap check)
+        // Clean text (remove emojis, special chars, normalize whitespace)
+        const cleanText = rawText
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+            .replace(/[^\w\s.,!?-]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        // 2. Check similarity against existing embeddings
         const similarityCheck = await db.query(`
-            WITH similarity_check AS (
-                SELECT 
-                    content->>'original' as text,
-                    "createdAt"
-                FROM ${channelMapping.table} 
-                WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-                AND content->>'original' ILIKE $1
-                ORDER BY "createdAt" DESC
-                LIMIT 1
-            )
-            SELECT * FROM similarity_check
-        `, [combinedDescription]);
+            SELECT content->>'original' as text, 
+                   1 - (embedding <=> $2::vector) as similarity
+            FROM ${channelMapping.table}
+            WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+            AND 1 - (embedding <=> $2::vector) > 0.85
+            ORDER BY similarity DESC
+            LIMIT 1
+        `, [cleanText]);
 
         if (similarityCheck.rows.length > 0) {
-            const { text, createdAt } = similarityCheck.rows[0];
+            const { text, similarity } = similarityCheck.rows[0];
             console.log('Similar content found:', {
-                new_text: combinedDescription.substring(0, 100) + '...',
+                new_text: cleanText.substring(0, 100) + '...',
                 existing_text: text.substring(0, 100) + '...',
-                channel: channelMapping.type,
-                age: Math.round((Date.now() - new Date(createdAt).getTime()) / 1000 / 60) + ' minutes ago'
+                similarity: Math.round(similarity * 100) + '%'
             });
-            return { skip: true, reason: 'similar_post_exists' };
+            return { skip: true, reason: 'similar_content' };
         }
 
-        // 2. Extract and validate entities
-        try {
-            const entities = await extractEntities(combinedDescription, channelMapping.type);
-            const parsedEntities = JSON.parse(entities);
-            const schema = schemas[channelMapping.type];
+        // 3. Process unique content
+        const parsedContent = await extractEntities(cleanText, channelMapping.type);
+        const embedding = await generateEmbedding(cleanText);
 
-            if (!validateEntities(parsedEntities, schema)) {
-                const token = parsedEntities.position?.token || parsedEntities.tokens?.primary;
-                console.log('Skipping message - Not relevant:', {
-                    type: channelMapping.type,
-                    preview: combinedDescription.substring(0, 100) + '...',
-                    token: token || 'none',
-                    reason: token ? 'Missing required fields' : 'Not a trade/crypto message',
-                    missing: getMissingFields(parsedEntities, schema)
-                });
-                return { skip: true, reason: token ? 'incomplete_data' : 'not_relevant' };
-            }
+        // 4. Save to DB
+        const enhancedContent = {
+            original: cleanText,
+            entities: parsedContent,
+            type: channelMapping.type
+        };
 
-            // 3. Only generate embedding if we're going to save
-            const embedding = await generateEmbedding(combinedDescription);
+        await db.query(`
+            INSERT INTO ${channelMapping.table}
+            (id, "createdAt", type, "agentId", content, embedding)
+            VALUES ($1, $2, $3, $4, $5, $6::vector)
+        `, [
+            uuidv4(),
+            new Date(),
+            channelMapping.type,
+            process.env.AGENT_ID,
+            JSON.stringify(enhancedContent),
+            embedding
+        ]);
 
-            // 4. Save to DB with all info
-            const enhancedContent = {
-                original: combinedDescription,
-                entities: parsedEntities,
-                type: channelMapping.type
-            };
+        console.log('Saved new content:', {
+            type: channelMapping.type,
+            preview: cleanText.substring(0, 100) + '...'
+        });
 
-            await db.query(`
-                INSERT INTO ${channelMapping.table}
-                (id, "createdAt", type, "agentId", content, embedding)
-                VALUES ($1, $2, $3, $4, $5, $6::vector)
-            `, [
-                uuidv4(),
-                new Date(),
-                channelMapping.type,
-                process.env.AGENT_ID,
-                JSON.stringify(enhancedContent),
-                embedding
-            ]);
-
-            console.log('Saved message:', {
-                type: channelMapping.type,
-                token: parsedEntities.position?.token || parsedEntities.tokens?.primary,
-                preview: combinedDescription.substring(0, 100) + '...'
-            });
-
-            return enhancedContent;
-
-        } catch (extractError) {
-            console.log('Skipping message - Entity extraction failed:', {
-                type: channelMapping.type,
-                preview: combinedDescription.substring(0, 100) + '...',
-                error: extractError.message
-            });
-            return { skip: true, reason: 'entity_extraction_failed' };
-        }
+        return enhancedContent;
 
     } catch (error) {
-        console.error('Error processing message:', {
+        console.error('Processing error:', {
             error: error.message,
-            channelType: channelMapping.type,
-            messageId: message.id,
-            preview: combinedDescription?.substring(0, 100) + '...'
+            preview: cleanText?.substring(0, 100) + '...'
         });
         return { skip: true, reason: 'processing_error' };
     }

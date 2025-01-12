@@ -11,76 +11,44 @@ export async function loadTemplates() {
 
 export async function extractEntities(text, channelType) {
     try {
-        // 1. Select template
-        const template = channelType === 'trades'
-            ? tradesTemplate
-            : cryptoTemplate;
+        // 1. Get LLM to parse content
+        const response = await getLLMResponse(
+            channelType === 'trades' ? tradesTemplate : cryptoTemplate,
+            { message: text }
+        );
 
-        // 2. Get LLM response
-        const response = await getLLMResponse(template, {
-            message: text
-        });
-
-        // Debug the raw response
-        console.log('Raw LLM Response:', JSON.stringify(response, null, 2));
-
-        // 3. Validate response structure
-        if (!response?.choices?.[0]?.message?.content) {
-            throw new Error('Invalid LLM response structure');
-        }
-
-        // 4. Parse JSON content
+        // 2. Parse JSON from LLM response
         let parsed;
         try {
             const content = response.choices[0].message.content;
-            // Extract JSON from markdown if present
             const jsonMatch = content.match(/```(?:json)?\n?(.*?)\n?```/s);
             const jsonString = jsonMatch ? jsonMatch[1] : content;
-            
             parsed = JSON.parse(jsonString.trim());
-            console.log('Parsed JSON:', parsed);
+            console.log('Parsed content:', parsed);
         } catch (parseError) {
-            console.error('Raw content that failed to parse:', response.choices[0].message.content);
-            throw new Error(`JSON parse error: ${parseError.message}`);
+            throw new Error('Failed to parse LLM response');
         }
 
-        // 5. Validate required fields
+        // 3. Validate content type-specific fields
         if (channelType === 'trades') {
             if (!parsed.position?.token && !parsed.position?.pair) {
-                console.log('Not a trade message:', parsed);
-                throw new Error('NOT_TRADE_MESSAGE');
+                throw new Error('Not a trade message');
             }
             if (!parsed.position?.entry && parsed.position?.token) {
-                console.error('Incomplete trade data:', parsed);
-                throw new Error('INCOMPLETE_TRADE_DATA');
+                throw new Error('Incomplete trade data');
             }
         } else if (channelType === 'crypto') {
             if (!parsed.tokens?.primary) {
-                console.log('Not a crypto update:', parsed);
-                throw new Error('NOT_CRYPTO_UPDATE');
+                throw new Error('Not a crypto update');
             }
             if (!parsed.event?.type && parsed.tokens?.primary) {
-                console.error('Incomplete crypto data:', parsed);
-                throw new Error('INCOMPLETE_CRYPTO_DATA');
+                throw new Error('Incomplete crypto data');
             }
         }
 
-        // 6. Generate embedding for the original text
-        const embedding = await generateEmbedding(text);
-
-        // 7. Return both parsed data and embedding
-        return {
-            entities: parsed,
-            embedding
-        };
+        return parsed;
 
     } catch (error) {
-        console.error('Entity extraction failed:', {
-            error,
-            channelType,
-            textLength: text.length,
-            text: text.substring(0, 100) + '...' // Log start of text for debugging
-        });
-        throw new Error(`Entity extraction failed: ${error.message}`);
+        throw error; // Pass error up for handling in processMessage
     }
 }
