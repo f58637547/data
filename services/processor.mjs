@@ -74,10 +74,11 @@ export async function processMessage({ message, db, templates, channelMapping })
             const schema = schemas[channelMapping.type];
 
             if (!validateEntities(parsedEntities, schema)) {
-                console.log('Skipping non-trade message:', {
+                console.log('Skipping message - Not a trade setup:', {
                     type: channelMapping.type,
                     preview: combinedDescription.substring(0, 100) + '...',
-                    reason: 'Not a valid trade setup'
+                    token: parsedEntities.position?.token || 'none',
+                    missing: getMissingFields(parsedEntities, schema)
                 });
                 return { skip: true, reason: 'not_a_trade_setup' };
             }
@@ -109,10 +110,11 @@ export async function processMessage({ message, db, templates, channelMapping })
 
         } catch (extractError) {
             // Handle entity extraction errors more gracefully
-            console.log('Skipping message:', {
+            console.log('Skipping message - Invalid format:', {
                 type: channelMapping.type,
                 preview: combinedDescription.substring(0, 100) + '...',
-                reason: 'Not a valid trade message'
+                error: extractError.message.includes('Missing required') ? 
+                    'Missing trade details' : 'Invalid message format'
             });
             return { skip: true, reason: 'invalid_format' };
         }
@@ -159,4 +161,25 @@ function validateEntities(entities, schema) {
     }
 
     return true;
+}
+
+function getMissingFields(entities, schema) {
+    const missing = [];
+    
+    for (const field of schema.required) {
+        if (!entities[field]) {
+            missing.push(field);
+            continue;
+        }
+        
+        if (schema[field]?.required) {
+            for (const nestedField of schema[field].required) {
+                if (!entities[field][nestedField] || entities[field][nestedField] === '') {
+                    missing.push(`${field}.${nestedField}`);
+                }
+            }
+        }
+    }
+    
+    return missing;
 }
