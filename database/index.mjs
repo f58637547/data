@@ -1,19 +1,12 @@
 import pg from 'pg';
-import fs from 'fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-// Get the directory name for the current module
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function setupDatabase() {
+    // Disable SSL verification entirely for now
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    
     const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
-        ssl: {
-            rejectUnauthorized: false,
-            ca: fs.readFileSync(path.join(__dirname, 'ca-certificate.crt')).toString(),
-            sslmode: 'require'
-        }
+        ssl: false  // Disable SSL completely
     });
 
     // Add error logging on pool
@@ -21,7 +14,7 @@ export async function setupDatabase() {
         console.log('Database pool client connected');
     });
 
-    pool.on('error', (err) => {  // Removed unused 'client' parameter
+    pool.on('error', (err) => {
         console.error('Unexpected error on idle client', err);
     });
 
