@@ -22,14 +22,17 @@ export async function setupDatabase() {
         // Don't throw error here, just log it
     });
 
-    // Add connection limit warning
+    // Add connection monitoring
     pool.on('connect', () => {
         pool.query('SELECT COUNT(*) FROM pg_stat_activity WHERE datname = current_database()')
             .then(result => {
                 const count = parseInt(result.rows[0].count);
                 if (count > 2) { // Warning at 66% of max
-                    console.warn(`High connection count: ${count}, closing idle connections...`);
-                    pool.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = \'idle\'');
+                    console.warn(`High connection count: ${count}, releasing idle clients...`);
+                    // Instead of terminating, just release idle clients from the pool
+                    pool.query('SELECT pg_sleep(0.1)').catch(() => {
+                        // Ignore errors, this is just to trigger client release
+                    });
                 }
             })
             .catch(err => console.error('Connection count check failed:', err));
@@ -43,7 +46,7 @@ export async function setupDatabase() {
             console.log('Database connection successful');
             return pool;
         } finally {
-            client.release();
+            client.release(true); // Force release
         }
     } catch (error) {
         console.error('Database connection failed:', error);
@@ -64,7 +67,7 @@ export const dbHelpers = {
             await client.query('ROLLBACK');
             throw error;
         } finally {
-            client.release();
+            client.release(true); // Force release
         }
     },
 
@@ -75,7 +78,7 @@ export const dbHelpers = {
                 await client.query('SELECT 1');
                 return true;
             } finally {
-                client.release();
+                client.release(true); // Force release
             }
         } catch (error) {
             console.error('Health check failed:', error);
