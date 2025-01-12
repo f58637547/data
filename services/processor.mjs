@@ -112,21 +112,30 @@ export async function processMessage({ message, db, templates, channelMapping })
 function validateEntities(entities, schema) {
     // Check required fields
     for (const field of schema.required) {
-        if (!entities[field]) return false;
+        if (!entities[field]) {
+            console.error(`Missing required field: ${field}`);
+            return false;
+        }
+        
+        // Check nested required fields
+        if (schema[field]?.required) {
+            for (const nestedField of schema[field].required) {
+                if (!entities[field][nestedField] || entities[field][nestedField] === '') {
+                    console.error(`Missing required nested field: ${field}.${nestedField}`);
+                    return false;
+                }
+            }
+        }
     }
 
     // Check metrics ranges
     if (schema.metrics) {
         for (const [key, range] of Object.entries(schema.metrics)) {
             const value = entities.metrics?.[key];
-            if (value < range.min || value > range.max) return false;
-        }
-    }
-
-    // Check position fields for trades
-    if (schema.position) {
-        for (const field of schema.position.required) {
-            if (!entities.position?.[field]) return false;
+            if (value === null || value === undefined || value < range.min || value > range.max) {
+                console.error(`Invalid metric value for ${key}: ${value}`);
+                return false;
+            }
         }
     }
 

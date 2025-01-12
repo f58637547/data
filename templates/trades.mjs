@@ -1,5 +1,6 @@
 export const tradesTemplate = `
-Extract trade information from this message and return it as a valid JSON object. 
+Extract trade information from this message and return it as a valid JSON object.
+DO NOT include any comments or explanatory text - ONLY pure JSON.
 
 Message to analyze:
 {{message}}
@@ -22,7 +23,7 @@ Required Information:
    - Timeframe
    - Key levels
 
-Return ONLY this JSON structure, no other text:
+Return ONLY this JSON structure, no comments or extra text:
 {
     "headline": {
         "text": "brief summary of trade",
