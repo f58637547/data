@@ -11,7 +11,9 @@ export async function setupDatabase() {
         connectionString: process.env.DATABASE_URL,
         ssl: {
             ca: fs.readFileSync(path.join(__dirname, 'ca-certificate.crt')).toString(),
-            rejectUnauthorized: true
+            rejectUnauthorized: true,
+            checkServerIdentity: () => undefined,
+            servername: new URL(process.env.DATABASE_URL).hostname
         }
     });
 
