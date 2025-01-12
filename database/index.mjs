@@ -9,9 +9,9 @@ export async function setupDatabase() {
         ssl: {
             rejectUnauthorized: false
         },
-        max: 2,                      // Limit to 2 connections
+        max: 1,                      // Single connection only
         idleTimeoutMillis: 1000,     // Close idle clients very quickly
-        connectionTimeoutMillis: 2000,// Return error after 2s
+        connectionTimeoutMillis: 5000,// Longer timeout for initial connection
         maxUses: 100,                // Recycle connections frequently
         allowExitOnIdle: true        // Allow pool to exit when idle
     });
@@ -30,14 +30,46 @@ export async function setupDatabase() {
         console.log('Database connection removed from pool');
     });
 
-    try {
-        // Test the connection
-        await pool.query('SELECT NOW()');
-        console.log('Database connection successful');
-        return pool;
-    } catch (error) {
-        console.error('Database connection failed:', error);
-        throw error;
+    // Retry connection with increasing delays
+    for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+            // Wait before attempting connection
+            if (attempt > 1) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+                console.log(`Waiting ${delay}ms before attempt ${attempt}...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+
+            // Test the connection
+            await pool.query('SELECT 1');
+            console.log('Database connection successful');
+            return pool;
+        } catch (error) {
+            console.error(`Database connection attempt ${attempt} failed:`, error.message);
+            
+            if (attempt === 5) {
+                console.error('All connection attempts failed');
+                throw error;
+            }
+
+            // Force cleanup between attempts
+            try {
+                await pool.end();
+            } catch (endError) {
+                console.error('Error ending pool:', endError.message);
+            }
+
+            // Create new pool for next attempt
+            pool = new pg.Pool({
+                connectionString: process.env.DATABASE_URL,
+                ssl: { rejectUnauthorized: false },
+                max: 1,
+                idleTimeoutMillis: 1000,
+                connectionTimeoutMillis: 5000,
+                maxUses: 100,
+                allowExitOnIdle: true
+            });
+        }
     }
 }
 
