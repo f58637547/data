@@ -46,14 +46,22 @@ export async function extractEntities(text, channelType) {
 
         // 5. Validate required fields
         if (channelType === 'trades') {
-            if (!parsed.position?.pair || !parsed.strategy?.type) {
-                console.error('Missing required trade fields:', parsed);
-                throw new Error('Missing required trade fields');
+            if (!parsed.position?.token && !parsed.position?.pair) {
+                console.log('Not a trade message:', parsed);
+                throw new Error('NOT_TRADE_MESSAGE');
+            }
+            if (!parsed.position?.entry && parsed.position?.token) {
+                console.error('Incomplete trade data:', parsed);
+                throw new Error('INCOMPLETE_TRADE_DATA');
             }
         } else if (channelType === 'crypto') {
-            if (!parsed.tokens?.primary || !parsed.event?.type) {
-                console.error('Missing required crypto fields:', parsed);
-                throw new Error('Missing required crypto fields');
+            if (!parsed.tokens?.primary) {
+                console.log('Not a crypto update:', parsed);
+                throw new Error('NOT_CRYPTO_UPDATE');
+            }
+            if (!parsed.event?.type && parsed.tokens?.primary) {
+                console.error('Incomplete crypto data:', parsed);
+                throw new Error('INCOMPLETE_CRYPTO_DATA');
             }
         }
 

@@ -36,7 +36,7 @@ export async function processMessage({ message, db, templates, channelMapping })
             return { skip: true, reason: 'no_content' };
         }
 
-        // 1. First check similarity with existing posts using text
+        // 1. First check similarity with existing posts using text (cheap check)
         const similarityCheck = await db.query(`
             WITH similarity_check AS (
                 SELECT 
@@ -62,31 +62,28 @@ export async function processMessage({ message, db, templates, channelMapping })
             return { skip: true, reason: 'similar_post_exists' };
         }
 
-        // 2. Extract entities based on channel type
+        // 2. Extract and validate entities
         try {
-            const entities = await extractEntities(
-                combinedDescription,
-                channelMapping.type
-            );
-
-            // 3. Validate extracted entities
+            const entities = await extractEntities(combinedDescription, channelMapping.type);
             const parsedEntities = JSON.parse(entities);
             const schema = schemas[channelMapping.type];
 
             if (!validateEntities(parsedEntities, schema)) {
-                console.log('Skipping message - Not a trade setup:', {
+                const token = parsedEntities.position?.token || parsedEntities.tokens?.primary;
+                console.log('Skipping message - Not relevant:', {
                     type: channelMapping.type,
                     preview: combinedDescription.substring(0, 100) + '...',
-                    token: parsedEntities.position?.token || 'none',
+                    token: token || 'none',
+                    reason: token ? 'Missing required fields' : 'Not a trade/crypto message',
                     missing: getMissingFields(parsedEntities, schema)
                 });
-                return { skip: true, reason: 'not_a_trade_setup' };
+                return { skip: true, reason: token ? 'incomplete_data' : 'not_relevant' };
             }
 
-            // 4. Generate embedding only if we need to save
+            // 3. Only generate embedding if we're going to save
             const embedding = await generateEmbedding(combinedDescription);
 
-            // 5. Save to DB with extracted info
+            // 4. Save to DB with all info
             const enhancedContent = {
                 original: combinedDescription,
                 entities: parsedEntities,
@@ -106,17 +103,21 @@ export async function processMessage({ message, db, templates, channelMapping })
                 embedding
             ]);
 
+            console.log('Saved message:', {
+                type: channelMapping.type,
+                token: parsedEntities.position?.token || parsedEntities.tokens?.primary,
+                preview: combinedDescription.substring(0, 100) + '...'
+            });
+
             return enhancedContent;
 
         } catch (extractError) {
-            // Handle entity extraction errors more gracefully
-            console.log('Skipping message - Invalid format:', {
+            console.log('Skipping message - Entity extraction failed:', {
                 type: channelMapping.type,
                 preview: combinedDescription.substring(0, 100) + '...',
-                error: extractError.message.includes('Missing required') ? 
-                    'Missing trade details' : 'Invalid message format'
+                error: extractError.message
             });
-            return { skip: true, reason: 'invalid_format' };
+            return { skip: true, reason: 'entity_extraction_failed' };
         }
 
     } catch (error) {
