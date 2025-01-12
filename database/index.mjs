@@ -9,10 +9,10 @@ export async function setupDatabase() {
         ssl: {
             rejectUnauthorized: false
         },
-        max: 3,                      // Further reduce max connections
-        idleTimeoutMillis: 5000,     // Close idle clients faster
+        max: 2,                      // Limit to 2 connections
+        idleTimeoutMillis: 1000,     // Close idle clients very quickly
         connectionTimeoutMillis: 2000,// Return error after 2s
-        maxUses: 1000,               // Recycle connections more frequently
+        maxUses: 100,                // Recycle connections frequently
         allowExitOnIdle: true        // Allow pool to exit when idle
     });
 
@@ -22,35 +22,36 @@ export async function setupDatabase() {
         // Don't throw error here, just log it
     });
 
-    // Add connection monitoring
+    // Add connection monitoring without extra queries
+    let connectionCount = 0;
     pool.on('connect', () => {
-        pool.query('SELECT COUNT(*) FROM pg_stat_activity WHERE datname = current_database()')
-            .then(result => {
-                const count = parseInt(result.rows[0].count);
-                if (count > 2) { // Warning at 66% of max
-                    console.warn(`High connection count: ${count}, releasing idle clients...`);
-                    // Instead of terminating, just release idle clients from the pool
-                    pool.query('SELECT pg_sleep(0.1)').catch(() => {
-                        // Ignore errors, this is just to trigger client release
-                    });
-                }
-            })
-            .catch(err => console.error('Connection count check failed:', err));
+        connectionCount++;
+        if (connectionCount > 1) {
+            console.warn(`Active connections: ${connectionCount}`);
+        }
     });
 
-    try {
-        // Test the connection
-        const client = await pool.connect();
+    pool.on('remove', () => {
+        connectionCount = Math.max(0, connectionCount - 1);
+    });
+
+    // Retry connection setup with backoff
+    for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-            await client.query('SELECT NOW()');
-            console.log('Database connection successful');
-            return pool;
-        } finally {
-            client.release(true); // Force release
+            const client = await pool.connect();
+            try {
+                await client.query('SELECT NOW()');
+                console.log('Database connection successful');
+                return pool;
+            } finally {
+                client.release(true); // Force release
+            }
+        } catch (error) {
+            console.error(`Database connection attempt ${attempt} failed:`, error);
+            if (attempt === 3) throw error;
+            // Wait before retry with exponential backoff
+            await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
         }
-    } catch (error) {
-        console.error('Database connection failed:', error);
-        throw error;
     }
 }
 
