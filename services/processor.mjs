@@ -36,22 +36,29 @@ export async function processMessage({ message, db, templates, channelMapping })
             return { skip: true, reason: 'no_content' };
         }
 
-        // 1. First check similarity with existing posts
+        // 1. First check similarity with existing posts using text
         const similarityCheck = await db.query(`
-            WITH posted_check AS (
-                SELECT 1 FROM memories m
-                WHERE m.content->>'type' = 'post'
-                AND m."createdAt" > NOW() - INTERVAL '24 hours'
-                AND 1 - (m.embedding <-> (
-                    SELECT embedding FROM memories
-                    WHERE content->>'content' = $1
-                    LIMIT 1
-                )) > 0.85
+            WITH similarity_check AS (
+                SELECT 
+                    content->>'original' as text,
+                    "createdAt"
+                FROM ${channelMapping.table} 
+                WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+                AND content->>'original' ILIKE $1
+                ORDER BY "createdAt" DESC
+                LIMIT 1
             )
-            SELECT EXISTS (SELECT 1 FROM posted_check) as has_similar
+            SELECT * FROM similarity_check
         `, [combinedDescription]);
 
-        if (similarityCheck.rows[0].has_similar) {
+        if (similarityCheck.rows.length > 0) {
+            const { text, createdAt } = similarityCheck.rows[0];
+            console.log('Similar content found:', {
+                new_text: combinedDescription.substring(0, 100) + '...',
+                existing_text: text.substring(0, 100) + '...',
+                channel: channelMapping.type,
+                age: Math.round((Date.now() - new Date(createdAt).getTime()) / 1000 / 60) + ' minutes ago'
+            });
             return { skip: true, reason: 'similar_post_exists' };
         }
 
@@ -73,13 +80,12 @@ export async function processMessage({ message, db, templates, channelMapping })
             return { skip: true, reason: 'invalid_entities' };
         }
 
-        // 4. Generate embedding
+        // 4. Generate embedding only if we need to save
         const embedding = await generateEmbedding(combinedDescription);
 
         // 5. Save to DB with extracted info
         const enhancedContent = {
             original: combinedDescription,
-            embedding,
             entities: parsedEntities,
             type: channelMapping.type
         };
