@@ -1,4 +1,4 @@
-import { getLLMResponse } from '../services/openai.mjs';
+import { getLLMResponse, generateEmbedding } from '../services/openai.mjs';
 import { cryptoTemplate } from './crypto.mjs';
 import { tradesTemplate } from './trades.mjs';
 
@@ -11,32 +11,61 @@ export async function setupTemplates() {
 
 export async function extractEntities(text, channelType) {
     try {
+        // 1. Select template
         const template = channelType === 'trades'
             ? tradesTemplate
             : cryptoTemplate;
 
+        // 2. Get LLM response
         const response = await getLLMResponse(template, {
             message: text
         });
 
-        // Simple validation
-        const parsed = JSON.parse(response.choices[0].message.content);
+        // Debug the raw response
+        console.log('Raw LLM Response:', JSON.stringify(response, null, 2));
 
-        // Check minimum required fields based on type
-        if (channelType === 'trades' && (!parsed.position || !parsed.strategy)) {
-            throw new Error('Missing required trade fields');
-        }
-        if (channelType === 'crypto' && (!parsed.tokens || !parsed.event)) {
-            throw new Error('Missing required crypto fields');
+        // 3. Validate response structure
+        if (!response?.choices?.[0]?.message?.content) {
+            throw new Error('Invalid LLM response structure');
         }
 
-        return parsed;
+        // 4. Parse JSON content
+        let parsed;
+        try {
+            parsed = JSON.parse(response.choices[0].message.content.trim());
+        } catch (parseError) {
+            console.error('Raw content that failed to parse:', response.choices[0].message.content);
+            throw new Error(`JSON parse error: ${parseError.message}`);
+        }
+
+        // 5. Validate required fields
+        if (channelType === 'trades') {
+            if (!parsed.position?.pair || !parsed.strategy?.type) {
+                console.error('Missing required trade fields:', parsed);
+                throw new Error('Missing required trade fields');
+            }
+        } else if (channelType === 'crypto') {
+            if (!parsed.tokens?.primary || !parsed.event?.type) {
+                console.error('Missing required crypto fields:', parsed);
+                throw new Error('Missing required crypto fields');
+            }
+        }
+
+        // 6. Generate embedding for the original text
+        const embedding = await generateEmbedding(text);
+
+        // 7. Return both parsed data and embedding
+        return {
+            entities: parsed,
+            embedding
+        };
 
     } catch (error) {
         console.error('Entity extraction failed:', {
             error,
             channelType,
-            textLength: text.length
+            textLength: text.length,
+            text: text.substring(0, 100) + '...' // Log start of text for debugging
         });
         throw new Error(`Entity extraction failed: ${error.message}`);
     }

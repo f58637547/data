@@ -1,5 +1,7 @@
 export const cryptoTemplate = `
-Extract from crypto news:
+Extract crypto news information and return it as a valid JSON object.
+
+Message to analyze:
 {{message}}
 
 Required Information:
@@ -22,28 +24,28 @@ Required Information:
    - Market impact (1-100)
    - Confidence (1-100)
 
-Output JSON only:
+Return ONLY this JSON structure, no other text:
 {
     "headline": {
-        "text": string,
-        "source": string?
+        "text": "main headline or summary",
+        "source": "source if available"
     },
     "tokens": {
-        "primary": string,
-        "related": string[]
+        "primary": "main token symbol",
+        "related": ["array", "of", "related", "tokens"]
     },
     "market_data": {
-        "price": number?,
-        "volume": number?,
-        "market_cap": number?
+        "price": 0,
+        "volume": 0,
+        "market_cap": 0
     },
     "event": {
-        "type": string,
-        "description": string,
-        "timestamp": string?
+        "type": "one of: LISTING, PARTNERSHIP, UPDATE, MARKET_MOVE",
+        "description": "brief event description",
+        "timestamp": "ISO date if available"
     },
     "metrics": {
-        "impact": number,
-        "confidence": number
+        "impact": 0,
+        "confidence": 0
     }
 }`;

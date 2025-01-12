@@ -1,5 +1,7 @@
 export const tradesTemplate = `
-Extract from trade post:
+Extract trade information from this message and return it as a valid JSON object. 
+
+Message to analyze:
 {{message}}
 
 Required Information:
@@ -20,27 +22,27 @@ Required Information:
    - Timeframe
    - Key levels
 
-Output JSON only:
+Return ONLY this JSON structure, no other text:
 {
     "headline": {
-        "text": string,
-        "author": string?
+        "text": "brief summary of trade",
+        "author": "source if available"
     },
     "position": {
-        "token": string,
-        "pair": string,
-        "entry": number?,
-        "target": number?,
-        "stop": number?
+        "token": "base token symbol",
+        "pair": "trading pair (e.g. BTC/USD)",
+        "entry": 0,
+        "target": 0,
+        "stop": 0
     },
     "metrics": {
-        "size": number?,
-        "leverage": number?,
-        "risk_reward": number?
+        "size": 0,
+        "leverage": 0,
+        "risk_reward": 0
     },
     "strategy": {
-        "type": "LONG" | "SHORT",
-        "timeframe": string,
-        "key_levels": number[]
+        "type": "LONG or SHORT",
+        "timeframe": "timeframe",
+        "key_levels": [0, 0]
     }
 }`;
