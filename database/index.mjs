@@ -4,20 +4,8 @@ export async function setupDatabase() {
     // Disable SSL verification entirely for now
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     
-    // Parse existing connection string
-    const connectionString = process.env.DATABASE_URL;
-    const match = connectionString.match(/postgres:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
-    
-    if (!match) {
-        throw new Error('Invalid DATABASE_URL format');
-    }
-
-    // Reconstruct with superuser role
-    const [, user, pass, host, port, db] = match;
-    const superuserUrl = `postgres://postgres:${pass}@${host}:${port}/${db}`;
-    
     const pool = new pg.Pool({
-        connectionString: superuserUrl,
+        connectionString: process.env.DATABASE_URL,
         ssl: {
             rejectUnauthorized: false
         },
@@ -33,28 +21,20 @@ export async function setupDatabase() {
         console.error('Unexpected error on idle client', err);
     });
 
-    // Add connection monitoring without extra queries
-    let connectionCount = 0;
+    // Add connection monitoring
     pool.on('connect', () => {
-        connectionCount++;
-        if (connectionCount > 1) {
-            console.warn(`Active connections: ${connectionCount}`);
-        }
+        console.log('New database connection established');
     });
 
     pool.on('remove', () => {
-        connectionCount = Math.max(0, connectionCount - 1);
+        console.log('Database connection removed from pool');
     });
 
     try {
-        const client = await pool.connect();
-        try {
-            await client.query('SELECT NOW()');
-            console.log('Database connection successful');
-            return pool;
-        } finally {
-            client.release(true); // Force release
-        }
+        // Test the connection
+        await pool.query('SELECT NOW()');
+        console.log('Database connection successful');
+        return pool;
     } catch (error) {
         console.error('Database connection failed:', error);
         throw error;
