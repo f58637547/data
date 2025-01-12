@@ -7,14 +7,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function setupDatabase() {
-    // Parse the connection URL to get the host
-    const dbUrl = new URL(process.env.DATABASE_URL);
-    
     const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
+            rejectUnauthorized: false,
             ca: fs.readFileSync(path.join(__dirname, 'ca-certificate.crt')).toString(),
-            rejectUnauthorized: false  // Try this temporarily
+            sslmode: 'require'
         }
     });
 
