@@ -32,7 +32,13 @@ export async function extractEntities(text, channelType) {
         // 4. Parse JSON content
         let parsed;
         try {
-            parsed = JSON.parse(response.choices[0].message.content.trim());
+            const content = response.choices[0].message.content;
+            // Extract JSON from markdown if present
+            const jsonMatch = content.match(/```(?:json)?\n?(.*?)\n?```/s);
+            const jsonString = jsonMatch ? jsonMatch[1] : content;
+            
+            parsed = JSON.parse(jsonString.trim());
+            console.log('Parsed JSON:', parsed);
         } catch (parseError) {
             console.error('Raw content that failed to parse:', response.choices[0].message.content);
             throw new Error(`JSON parse error: ${parseError.message}`);

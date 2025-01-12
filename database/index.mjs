@@ -1,21 +1,20 @@
 import pg from 'pg';
 
 export async function setupDatabase() {
-    // Disable SSL verification entirely for now
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-    
     const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
-        ssl: false  // Disable SSL completely
+        ssl: {
+            rejectUnauthorized: false
+        },
+        max: 10,                     // Reduce max connections
+        idleTimeoutMillis: 30000,    // Close idle clients after 30s
+        connectionTimeoutMillis: 2000 // Return error after 2s if connection not established
     });
 
-    // Add error logging on pool
-    pool.on('connect', () => {
-        console.log('Database pool client connected');
-    });
-
+    // Add connection error handler
     pool.on('error', (err) => {
         console.error('Unexpected error on idle client', err);
+        // Don't throw error here, just log it
     });
 
     try {
