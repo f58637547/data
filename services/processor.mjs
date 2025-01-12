@@ -53,6 +53,8 @@ export async function processMessage({ message, db, templates, channelMapping })
         }
 
         // 2. Check similarity against existing embeddings
+        const newEmbedding = await generateEmbedding(cleanText);
+        
         const similarityCheck = await db.query(`
             SELECT content->>'original' as text, 
                    1 - (embedding <=> $1::vector) as similarity
@@ -61,7 +63,7 @@ export async function processMessage({ message, db, templates, channelMapping })
             AND 1 - (embedding <=> $1::vector) > 0.85
             ORDER BY similarity DESC
             LIMIT 1
-        `, [await generateEmbedding(cleanText)]);
+        `, [newEmbedding.join(',')]); // Convert array to comma-separated string
 
         if (similarityCheck.rows.length > 0) {
             const { text, similarity } = similarityCheck.rows[0];
@@ -94,7 +96,7 @@ export async function processMessage({ message, db, templates, channelMapping })
             channelMapping.type,
             process.env.AGENT_ID,
             JSON.stringify(enhancedContent),
-            embedding
+            embedding.join(',') // Convert array to comma-separated string
         ]);
 
         console.log('Saved new content:', {
