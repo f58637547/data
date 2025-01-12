@@ -9,10 +9,10 @@ export async function setupDatabase() {
         ssl: {
             rejectUnauthorized: false
         },
-        max: 5,                      // Reduce max connections
-        idleTimeoutMillis: 10000,    // Close idle clients after 10s
+        max: 3,                      // Further reduce max connections
+        idleTimeoutMillis: 5000,     // Close idle clients faster
         connectionTimeoutMillis: 2000,// Return error after 2s
-        maxUses: 7500,               // Close connection after 7500 queries
+        maxUses: 1000,               // Recycle connections more frequently
         allowExitOnIdle: true        // Allow pool to exit when idle
     });
 
@@ -24,11 +24,12 @@ export async function setupDatabase() {
 
     // Add connection limit warning
     pool.on('connect', () => {
-        pool.query('SELECT COUNT(*) FROM pg_stat_activity')
+        pool.query('SELECT COUNT(*) FROM pg_stat_activity WHERE datname = current_database()')
             .then(result => {
                 const count = parseInt(result.rows[0].count);
-                if (count > 3) { // Warning at 75% of max
-                    console.warn(`High connection count: ${count}`);
+                if (count > 2) { // Warning at 66% of max
+                    console.warn(`High connection count: ${count}, closing idle connections...`);
+                    pool.query('SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = \'idle\'');
                 }
             })
             .catch(err => console.error('Connection count check failed:', err));

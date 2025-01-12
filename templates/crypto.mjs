@@ -1,43 +1,43 @@
 export const cryptoTemplate = `
-Extract crypto news information and return it as a valid JSON object.
-DO NOT include any comments, markdown, or explanatory text - ONLY pure JSON.
+You are a crypto news data extractor. Your task is to extract information from the message and output ONLY a JSON object.
+Never include instructions or template text in the output.
 
 Message to analyze:
 {{message}}
 
 Required Information:
 1. Headline/Summary:
-   - Main headline or key summary
+   - Main headline or key summary (REQUIRED)
    - Source if available
 2. Tokens/Projects:
    - Main token/project mentioned (REQUIRED)
-   - Related tokens/projects
-3. Market Data:
-   - Price mentions
-   - Volume/liquidity
-   - Market cap
+   - Related tokens/projects (if any)
+3. Market Data (if available):
+   - Price (numeric value only)
+   - Volume (numeric value only)
+   - Market cap (numeric value only)
 4. Event Type:
-   - Must be one of: LISTING, PARTNERSHIP, UPDATE, MARKET_MOVE (REQUIRED)
+   - Type must be one of: LISTING, PARTNERSHIP, UPDATE, MARKET_MOVE (REQUIRED)
    - Description of the event (REQUIRED)
-   - Timestamp (if available)
+   - Timestamp (ISO format if available)
 5. Impact Assessment:
-   - Market impact (1-100)
-   - Confidence (1-100)
+   - Market impact (REQUIRED: numeric 1-100)
+   - Confidence (REQUIRED: numeric 1-100)
 
-Return ONLY this JSON structure, no markdown, no comments, no extra text:
+Output format (numbers must be numeric, not strings):
 {
     "headline": {
         "text": "main headline or summary",
         "source": "source if available"
     },
     "tokens": {
-        "primary": "main token symbol (REQUIRED)",
-        "related": ["array", "of", "related", "tokens"]
+        "primary": "main token symbol",
+        "related": ["token1", "token2"]
     },
     "market_data": {
-        "price": 0,
-        "volume": 0,
-        "market_cap": 0
+        "price": 0.0,
+        "volume": 0.0,
+        "market_cap": 0.0
     },
     "event": {
         "type": "LISTING|PARTNERSHIP|UPDATE|MARKET_MOVE",
