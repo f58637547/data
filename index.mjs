@@ -1,11 +1,9 @@
 // Main entry point
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { startDiscordBot } from './services/discord.mjs';
 import { setupDatabase } from './database/index.mjs';
 import { setupExpress } from './server/express.mjs';
 import { setupTemplates } from './templates/index.mjs';
-
-dotenv.config();
 
 // Track services for cleanup
 const services = {
