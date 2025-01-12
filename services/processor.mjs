@@ -40,23 +40,28 @@ export async function processMessage({ message, db, templates, channelMapping })
             return { skip: true, reason: 'no_content' };
         }
 
-        // Clean text (remove emojis, special chars, normalize whitespace)
+        // Clean text but preserve important trading symbols
         cleanText = rawText
-            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
-            .replace(/[^\w\s.,!?-]/g, '')
-            .replace(/\s+/g, ' ')
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, '') // Remove emojis
+            .replace(/https?:\/\/\S+/g, '') // Remove URLs
+            .replace(/[^\w\s$.,!?#@/-]/g, '') // Keep alphanumeric, $, #, @, /, basic punctuation
+            .replace(/\s+/g, ' ') // Normalize whitespace
             .trim();
+
+        if (cleanText.length < 10) { // Only reject if really no content
+            return { skip: true, reason: 'no_content' };
+        }
 
         // 2. Check similarity against existing embeddings
         const similarityCheck = await db.query(`
             SELECT content->>'original' as text, 
-                   1 - (embedding <=> $2::vector) as similarity
+                   1 - (embedding <=> $1::vector) as similarity
             FROM ${channelMapping.table}
             WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-            AND 1 - (embedding <=> $2::vector) > 0.85
+            AND 1 - (embedding <=> $1::vector) > 0.85
             ORDER BY similarity DESC
             LIMIT 1
-        `, [cleanText]);
+        `, [await generateEmbedding(cleanText)]);
 
         if (similarityCheck.rows.length > 0) {
             const { text, similarity } = similarityCheck.rows[0];
