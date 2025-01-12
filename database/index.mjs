@@ -1,6 +1,9 @@
 import pg from 'pg';
 
 export async function setupDatabase() {
+    // Disable SSL verification entirely for now
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    
     const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
