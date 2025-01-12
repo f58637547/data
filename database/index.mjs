@@ -1,11 +1,16 @@
 import pg from 'pg';
 import fs from 'fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Get the directory name for the current module
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function setupDatabase() {
     const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
-            ca: fs.readFileSync('ca-certificate.crt').toString(),
+            ca: fs.readFileSync(path.join(__dirname, 'ca-certificate.crt')).toString(),
             rejectUnauthorized: true
         }
     });
