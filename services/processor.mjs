@@ -31,29 +31,36 @@ export async function processMessage({ message, db, templates, channelMapping })
             return { skip: true, reason: 'no_content' };
         }
 
-        // 2. Check similarity - compare text against stored embeddings
+        // 2. Check similarity against ALL posts from last 24h
         const similarityCheck = await db.query(`
-            SELECT content->>'original' as text, 
-                   1 - (embedding <=> embedding) as similarity
+            SELECT 
+                content->>'original' as text,
+                1 - (embedding <-> embedding) as similarity
             FROM ${channelMapping.table}
             WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-            AND 1 - (embedding <=> embedding) > 0.85
-            ORDER BY similarity DESC
-            LIMIT 1
+            AND 1 - (embedding <-> embedding) > 0.85  -- Similarity threshold
+            ORDER BY similarity DESC                  -- Most similar first
         `);
 
         if (similarityCheck.rows.length > 0) {
             console.log('Similar content found:', {
-                new_text: cleanText.substring(0, 100) + '...',
-                similarity: Math.round(similarityCheck.rows[0].similarity * 100) + '%'
+                new_text: cleanText,
+                similar_count: similarityCheck.rows.length,
+                top_match: {
+                    text: similarityCheck.rows[0].text,
+                    similarity: (similarityCheck.rows[0].similarity * 100).toFixed(2) + '%'
+                }
             });
             return { skip: true, reason: 'similar_content' };
         }
 
+        // 3. Only generate embedding when saving new content
+        const embedding = await generateEmbedding(cleanText);
+
         // 3. Process and save unique content
         const parsedContent = await extractEntities(cleanText, channelMapping.type);
-        const embedding = await generateEmbedding(cleanText); // Generate embedding ONCE
 
+        // ... if not similar, save using the SAME embedding we just generated
         await db.query(`
             INSERT INTO ${channelMapping.table}
             (id, "createdAt", type, "agentId", content, embedding)
@@ -68,7 +75,7 @@ export async function processMessage({ message, db, templates, channelMapping })
                 entities: parsedContent,
                 type: channelMapping.type
             }),
-            `[${embedding}]`
+            `[${embedding}]` // Reuse the embedding we already generated
         ]);
 
         console.log('Saved new content:', {
