@@ -9,9 +9,11 @@ export async function setupDatabase() {
         ssl: {
             rejectUnauthorized: false
         },
-        max: 10,                     // Reduce max connections
-        idleTimeoutMillis: 30000,    // Close idle clients after 30s
-        connectionTimeoutMillis: 2000 // Return error after 2s if connection not established
+        max: 5,                      // Reduce max connections
+        idleTimeoutMillis: 10000,    // Close idle clients after 10s
+        connectionTimeoutMillis: 2000,// Return error after 2s
+        maxUses: 7500,               // Close connection after 7500 queries
+        allowExitOnIdle: true        // Allow pool to exit when idle
     });
 
     // Add connection error handler
@@ -20,11 +22,28 @@ export async function setupDatabase() {
         // Don't throw error here, just log it
     });
 
+    // Add connection limit warning
+    pool.on('connect', () => {
+        pool.query('SELECT COUNT(*) FROM pg_stat_activity')
+            .then(result => {
+                const count = parseInt(result.rows[0].count);
+                if (count > 3) { // Warning at 75% of max
+                    console.warn(`High connection count: ${count}`);
+                }
+            })
+            .catch(err => console.error('Connection count check failed:', err));
+    });
+
     try {
         // Test the connection
-        await pool.query('SELECT NOW()');
-        console.log('Database connection successful');
-        return pool;
+        const client = await pool.connect();
+        try {
+            await client.query('SELECT NOW()');
+            console.log('Database connection successful');
+            return pool;
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error('Database connection failed:', error);
         throw error;
