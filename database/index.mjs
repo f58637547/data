@@ -3,6 +3,8 @@ import pg from 'pg';
 let isConnecting = false;
 
 export async function setupDatabase() {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    
     if (isConnecting) {
         throw new Error('Connection attempt already in progress');
     }
