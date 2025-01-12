@@ -2,7 +2,7 @@ import { getLLMResponse, generateEmbedding } from '../services/openai.mjs';
 import { cryptoTemplate } from './crypto.mjs';
 import { tradesTemplate } from './trades.mjs';
 
-export async function setupTemplates() {
+export async function loadTemplates() {
     return {
         cryptoTemplate,
         tradesTemplate
