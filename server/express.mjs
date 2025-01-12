@@ -7,66 +7,63 @@ export async function setupExpress() {
 
     // Middleware
     app.use(express.json());
-    app.use((req, res, next) => {
+    app.use((_req, res, next) => {
         res.setHeader('X-Service-Version', process.env.APP_VERSION || '1.0.0');
         next();
     });
 
-    // Basic health check
+    // Basic health check endpoint
+    app.get('/health', async (req, res) => {
+        try {
+            const dbStatus = await dbHelpers.healthCheck(req.app.locals.db);
+            res.json({
+                status: 'ok',
+                timestamp: new Date().toISOString(),
+                version: process.env.APP_VERSION || '1.0.0',
+                database: dbStatus ? 'connected' : 'disconnected'
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: 'error',
+                message: 'Health check failed',
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+
+    // Root endpoint
     app.get('/', (_req, res) => {
-        res.send('Service is running');
-    });
-
-    // Detailed status endpoint
-    app.get('/status', async (_req, res) => {
-        const services = global.services || {};
-        const health = {
-            status: 'ok',
-            timestamp: new Date().toISOString(),
-            version: process.env.APP_VERSION || '1.0.0',
-            services: {
-                db: await dbHelpers.healthCheck(services.db),
-                discord: services.bot?.isReady() || false,
-                api: true
-            },
-            uptime: process.uptime(),
-            memory: process.memoryUsage()
-        };
-
-        const isHealthy = Object.values(health.services).every(Boolean);
-        res.status(isHealthy ? 200 : 503).json(health);
-    });
-
-    // Metrics endpoint
-    app.get('/metrics', (_req, res) => {
-        const metrics = {
-            process: {
-                uptime: process.uptime(),
-                memory: process.memoryUsage(),
-                cpu: process.cpuUsage()
-            },
-            services: global.services?.health || {}
-        };
-        res.json(metrics);
-    });
-
-    // Error handling
-    app.use((err, _req, res, _next) => {
-        console.error('Express error:', err);
-        res.status(500).json({
-            error: 'Internal server error',
-            message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        res.json({
+            message: 'API is running',
+            version: process.env.APP_VERSION || '1.0.0'
         });
     });
 
-    const server = app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
+    // Error handling middleware
+    app.use((err, _req, res, _next) => {
+        console.error('Express error:', err);
+        res.status(500).json({
+            status: 'error',
+            message: 'Internal server error'
+        });
     });
 
-    // Handle server errors
-    server.on('error', (error) => {
-        console.error('Express server error:', error);
-    });
+    // Start server
+    return new Promise((resolve, reject) => {
+        try {
+            const server = app.listen(port, () => {
+                console.log(`Express server running on port ${port}`);
+                resolve(app);
+            });
 
-    return server; // Return server instead of app for proper cleanup
+            // Handle server errors
+            server.on('error', (error) => {
+                console.error('Express server error:', error);
+                reject(error);
+            });
+        } catch (error) {
+            console.error('Failed to start Express server:', error);
+            reject(error);
+        }
+    });
 }

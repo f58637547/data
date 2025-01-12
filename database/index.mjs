@@ -7,13 +7,14 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function setupDatabase() {
+    // Parse the connection URL to get the host
+    const dbUrl = new URL(process.env.DATABASE_URL);
+    
     const pool = new pg.Pool({
         connectionString: process.env.DATABASE_URL,
         ssl: {
             ca: fs.readFileSync(path.join(__dirname, 'ca-certificate.crt')).toString(),
-            rejectUnauthorized: true,
-            checkServerIdentity: () => undefined,
-            servername: new URL(process.env.DATABASE_URL).hostname
+            rejectUnauthorized: false  // Try this temporarily
         }
     });
 
@@ -22,7 +23,7 @@ export async function setupDatabase() {
         console.log('Database pool client connected');
     });
 
-    pool.on('error', (err, client) => {
+    pool.on('error', (err) => {  // Removed unused 'client' parameter
         console.error('Unexpected error on idle client', err);
     });
 
