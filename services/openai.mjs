@@ -24,46 +24,33 @@ export async function getLLMResponse(template, context, retries = 2) {
 
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
-            if (process.env.USE_OPENROUTER === 'true') {
-                // OpenRouter
-                const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: process.env.OPENROUTER_MODEL,
-                        messages: [{
-                            role: 'user',
-                            content: template.replace('{{message}}', context.message)
-                        }]
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new LLMError(
-                        'OpenRouter API error',
-                        'openrouter',
-                        response.status,
-                        await response.text()
-                    );
-                }
-
-                const data = await response.json();
-                return data;
-            }
-
-            // OpenAI
-            const response = await openai.chat.completions.create({
-                model: process.env.OPENAI_MODEL,
-                messages: [{
-                    role: 'user',
-                    content: template.replace('{{message}}', context.message)
-                }]
+            // Always use OpenRouter for chat completions
+            const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: process.env.OPENROUTER_MODEL,
+                    messages: [{
+                        role: 'user',
+                        content: template.replace('{{message}}', context.message)
+                    }]
+                })
             });
 
-            return response;
+            if (!response.ok) {
+                throw new LLMError(
+                    'OpenRouter API error',
+                    'openrouter',
+                    response.status,
+                    await response.text()
+                );
+            }
+
+            const data = await response.json();
+            return data;
 
         } catch (error) {
             lastError = error;
@@ -107,7 +94,7 @@ export async function generateEmbedding(text, retries = 2) {
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await openai.embeddings.create({
-                model: process.env.OPENAI_EMBEDDING_MODEL,
+                model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
                 input: text
             });
 
