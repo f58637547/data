@@ -57,13 +57,13 @@ export async function processMessage({ message, db, templates, channelMapping })
         
         const similarityCheck = await db.query(`
             SELECT content->>'original' as text, 
-                   1 - (embedding <=> $1::vector) as similarity
+                   1 - (embedding <=> $1) as similarity
             FROM ${channelMapping.table}
             WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-            AND 1 - (embedding <=> $1::vector) > 0.85
+            AND 1 - (embedding <=> $1) > 0.85
             ORDER BY similarity DESC
             LIMIT 1
-        `, [newEmbedding.join(',')]); // Convert array to comma-separated string
+        `, [`[${newEmbedding}]`]); // Format as PostgreSQL array
 
         if (similarityCheck.rows.length > 0) {
             const { text, similarity } = similarityCheck.rows[0];
@@ -89,14 +89,14 @@ export async function processMessage({ message, db, templates, channelMapping })
         await db.query(`
             INSERT INTO ${channelMapping.table}
             (id, "createdAt", type, "agentId", content, embedding)
-            VALUES ($1, $2, $3, $4, $5, $6::vector)
+            VALUES ($1, $2, $3, $4, $5, $6)
         `, [
             uuidv4(),
             new Date(),
             channelMapping.type,
             process.env.AGENT_ID,
             JSON.stringify(enhancedContent),
-            embedding.join(',') // Convert array to comma-separated string
+            `[${embedding}]` // Format as PostgreSQL array
         ]);
 
         console.log('Saved new content:', {
