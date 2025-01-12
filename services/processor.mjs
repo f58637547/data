@@ -63,53 +63,66 @@ export async function processMessage({ message, db, templates, channelMapping })
         }
 
         // 2. Extract entities based on channel type
-        const entities = await extractEntities(
-            combinedDescription,
-            channelMapping.type
-        );
+        try {
+            const entities = await extractEntities(
+                combinedDescription,
+                channelMapping.type
+            );
 
-        // 3. Validate extracted entities
-        const parsedEntities = JSON.parse(entities);
-        const schema = schemas[channelMapping.type];
+            // 3. Validate extracted entities
+            const parsedEntities = JSON.parse(entities);
+            const schema = schemas[channelMapping.type];
 
-        if (!validateEntities(parsedEntities, schema)) {
-            console.error('Invalid entities:', {
+            if (!validateEntities(parsedEntities, schema)) {
+                console.log('Skipping non-trade message:', {
+                    type: channelMapping.type,
+                    preview: combinedDescription.substring(0, 100) + '...',
+                    reason: 'Not a valid trade setup'
+                });
+                return { skip: true, reason: 'not_a_trade_setup' };
+            }
+
+            // 4. Generate embedding only if we need to save
+            const embedding = await generateEmbedding(combinedDescription);
+
+            // 5. Save to DB with extracted info
+            const enhancedContent = {
+                original: combinedDescription,
+                entities: parsedEntities,
+                type: channelMapping.type
+            };
+
+            await db.query(`
+                INSERT INTO ${channelMapping.table}
+                (id, "createdAt", type, "agentId", content, embedding)
+                VALUES ($1, $2, $3, $4, $5, $6::vector)
+            `, [
+                uuidv4(),
+                new Date(),
+                channelMapping.type,
+                process.env.AGENT_ID,
+                JSON.stringify(enhancedContent),
+                embedding
+            ]);
+
+            return enhancedContent;
+
+        } catch (extractError) {
+            // Handle entity extraction errors more gracefully
+            console.log('Skipping message:', {
                 type: channelMapping.type,
-                entities: parsedEntities
+                preview: combinedDescription.substring(0, 100) + '...',
+                reason: 'Not a valid trade message'
             });
-            return { skip: true, reason: 'invalid_entities' };
+            return { skip: true, reason: 'invalid_format' };
         }
-
-        // 4. Generate embedding only if we need to save
-        const embedding = await generateEmbedding(combinedDescription);
-
-        // 5. Save to DB with extracted info
-        const enhancedContent = {
-            original: combinedDescription,
-            entities: parsedEntities,
-            type: channelMapping.type
-        };
-
-        await db.query(`
-            INSERT INTO ${channelMapping.table}
-            (id, "createdAt", type, "agentId", content, embedding)
-            VALUES ($1, $2, $3, $4, $5, $6::vector)
-        `, [
-            uuidv4(),
-            new Date(),
-            channelMapping.type,
-            process.env.AGENT_ID,
-            JSON.stringify(enhancedContent),
-            embedding
-        ]);
-
-        return enhancedContent;
 
     } catch (error) {
         console.error('Error processing message:', {
-            error,
+            error: error.message,
             channelType: channelMapping.type,
-            messageId: message.id
+            messageId: message.id,
+            preview: combinedDescription?.substring(0, 100) + '...'
         });
         return { skip: true, reason: 'processing_error' };
     }
