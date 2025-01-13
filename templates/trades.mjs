@@ -19,8 +19,7 @@ Required Information:
    - Leverage used
    - Risk/Reward ratio
 4. Event Type:
-    - Type MUST be one of: SPOT_ENTRY, FUTURES_ENTRY, LEVERAGE_ENTRY, TAKE_PROFIT, 
-     STOP_LOSS, POSITION_EXIT, BREAKOUT, REVERSAL, ACCUMULATION, DISTRIBUTION, or NONE if unclear
+    - Type MUST be one of:
    
      ENTRY SIGNALS:
      - SPOT_ENTRY (spot market buys)
@@ -37,6 +36,11 @@ Required Information:
      - REVERSAL (trend changes)
      - ACCUMULATION (buying zones)
      - DISTRIBUTION (selling zones)
+     - MARKET_MOVE (general market movement)
+     - WHALE_MOVE (large transactions)
+     - FUND_FLOW (institutional money)
+     - VOLUME_SPIKE (unusual trading volume)
+     - PRICE_ALERT (significant price moves)
      
      Use NONE for:
      - General market commentary

@@ -17,9 +17,7 @@ Required Information:
    - Volume (numeric value only)
    - Market cap (numeric value only)
 4. Event Type:
-    - Type MUST be one of: LISTING, DELISTING, MARKET_MOVE, WHALE_MOVE, ACCUMULATION, DISTRIBUTION, 
-     UPDATE, DEVELOPMENT, PARTNERSHIP, INTEGRATION, AIRDROP, TOKENOMICS, HACK, EXPLOIT, RUGPULL, 
-     FORK, UPGRADE, BRIDGE, or NONE if unclear
+    - Type MUST be one of: 
      
      PROJECT NEWS:
      - LISTING (new exchange/platform listings)
@@ -28,10 +26,13 @@ Required Information:
      - UPGRADE (protocol changes, forks)
      
      MARKET EVENTS:
+     - MARKET_MOVE (general market movement)
      - WHALE_MOVE (large transactions)
      - FUND_FLOW (institutional money)
      - VOLUME_SPIKE (unusual trading volume)
      - PRICE_ALERT (significant price moves)
+     - ACCUMULATION (buying zones)
+     - DISTRIBUTION (selling zones)
      
      SECURITY:
      - HACK (confirmed breaches)

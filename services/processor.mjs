@@ -73,10 +73,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 'UPGRADE',        // Protocol changes
                 
                 // MARKET EVENTS
+                'MARKET_MOVE',    // General market movement
                 'WHALE_MOVE',     // Large transactions
                 'FUND_FLOW',      // Institutional money
                 'VOLUME_SPIKE',   // Trading volume spikes
                 'PRICE_ALERT',    // Price movements
+                'ACCUMULATION',   // Buying zones
+                'DISTRIBUTION',   // Selling zones
                 
                 // SECURITY
                 'HACK',           // Breaches
@@ -111,7 +114,12 @@ export async function processMessage({ message, db, channelMapping }) {
                 'BREAKOUT',       // Pattern breaks
                 'REVERSAL',       // Trend changes
                 'ACCUMULATION',   // Buying zones
-                'DISTRIBUTION'    // Selling zones
+                'DISTRIBUTION',   // Selling zones
+                'MARKET_MOVE',    // General market movement
+                'WHALE_MOVE',     // Large transactions
+                'FUND_FLOW',      // Institutional money
+                'VOLUME_SPIKE',   // Unusual trading volume
+                'PRICE_ALERT',    // Significant price moves
             ]
         };
 
