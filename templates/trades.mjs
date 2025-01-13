@@ -19,7 +19,8 @@ Required Information:
    - Leverage used
    - Risk/Reward ratio
 4. Strategy:
-   - Trade type (REQUIRED - must be "LONG" or "SHORT")
+   - Type MUST be one of: SPOT_ENTRY, FUTURES_ENTRY, LEVERAGE_ENTRY, TAKE_PROFIT, 
+     STOP_LOSS, POSITION_EXIT, BREAKOUT, REVERSAL, ACCUMULATION, DISTRIBUTION, or NONE if unclear
    - Timeframe
    - Key levels
 
@@ -42,7 +43,7 @@ Output format (numbers must be numeric, not strings):
         "risk_reward": 0.0
     },
     "strategy": {
-        "type": "LONG",
+        "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
         "timeframe": "timeframe",
         "key_levels": [0.0, 0.0]
     }

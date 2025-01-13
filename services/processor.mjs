@@ -57,9 +57,31 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'similar_content' };
         }
 
-        // 4. Process and save unique content
+        // 4. Process and validate content
         const parsedContent = await extractEntities(cleanText, channelMapping.type);
 
+        // Add validation here before saving
+        const validEventTypes = {
+            crypto: [
+                'LISTING', 'DELISTING', 'MARKET_MOVE', 'WHALE_MOVE',
+                'ACCUMULATION', 'DISTRIBUTION', 'UPDATE', 'DEVELOPMENT',
+                'PARTNERSHIP', 'INTEGRATION', 'AIRDROP', 'TOKENOMICS',
+                'HACK', 'EXPLOIT', 'RUGPULL', 'FORK', 'UPGRADE', 'BRIDGE'
+            ],
+            trades: [
+                'SPOT_ENTRY', 'FUTURES_ENTRY', 'LEVERAGE_ENTRY',
+                'TAKE_PROFIT', 'STOP_LOSS', 'POSITION_EXIT',
+                'BREAKOUT', 'REVERSAL', 'ACCUMULATION', 'DISTRIBUTION'
+            ]
+        };
+
+        // Validate before saving
+        if (!validEventTypes[channelMapping.type].includes(parsedContent.event?.type)) {
+            console.log('Skipping: Invalid event type:', parsedContent.event?.type);
+            return { skip: true, reason: 'invalid_event_type' };
+        }
+
+        // 5. Process and save unique content
         await db.query(`
             INSERT INTO ${channelMapping.table}
             (id, "createdAt", type, "agentId", content, embedding)

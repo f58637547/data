@@ -17,7 +17,9 @@ Required Information:
    - Volume (numeric value only)
    - Market cap (numeric value only)
 4. Event Type:
-   - Type must be one of: LISTING, PARTNERSHIP, UPDATE, MARKET_MOVE (REQUIRED)
+   - Type MUST be one of: LISTING, DELISTING, MARKET_MOVE, WHALE_MOVE, ACCUMULATION, DISTRIBUTION, 
+     UPDATE, DEVELOPMENT, PARTNERSHIP, INTEGRATION, AIRDROP, TOKENOMICS, HACK, EXPLOIT, RUGPULL, 
+     FORK, UPGRADE, BRIDGE, or NONE if unclear
    - Description of the event (REQUIRED)
    - Timestamp (ISO format if available)
 5. Impact Assessment:
@@ -40,7 +42,7 @@ Output format (numbers must be numeric, not strings):
         "market_cap": 0.0
     },
     "event": {
-        "type": "LISTING|PARTNERSHIP|UPDATE|MARKET_MOVE",
+        "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
         "description": "brief event description",
         "timestamp": null
     },
