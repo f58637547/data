@@ -41,7 +41,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 1 - (embedding <-> $1::vector) as similarity
             FROM ${channelMapping.table}
             WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-            AND 1 - (embedding <-> $1::vector) > 0.85
+            AND 1 - (embedding <-> $1::vector) > 0.65
             ORDER BY similarity DESC
         `, [`[${newEmbedding}]`]);
 

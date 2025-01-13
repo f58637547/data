@@ -42,9 +42,9 @@ Output format (numbers must be numeric, not strings):
         "leverage": 0,
         "risk_reward": 0.0
     },
-    "strategy": {
+    "event": {
         "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
-        "timeframe": "timeframe",
-        "key_levels": [0.0, 0.0]
+        "description": "brief event description",
+        "timestamp": null
     }
 }`;
