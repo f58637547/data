@@ -18,11 +18,33 @@ Required Information:
    - Position size
    - Leverage used
    - Risk/Reward ratio
-4. Strategy:
-   - Type MUST be one of: SPOT_ENTRY, FUTURES_ENTRY, LEVERAGE_ENTRY, TAKE_PROFIT, 
+4. Event Type:
+    - Type MUST be one of: SPOT_ENTRY, FUTURES_ENTRY, LEVERAGE_ENTRY, TAKE_PROFIT, 
      STOP_LOSS, POSITION_EXIT, BREAKOUT, REVERSAL, ACCUMULATION, DISTRIBUTION, or NONE if unclear
-   - Timeframe
-   - Key levels
+   
+     ENTRY SIGNALS:
+     - SPOT_ENTRY (spot market buys)
+     - FUTURES_ENTRY (futures positions)
+     - LEVERAGE_ENTRY (margin trades)
+     
+     EXIT SIGNALS:
+     - TAKE_PROFIT (profit targets hit)
+     - STOP_LOSS (stop levels hit)
+     - POSITION_EXIT (general exits)
+     
+     ANALYSIS:
+     - BREAKOUT (pattern breakouts)
+     - REVERSAL (trend changes)
+     - ACCUMULATION (buying zones)
+     - DISTRIBUTION (selling zones)
+     
+     Use NONE for:
+     - General market commentary
+     - Unconfirmed signals
+     - Past trade reviews
+   
+   - Description of the event (REQUIRED)
+   - Timestamp (ISO format if available)
 
 Output format (numbers must be numeric, not strings):
 {
