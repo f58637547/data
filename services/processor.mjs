@@ -34,13 +34,15 @@ export async function processMessage({ message, db, channelMapping }) {
         // 2. Generate embedding for similarity check
         const newEmbedding = await generateEmbedding(cleanText);
 
-        // 3. Check similarity against ALL posts from last 24h
+        // 3. Check similarity against ALL posts from last 24h across ALL types
         const similarityCheck = await db.query(`
             SELECT 
                 content->>'original' as text,
+                type,
                 1 - (embedding <-> $1::vector) as similarity
-            FROM ${channelMapping.table}
+            FROM memories
             WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+            AND type IN ('crypto', 'trades', 'ainews', 'aiusers')
             AND 1 - (embedding <-> $1::vector) > 0.65
             ORDER BY similarity DESC
         `, [`[${newEmbedding}]`]);
@@ -51,6 +53,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 similar_count: similarityCheck.rows.length,
                 top_match: {
                     text: similarityCheck.rows[0].text,
+                    type: similarityCheck.rows[0].type,
                     similarity: (similarityCheck.rows[0].similarity * 100).toFixed(2) + '%'
                 }
             });
@@ -63,15 +66,52 @@ export async function processMessage({ message, db, channelMapping }) {
         // Add validation here before saving
         const validEventTypes = {
             crypto: [
-                'LISTING', 'DELISTING', 'MARKET_MOVE', 'WHALE_MOVE',
-                'ACCUMULATION', 'DISTRIBUTION', 'UPDATE', 'DEVELOPMENT',
-                'PARTNERSHIP', 'INTEGRATION', 'AIRDROP', 'TOKENOMICS',
-                'HACK', 'EXPLOIT', 'RUGPULL', 'FORK', 'UPGRADE', 'BRIDGE'
+                // PROJECT NEWS
+                'LISTING',        // New listings
+                'DELISTING',      // Removals
+                'DEVELOPMENT',    // Code updates
+                'UPGRADE',        // Protocol changes
+                
+                // MARKET EVENTS
+                'WHALE_MOVE',     // Large transactions
+                'FUND_FLOW',      // Institutional money
+                'VOLUME_SPIKE',   // Trading volume spikes
+                'PRICE_ALERT',    // Price movements
+                
+                // SECURITY
+                'HACK',           // Breaches
+                'EXPLOIT',        // Vulnerabilities
+                'RUGPULL',        // Scams
+                
+                // BUSINESS
+                'PARTNERSHIP',    // Deals
+                'ACQUISITION',    // Mergers
+                'REGULATION',     // Legal updates
+                
+                // OTHERS
+                'UPDATE',         // General updates
+                'INTEGRATION',    // Platform integrations
+                'AIRDROP',        // Token distributions
+                'TOKENOMICS',     // Supply changes
+                'FORK',           // Chain splits
+                'BRIDGE'          // Cross-chain
             ],
             trades: [
-                'SPOT_ENTRY', 'FUTURES_ENTRY', 'LEVERAGE_ENTRY',
-                'TAKE_PROFIT', 'STOP_LOSS', 'POSITION_EXIT',
-                'BREAKOUT', 'REVERSAL', 'ACCUMULATION', 'DISTRIBUTION'
+                // ENTRY SIGNALS
+                'SPOT_ENTRY',     // Spot buys
+                'FUTURES_ENTRY',  // Futures positions
+                'LEVERAGE_ENTRY', // Margin trades
+                
+                // EXIT SIGNALS
+                'TAKE_PROFIT',    // Profit targets
+                'STOP_LOSS',      // Stop hits
+                'POSITION_EXIT',  // General exits
+                
+                // ANALYSIS
+                'BREAKOUT',       // Pattern breaks
+                'REVERSAL',       // Trend changes
+                'ACCUMULATION',   // Buying zones
+                'DISTRIBUTION'    // Selling zones
             ]
         };
 
