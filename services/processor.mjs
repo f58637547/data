@@ -33,8 +33,13 @@ export async function processMessage({ message, db, channelMapping }) {
 
         // 2. Generate embedding for similarity check
         const newEmbedding = await generateEmbedding(cleanText);
+        console.log('Generated embedding for:', {
+            preview: cleanText.substring(0, 100),
+            embedding_length: newEmbedding.length
+        });
 
-        // 3. Check similarity against ALL posts from last 24h across ALL types
+        // 3. Check similarity against ALL posts from last 24h
+        console.log('Checking similarity...');
         const similarityCheck = await db.query(`
             SELECT 
                 content->>'original' as text,
@@ -49,15 +54,17 @@ export async function processMessage({ message, db, channelMapping }) {
 
         if (similarityCheck.rows.length > 0) {
             console.log('Similar content found:', {
-                new_text: cleanText,
+                new_text: cleanText.substring(0, 100) + '...',
                 similar_count: similarityCheck.rows.length,
-                top_match: {
-                    text: similarityCheck.rows[0].text,
-                    type: similarityCheck.rows[0].type,
-                    similarity: (similarityCheck.rows[0].similarity * 100).toFixed(2) + '%'
-                }
+                matches: similarityCheck.rows.map(row => ({
+                    text: row.text.substring(0, 100) + '...',
+                    type: row.type,
+                    similarity: (row.similarity * 100).toFixed(2) + '%'
+                }))
             });
             return { skip: true, reason: 'similar_content' };
+        } else {
+            console.log('No similar content found in last 24h');
         }
 
         // 4. Process and validate content

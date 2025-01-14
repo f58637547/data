@@ -52,8 +52,58 @@ Required Information:
    - Description of the event (REQUIRED)
    - Timestamp (ISO format if available)
 5. Impact Assessment:
-   - Market impact (REQUIRED: numeric 1-100)
-   - Confidence (REQUIRED: numeric 1-100)
+   Score MUST be based on event type and evidence:
+
+   HIGH IMPACT (70-100):
+   - MARKET EVENTS:
+     • WHALE_MOVE: Moves > $10M, multiple transactions
+     • FUND_FLOW: Institutional-size flows, verified sources
+     • VOLUME_SPIKE: >3x average volume, multiple exchanges
+     • PRICE_ALERT: >10% price change with volume
+   
+   - SECURITY:
+     • HACK: Confirmed breaches >$1M
+     • EXPLOIT: Critical vulnerabilities, active threats
+     • RUGPULL: Large-scale scams, multiple victims
+   
+   - PROJECT NEWS:
+     • LISTING: Tier-1 exchanges, major platforms
+     • DEVELOPMENT: Core protocol upgrades
+     • UPGRADE: Network-wide changes
+   
+   MEDIUM IMPACT (40-70):
+   - MARKET EVENTS:
+     • WHALE_MOVE: Moves $1M-$10M
+     • ACCUMULATION: Sustained buying, clear pattern
+     • DISTRIBUTION: Notable selling pressure
+   
+   - BUSINESS:
+     • PARTNERSHIP: Verified collaborations
+     • ACQUISITION: Strategic buyouts
+     • REGULATION: Regional policy changes
+   
+   LOW IMPACT (0-40):
+   - General updates
+   - Minor integrations
+   - Small market moves
+   - Unverified news
+
+   CONFIDENCE SCORING:
+   90-100: Multiple tier-1 sources, on-chain proof
+   70-90:  Verified source + supporting evidence
+   40-70:  Single reliable source
+   0-40:   Unverified/unclear sources
+
+Example:
+"Binance lists new token" = {
+    impact: 80,     // Tier-1 exchange listing
+    confidence: 95  // Official announcement
+}
+
+"Unverified rumor of partnership" = {
+    impact: 30,     // Potential but unconfirmed
+    confidence: 20  // No reliable source
+}
 
 Output format (numbers must be numeric, not strings):
 {

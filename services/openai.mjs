@@ -89,15 +89,21 @@ export async function getLLMResponse(template, context, retries = 2) {
 
 // Always use OpenAI for embeddings (better performance/cost ratio)
 export async function generateEmbedding(text, retries = 2) {
+    console.log('Generating embedding for text length:', text.length);
+    
     let lastError;
-
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await openai.embeddings.create({
                 model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
                 input: text
             });
-
+            
+            console.log('Embedding generated successfully:', {
+                model: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+                dimensions: response.data[0].embedding.length
+            });
+            
             return response.data[0].embedding;
 
         } catch (error) {
