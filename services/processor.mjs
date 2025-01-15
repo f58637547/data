@@ -68,7 +68,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 'AIRDROP',        // Token distributions
                 'TOKENOMICS',     // Supply changes
                 'FORK',           // Chain splits
-                'BRIDGE'          // Cross-chain
+                'BRIDGE',         // Cross-chain
+                'DELEGATE',       // Staking
+                'REBASE',         // Price rebalancing
+                'LIQUIDITY_POOL', // Liquidity pools
+                'DEX',            // Decentralized exchanges
+                'DEFI',           // Decentralized finance
+                'DEX_POOL',       // Decentralized exchange pools
             ],
             trades: [
                 // ENTRY SIGNALS

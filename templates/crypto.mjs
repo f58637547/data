@@ -17,38 +17,47 @@ Required Information:
    - Volume (numeric value only)
    - Market cap (numeric value only)
 4. Event Type:
-    - Type MUST be one of: 
+    - Type MUST be one of these exact values (no category headers): 
      
-     PROJECT NEWS:
-     - LISTING (new exchange/platform listings)
-     - DELISTING (removed from exchanges)
-     - DEVELOPMENT (code updates, features)
-     - UPGRADE (protocol changes, forks)
-     
-     MARKET EVENTS:
-     - MARKET_MOVE (general market movement)
-     - WHALE_MOVE (large transactions)
-     - FUND_FLOW (institutional money)
-     - VOLUME_SPIKE (unusual trading volume)
-     - PRICE_ALERT (significant price moves)
-     - ACCUMULATION (buying zones)
-     - DISTRIBUTION (selling zones)
-     
-     SECURITY EVENTS:
-     - HACK (confirmed breaches)
-     - EXPLOIT (vulnerabilities found)
-     - RUGPULL (confirmed scams)
-     
-     BUSINESS EVENTS:
-     - PARTNERSHIP (confirmed deals)
-     - ACQUISITION (buyouts, mergers)
-     - REGULATION (legal updates)
-     
-     Use NONE for:
-     - Opinions/Analysis
-     - Price predictions
-     - General market commentary
-     - Unconfirmed rumors
+    LISTING              // New exchange/platform listings
+    DELISTING            // Removed from exchanges
+    DEVELOPMENT          // Code updates, features
+    UPGRADE              // Protocol changes
+    
+    MARKET_MOVE          // General market movement
+    WHALE_MOVE           // Large transactions
+    FUND_FLOW           // Institutional money
+    VOLUME_SPIKE        // Trading volume spikes
+    PRICE_ALERT         // Price movements
+    ACCUMULATION        // Buying zones
+    DISTRIBUTION        // Selling zones
+    
+    HACK                // Confirmed breaches
+    EXPLOIT             // Vulnerabilities found
+    RUGPULL             // Confirmed scams
+    
+    PARTNERSHIP         // Confirmed deals
+    ACQUISITION         // Buyouts, mergers
+    REGULATION          // Legal updates
+    
+    UPDATE              // General updates
+    INTEGRATION         // Platform integrations
+    AIRDROP             // Token distributions
+    TOKENOMICS          // Supply changes
+    FORK                // Chain splits
+    BRIDGE              // Cross-chain
+    DELEGATE            // Staking
+    REBASE              // Price rebalancing
+    LIQUIDITY_POOL      // Liquidity pools
+    DEX                 // Decentralized exchanges
+    DEFI                // Decentralized finance
+    DEX_POOL            // Decentralized exchange pools
+
+    Use NONE for:
+    - Opinions/Analysis
+    - Unconfirmed rumors
+    - General commentary
+
    - Description of the event (REQUIRED)
    - Timestamp (ISO format if available)
 5. Impact Assessment:

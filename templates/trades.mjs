@@ -19,33 +19,30 @@ Required Information:
    - Leverage used
    - Risk/Reward ratio
 4. Event Type:
-    - Type MUST be one of:
+    - Type MUST be one of these exact values (no category headers):
    
-     ENTRY SIGNALS:
-     - SPOT_ENTRY (spot market buys)
-     - FUTURES_ENTRY (futures positions)
-     - LEVERAGE_ENTRY (margin trades)
-     
-     EXIT SIGNALS:
-     - TAKE_PROFIT (profit targets hit)
-     - STOP_LOSS (stop levels hit)
-     - POSITION_EXIT (general exits)
-     
-     ANALYSIS:
-     - BREAKOUT (pattern breakouts)
-     - REVERSAL (trend changes)
-     - ACCUMULATION (buying zones)
-     - DISTRIBUTION (selling zones)
-     - MARKET_MOVE (general market movement)
-     - WHALE_MOVE (large transactions)
-     - FUND_FLOW (institutional money)
-     - VOLUME_SPIKE (unusual trading volume)
-     - PRICE_ALERT (significant price moves)
-     
-     Use NONE for:
-     - General market commentary
-     - Unconfirmed signals
-     - Past trade reviews
+    SPOT_ENTRY          // Spot market buys
+    FUTURES_ENTRY       // Futures positions
+    LEVERAGE_ENTRY      // Margin trades
+    
+    TAKE_PROFIT         // Profit targets hit
+    STOP_LOSS          // Stop levels hit
+    POSITION_EXIT       // General exits
+    
+    BREAKOUT           // Pattern breakouts
+    REVERSAL           // Trend changes
+    ACCUMULATION       // Buying zones
+    DISTRIBUTION       // Selling zones
+    MARKET_MOVE        // General market movement
+    WHALE_MOVE         // Large transactions
+    FUND_FLOW          // Institutional money
+    VOLUME_SPIKE       // Unusual trading volume
+    PRICE_ALERT        // Significant price moves
+    
+    Use NONE for:
+    - General market commentary
+    - Unconfirmed signals
+    - Past trade reviews
    
    - Description of the event (REQUIRED)
    - Timestamp (ISO format if available)
