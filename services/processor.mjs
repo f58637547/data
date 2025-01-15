@@ -33,24 +33,48 @@ export async function processMessage({ message, db, channelMapping }) {
 
         // 2. Generate embedding for similarity check
         const newEmbedding = await generateEmbedding(cleanText);
-        console.log('Generated embedding for:', {
-            preview: cleanText.substring(0, 100),
-            embedding_length: newEmbedding.length
+        console.log('Generated embedding:', {
+            text: cleanText,
+            embedding_preview: `[${newEmbedding.slice(0,3)}...]`, // Show first few values
+            length: newEmbedding.length
         });
 
-        // 3. Check similarity against ALL posts from last 24h
-        console.log('Checking similarity...');
+        // 3. Check similarity - multiple layers
+        console.log('Running similarity checks...');
         const similarityCheck = await db.query(`
             SELECT 
                 content->>'original' as text,
                 type,
-                1 - (embedding <-> $1::vector) as similarity
+                -- Vector similarity
+                1 - (embedding <-> $1::vector) as vector_similarity,
+                -- Text similarity
+                similarity(content->>'original', $2) as text_similarity,
+                -- Token similarity (for crypto news)
+                similarity(
+                    content->'entities'->'tokens'->>'primary',
+                    $3
+                ) as token_similarity
             FROM memories
-            WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+            WHERE "createdAt" > NOW() - INTERVAL '48 hours'
             AND type IN ('crypto', 'trades', 'ainews', 'aiusers')
-            AND 1 - (embedding <-> $1::vector) > 0.65
-            ORDER BY similarity DESC
-        `, [`[${newEmbedding}]`]);
+            AND (
+                -- Match any of these conditions
+                1 - (embedding <-> $1::vector) > 0.65 OR  -- Vector similarity
+                similarity(content->>'original', $2) > 0.8 OR  -- Text similarity
+                (
+                    type = 'crypto' AND
+                    similarity(
+                        content->'entities'->'tokens'->>'primary',
+                        $3
+                    ) > 0.9  -- Token exact match
+                )
+            )
+            ORDER BY vector_similarity DESC
+        `, [
+            `[${newEmbedding}]`,
+            cleanText,
+            parsedContent?.tokens?.primary || ''
+        ]);
 
         if (similarityCheck.rows.length > 0) {
             console.log('Similar content found:', {
@@ -59,12 +83,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 matches: similarityCheck.rows.map(row => ({
                     text: row.text.substring(0, 100) + '...',
                     type: row.type,
-                    similarity: (row.similarity * 100).toFixed(2) + '%'
+                    vector_sim: (row.vector_similarity * 100).toFixed(2) + '%',
+                    text_sim: (row.text_similarity * 100).toFixed(2) + '%',
+                    token_sim: row.token_similarity ? 
+                        (row.token_similarity * 100).toFixed(2) + '%' : 'N/A'
                 }))
             });
             return { skip: true, reason: 'similar_content' };
-        } else {
-            console.log('No similar content found in last 24h');
         }
 
         // 4. Process and validate content
