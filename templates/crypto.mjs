@@ -54,9 +54,10 @@ Required Information:
     DEX_POOL            // Decentralized exchange pools
 
     Use NONE for:
-    - Opinions/Analysis
+    - Pure opinions/commentary
+    - Market speculation
     - Unconfirmed rumors
-    - General commentary
+    - General discussion
 
    - Description of the event (REQUIRED)
    - Timestamp (ISO format if available)

@@ -123,6 +123,37 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'invalid_event_type' };
         }
 
+        // After event type validation, add impact check
+        if (parsedContent.metrics.impact < 40) {  // 40 is our LOW IMPACT threshold
+            console.log('Skipping: Low impact score:', parsedContent.metrics.impact);
+            return { skip: true, reason: 'low_impact' };
+        }
+
+        // Or more detailed version:
+        const impactThresholds = {
+            crypto: {
+                MARKET_MOVE: 50,    // Market moves need higher impact
+                FUND_FLOW: 60,      // Fund flows need significant size
+                WHALE_MOVE: 50,     // Whale moves must be large
+                UPDATE: 40,         // Updates can be lower impact
+                REGULATION: 50,     // Regulatory news needs medium impact
+                default: 40        // Default minimum threshold
+            },
+            trades: {
+                SPOT_ENTRY: 50,
+                FUTURES_ENTRY: 60,
+                default: 40
+            }
+        };
+
+        const minImpact = impactThresholds[channelMapping.type][parsedContent.event.type] || 
+                         impactThresholds[channelMapping.type].default;
+
+        if (parsedContent.metrics.impact < minImpact) {
+            console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact} for ${parsedContent.event.type}`);
+            return { skip: true, reason: 'low_impact' };
+        }
+
         // 3. THEN generate embedding
         const newEmbedding = await generateEmbedding(cleanText);
 
@@ -139,10 +170,10 @@ export async function processMessage({ message, db, channelMapping }) {
                 content->'entities'->'metrics'->>'confidence' as confidence
             FROM memories
             WHERE "createdAt" > NOW() - INTERVAL '48 hours'
-            AND type IN ('crypto', 'trades', 'ainews', 'aiusers')
+            AND type IN ('crypto', 'trades')
             AND (
                 -- Vector similarity threshold
-                1 - (embedding <-> $1::vector) > 0.65 OR
+                1 - (embedding <-> $1::vector) > 0.85 OR
                 
                 -- For crypto: check token + metrics
                 (type = 'crypto' AND
