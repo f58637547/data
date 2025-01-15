@@ -132,7 +132,9 @@ Output format (numbers must be numeric, not strings):
     "metrics": {
         "size": 0.0,
         "leverage": 0,
-        "risk_reward": 0.0
+        "risk_reward": 0.0,
+        "impact": 50,
+        "confidence": 50
     },
     "event": {
         "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",

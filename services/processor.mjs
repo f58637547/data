@@ -129,18 +129,25 @@ export async function processMessage({ message, db, channelMapping }) {
                 1 - (embedding <-> $1::vector) > 0.65 OR  -- Vector similarity
                 similarity(content->>'original', $2) > 0.8 OR  -- Text similarity
                 (
-                    type = 'crypto' AND
-                    -- Similar token AND similar impact/confidence
-                    similarity(
-                        content->'entities'->'tokens'->>'primary',
-                        $3
-                    ) > 0.9 AND
-                    ABS(
-                        (content->'entities'->'metrics'->>'impact')::int - $4::int
-                    ) < 20 AND  -- Impact within 20 points
-                    ABS(
-                        (content->'entities'->'metrics'->>'confidence')::int - $5::int
-                    ) < 20  -- Confidence within 20 points
+                    -- For crypto: check token + metrics
+                    (type = 'crypto' AND
+                        similarity(
+                            content->'entities'->'tokens'->>'primary',
+                            $3
+                        ) > 0.9 AND
+                        ABS((content->'entities'->'metrics'->>'impact')::int - $4::int) < 20 AND
+                        ABS((content->'entities'->'metrics'->>'confidence')::int - $5::int) < 20
+                    )
+                    OR
+                    -- For trades: check position token + metrics
+                    (type = 'trades' AND
+                        similarity(
+                            content->'entities'->'position'->>'token',
+                            $3
+                        ) > 0.9 AND
+                        ABS((content->'entities'->'metrics'->>'impact')::int - $4::int) < 20 AND
+                        ABS((content->'entities'->'metrics'->>'confidence')::int - $5::int) < 20
+                    )
                 )
             )
             ORDER BY vector_similarity DESC

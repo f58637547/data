@@ -34,12 +34,12 @@ Required Information:
      - ACCUMULATION (buying zones)
      - DISTRIBUTION (selling zones)
      
-     SECURITY:
+     SECURITY EVENTS:
      - HACK (confirmed breaches)
      - EXPLOIT (vulnerabilities found)
      - RUGPULL (confirmed scams)
      
-     BUSINESS:
+     BUSINESS EVENTS:
      - PARTNERSHIP (confirmed deals)
      - ACQUISITION (buyouts, mergers)
      - REGULATION (legal updates)
