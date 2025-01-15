@@ -4,6 +4,11 @@ import { extractEntities } from '../templates/index.mjs';
 
 export async function processMessage({ message, db, channelMapping }) {
     try {
+        // Log original message
+        console.log('\n=== Original Message ===');
+        console.log('Content:', message.content);
+        console.log('Embeds:', message.embeds);
+
         // 1. Get plain text from Discord
         let rawText = message.content || '';
         if (message.embeds?.length > 0) {
@@ -31,8 +36,14 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'no_content' };
         }
 
-        // 2. Process and validate content FIRST
+        // Log cleaned text
+        console.log('\n=== Cleaned Text ===');
+        console.log(cleanText);
+
+        // Parse content
         const parsedContent = await extractEntities(cleanText, channelMapping.type);
+        console.log('\n=== Parsed Content ===');
+        console.log(JSON.stringify(parsedContent, null, 2));
 
         // Add validation here before saving
         const validEventTypes = {
@@ -100,6 +111,12 @@ export async function processMessage({ message, db, channelMapping }) {
             ]
         };
 
+        // Log validation
+        console.log('\n=== Event Type Validation ===');
+        console.log('Type:', parsedContent.event?.type);
+        console.log('Valid Types:', validEventTypes[channelMapping.type]);
+        console.log('Is Valid:', validEventTypes[channelMapping.type].includes(parsedContent.event?.type));
+
         // Keep validation
         if (!validEventTypes[channelMapping.type].includes(parsedContent.event?.type)) {
             console.log('Skipping: Invalid event type:', parsedContent.event?.type);
@@ -115,15 +132,8 @@ export async function processMessage({ message, db, channelMapping }) {
             SELECT 
                 content->>'original' as text,
                 type,
-                -- Vector similarity
+                -- Only vector similarity
                 1 - (embedding <-> $1::vector) as vector_similarity,
-                -- Text similarity
-                similarity(content->>'original', $2) as text_similarity,
-                -- Token similarity (for crypto news)
-                similarity(
-                    content->'entities'->'tokens'->>'primary',
-                    $3
-                ) as token_similarity,
                 -- Get metrics for comparison
                 content->'entities'->'metrics'->>'impact' as impact,
                 content->'entities'->'metrics'->>'confidence' as confidence
@@ -131,36 +141,27 @@ export async function processMessage({ message, db, channelMapping }) {
             WHERE "createdAt" > NOW() - INTERVAL '48 hours'
             AND type IN ('crypto', 'trades', 'ainews', 'aiusers')
             AND (
-                -- Match any of these conditions
-                1 - (embedding <-> $1::vector) > 0.65 OR  -- Vector similarity
-                similarity(content->>'original', $2) > 0.8 OR  -- Text similarity
-                (
-                    -- For crypto: check token + metrics
-                    (type = 'crypto' AND
-                        similarity(
-                            content->'entities'->'tokens'->>'primary',
-                            $3
-                        ) > 0.9 AND
-                        ABS((content->'entities'->'metrics'->>'impact')::int - $4::int) < 20 AND
-                        ABS((content->'entities'->'metrics'->>'confidence')::int - $5::int) < 20
-                    )
-                    OR
-                    -- For trades: check position token + metrics
-                    (type = 'trades' AND
-                        similarity(
-                            content->'entities'->'position'->>'token',
-                            $3
-                        ) > 0.9 AND
-                        ABS((content->'entities'->'metrics'->>'impact')::int - $4::int) < 20 AND
-                        ABS((content->'entities'->'metrics'->>'confidence')::int - $5::int) < 20
-                    )
+                -- Vector similarity threshold
+                1 - (embedding <-> $1::vector) > 0.65 OR
+                
+                -- For crypto: check token + metrics
+                (type = 'crypto' AND
+                    content->'entities'->'tokens'->>'primary' = $2 AND
+                    ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
+                    ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
+                )
+                OR
+                -- For trades: check position token + metrics
+                (type = 'trades' AND
+                    content->'entities'->'position'->>'token' = $2 AND
+                    ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
+                    ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )
             )
             ORDER BY vector_similarity DESC
         `, [
             `[${newEmbedding}]`,
-            cleanText,
-            parsedContent?.tokens?.primary || '',
+            parsedContent?.tokens?.primary || '',  // For exact token match
             parsedContent?.metrics?.impact || 50,
             parsedContent?.metrics?.confidence || 50
         ]);
