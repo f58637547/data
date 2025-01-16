@@ -57,30 +57,20 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'no_content' };
         }
 
-        // Add channel mapping validation here
-        if (!channelMapping || !channelMapping.type) {
+        // Only keep the basic channel mapping validation
+        if (!channelMapping || !channelMapping.table) {
             console.error('Invalid channel mapping:', channelMapping);
             return { skip: true, reason: 'invalid_channel_mapping' };
-        }
-
-        if (!['crypto', 'trades'].includes(channelMapping.type)) {
-            console.error('Invalid channel type:', channelMapping.type);
-            return { skip: true, reason: 'invalid_channel_type' };
         }
 
         // Log cleaned text
         console.log('\n=== Cleaned Text ===');
         console.log(cleanText);
 
-        // Add template type mapping
-        const templateTypes = {
-            'raw': channelMapping.table  // maps 'raw' to either 'crypto' or 'trades' based on table
-        };
-
-        // Parse content with author info
+        // Parse content with author info - using table name for template
         const parsedContent = await extractEntities(
             cleanText, 
-            channelMapping.table,  // Use table name ('crypto' or 'trades') for template selection
+            channelMapping.table,  // Use table name for template selection
             {
                 author: author,
                 rtAuthor: rtAuthor
@@ -92,18 +82,6 @@ export async function processMessage({ message, db, channelMapping }) {
         // Add logging for channelMapping
         console.log('\n=== Channel Mapping ===');
         console.log('Mapping:', channelMapping);
-
-        // Add validation for channelMapping
-        if (!channelMapping || !channelMapping.type) {
-            console.error('Invalid channel mapping:', channelMapping);
-            return { skip: true, reason: 'invalid_channel_mapping' };
-        }
-
-        // Validate type is either 'crypto' or 'trades'
-        if (!['crypto', 'trades'].includes(channelMapping.type)) {
-            console.error('Invalid channel type:', channelMapping.type);
-            return { skip: true, reason: 'invalid_channel_type' };
-        }
 
         // Validate event type
         const validEventTypes = {
@@ -178,17 +156,17 @@ export async function processMessage({ message, db, channelMapping }) {
         // Log validation
         console.log('\n=== Event Type Validation ===');
         console.log('Type:', parsedContent.event?.type);
-        console.log('Channel Type:', channelMapping.type);
-        console.log('Valid Types:', validEventTypes[channelMapping.type]);
+        console.log('Channel Type:', channelMapping.table);
+        console.log('Valid Types:', validEventTypes[channelMapping.table]);
 
         // Add type validation
-        if (!validEventTypes[channelMapping.type]) {
-            console.error('Invalid channel type for event validation:', channelMapping.type);
+        if (!validEventTypes[channelMapping.table]) {
+            console.error('Invalid channel type for event validation:', channelMapping.table);
             return { skip: true, reason: 'invalid_channel_type' };
         }
 
         // Then check if event type is valid
-        if (!validEventTypes[channelMapping.type].includes(parsedContent.event?.type)) {
+        if (!validEventTypes[channelMapping.table].includes(parsedContent.event?.type)) {
             console.log('Skipping: Invalid event type:', parsedContent.event?.type);
             return { skip: true, reason: 'invalid_event_type' };
         }
@@ -244,8 +222,8 @@ export async function processMessage({ message, db, channelMapping }) {
             }
         };
 
-        const minImpact = impactThresholds[channelMapping.type][parsedContent.event.type] || 
-                         impactThresholds[channelMapping.type].default;
+        const minImpact = impactThresholds[channelMapping.table][parsedContent.event.type] || 
+                         impactThresholds[channelMapping.table].default;
 
         if (parsedContent.metrics.impact < minImpact) {
             console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact} for ${parsedContent.event.type}`);
@@ -342,7 +320,7 @@ export async function processMessage({ message, db, channelMapping }) {
         ]);
 
         console.log('Saved new content:', {
-            type: channelMapping.type,
+            type: channelMapping.table,
             preview: cleanText.substring(0, 100) + '...'
         });
 
