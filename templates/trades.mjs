@@ -40,7 +40,7 @@ Required Information:
    - Jurisdictions
 
 5. Event Type:
-    - Type MUST be one of these exact values:
+   IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
    
     // Trade Entry Events
     SPOT_ENTRY          // Spot market buys

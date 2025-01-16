@@ -40,8 +40,8 @@ Required Information:
    - Regions (States, Cities)
 
 5. Event Type:
-    - Type MUST be one of these exact values:
-     
+    IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
+    
     // Platform Events
     LISTING              // New exchange/platform listings
     DELISTING            // Removed from exchanges
@@ -83,13 +83,10 @@ Required Information:
     REBASE              // Price rebalancing
     UPDATE              // General updates
 
-    Use NONE for:
-    - Pure opinions/commentary
-    - Market speculation
-    - Unconfirmed rumors
-    - General discussion
+    DO NOT create new event types. If none match exactly, use UPDATE.
+    Use NONE for pure opinions/commentary/speculation.
 
-   - Description of the event (REQUIRED)
+    - Description of the event (REQUIRED)
 
 6. Impact & Confidence Assessment:
    Score MUST be based on event type and evidence:

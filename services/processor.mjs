@@ -37,9 +37,9 @@ export async function processMessage({ message, db, channelMapping }) {
         if (message.content) {
             const urls = message.content.match(/https:\/\/twitter\.com\/[^\s]+/g) || [];
             if (urls.length > 0) {
-                author = extractTwitterUsername(urls[0]);
+                author = extractTwitterUsername(urls[0]) || 'none';
                 if (urls.length > 1) {
-                    rtAuthor = extractTwitterUsername(urls[1]);
+                    rtAuthor = extractTwitterUsername(urls[1]) ? extractTwitterUsername(urls[1]) : null;
                 }
             }
         }
@@ -238,12 +238,12 @@ export async function processMessage({ message, db, channelMapping }) {
         const similarityCheck = await db.query(`
             SELECT 
                 content->>'original' as text,
-                type,
-                author,
-                rt_author,
+                type::text,
+                author::text,
+                rt_author::text,
                 1 - (embedding <-> $1::vector) as vector_similarity,
-                content->'entities'->'metrics'->>'impact' as impact,
-                content->'entities'->'metrics'->>'confidence' as confidence
+                (content->'entities'->'metrics'->>'impact')::int as impact,
+                (content->'entities'->'metrics'->>'confidence')::int as confidence
             FROM (
                 -- Check crypto table
                 SELECT *, 'crypto' as source_table FROM crypto 
