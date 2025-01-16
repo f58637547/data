@@ -3,9 +3,20 @@ import { generateEmbedding } from './openai.mjs';
 import { extractEntities } from '../templates/index.mjs';
 
 function extractTwitterUsername(text) {
-    const twitterUrlRegex = /twitter\.com\/([^\/]+)/;
+    // Extract from URL
+    const twitterUrlRegex = /twitter\.com\/([^\/]+)\/status/;
     const match = text.match(twitterUrlRegex);
-    return match ? match[1] : null;
+    if (match && match[1]) {
+        return match[1];
+    }
+    
+    // Extract from embed if URL not found
+    if (text.url && text.url.includes('twitter.com')) {
+        const embedMatch = text.url.match(twitterUrlRegex);
+        return embedMatch ? embedMatch[1] : null;
+    }
+    
+    return null;
 }
 
 export async function processMessage({ message, db, channelMapping }) {
@@ -236,25 +247,40 @@ export async function processMessage({ message, db, channelMapping }) {
         // 4. THEN do similarity check
         console.log('Running similarity checks...');
         const similarityCheck = await db.query(`
-            SELECT 
-                content->>'original' as text,
-                type::text,
-                author::text,
-                rt_author::text,
-                1 - (embedding <-> $1::vector) as vector_similarity,
-                (content->'entities'->'metrics'->>'impact')::int as impact,
-                (content->'entities'->'metrics'->>'confidence')::int as confidence
-            FROM (
+            WITH combined AS (
                 -- Check crypto table
-                SELECT *, 'crypto' as source_table FROM crypto 
+                SELECT 
+                    id::text,
+                    "createdAt"::timestamp with time zone,
+                    type::text,
+                    content,
+                    embedding,
+                    'crypto' as source_table 
+                FROM crypto 
                 WHERE type = 'post'
                 AND "createdAt" > NOW() - INTERVAL '48 hours'
                 UNION ALL
                 -- Check trades table
-                SELECT *, 'trades' as source_table FROM trades 
+                SELECT 
+                    id::text,
+                    "createdAt"::timestamp with time zone,
+                    type::text,
+                    content,
+                    embedding,
+                    'trades' as source_table 
+                FROM trades 
                 WHERE type = 'post'
                 AND "createdAt" > NOW() - INTERVAL '48 hours'
-            ) combined
+            )
+            SELECT 
+                content->>'original' as text,
+                type,
+                author,
+                rt_author,
+                1 - (embedding <-> $1::vector) as vector_similarity,
+                (content->'entities'->'metrics'->>'impact')::int as impact,
+                (content->'entities'->'metrics'->>'confidence')::int as confidence
+            FROM combined
             WHERE (
                 -- Vector similarity threshold
                 1 - (embedding <-> $1::vector) > 0.85 OR
