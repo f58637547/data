@@ -9,12 +9,16 @@ export async function loadTemplates() {
     };
 }
 
-export async function extractEntities(text, channelType) {
+export async function extractEntities(text, channelType, authorInfo = {}) {
     try {
         // 1. Get LLM to parse content
         const response = await getLLMResponse(
             channelType === 'trades' ? tradesTemplate : cryptoTemplate,
-            { message: text }
+            { 
+                message: text,
+                author: authorInfo.author || 'none',
+                rtAuthor: authorInfo.rtAuthor || 'none'
+            }
         );
 
         // 2. Parse JSON from LLM response

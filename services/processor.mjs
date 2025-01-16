@@ -2,6 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { generateEmbedding } from './openai.mjs';
 import { extractEntities } from '../templates/index.mjs';
 
+function extractTwitterUsername(text) {
+    const twitterUrlRegex = /twitter\.com\/([^\/]+)/;
+    const match = text.match(twitterUrlRegex);
+    return match ? match[1] : null;
+}
+
 export async function processMessage({ message, db, channelMapping }) {
     try {
         // Log original message
@@ -24,9 +30,24 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'no_content' };
         }
 
+        let author = null;
+        let rtAuthor = null;
+
+        // Extract usernames from URLs
+        if (message.content) {
+            const urls = message.content.match(/https:\/\/twitter\.com\/[^\s]+/g) || [];
+            if (urls.length > 0) {
+                author = extractTwitterUsername(urls[0]);
+                if (urls.length > 1) {
+                    rtAuthor = extractTwitterUsername(urls[1]);
+                }
+            }
+        }
+
         // Clean text but keep important stuff
         const cleanText = rawText
             .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, '') // Remove emojis
+            .replace(/<:[^>]+>/g, '') // Remove Discord emotes
             .replace(/https?:\/\/\S+/g, '') // Remove URLs
             .replace(/[^\w\s$.,!?#@/-]/g, '') // Keep alphanumeric, $, #, @, /, basic punctuation
             .replace(/\s+/g, ' ')
@@ -36,16 +57,46 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'no_content' };
         }
 
+        // Add channel mapping validation here
+        if (!channelMapping || !channelMapping.type) {
+            console.error('Invalid channel mapping:', channelMapping);
+            return { skip: true, reason: 'invalid_channel_mapping' };
+        }
+
+        if (!['crypto', 'trades'].includes(channelMapping.type)) {
+            console.error('Invalid channel type:', channelMapping.type);
+            return { skip: true, reason: 'invalid_channel_type' };
+        }
+
         // Log cleaned text
         console.log('\n=== Cleaned Text ===');
         console.log(cleanText);
 
-        // Parse content
-        const parsedContent = await extractEntities(cleanText, channelMapping.type);
+        // Parse content with author info
+        const parsedContent = await extractEntities(cleanText, channelMapping.type, {
+            author: author,
+            rtAuthor: rtAuthor
+        });
         console.log('\n=== Parsed Content ===');
         console.log(JSON.stringify(parsedContent, null, 2));
 
-        // Add validation here before saving
+        // Add logging for channelMapping
+        console.log('\n=== Channel Mapping ===');
+        console.log('Mapping:', channelMapping);
+
+        // Add validation for channelMapping
+        if (!channelMapping || !channelMapping.type) {
+            console.error('Invalid channel mapping:', channelMapping);
+            return { skip: true, reason: 'invalid_channel_mapping' };
+        }
+
+        // Validate type is either 'crypto' or 'trades'
+        if (!['crypto', 'trades'].includes(channelMapping.type)) {
+            console.error('Invalid channel type:', channelMapping.type);
+            return { skip: true, reason: 'invalid_channel_type' };
+        }
+
+        // Validate event type
         const validEventTypes = {
             crypto: [
                 // Platform Events
@@ -118,10 +169,16 @@ export async function processMessage({ message, db, channelMapping }) {
         // Log validation
         console.log('\n=== Event Type Validation ===');
         console.log('Type:', parsedContent.event?.type);
+        console.log('Channel Type:', channelMapping.type);
         console.log('Valid Types:', validEventTypes[channelMapping.type]);
-        console.log('Is Valid:', validEventTypes[channelMapping.type].includes(parsedContent.event?.type));
 
-        // Keep validation
+        // Add type validation
+        if (!validEventTypes[channelMapping.type]) {
+            console.error('Invalid channel type for event validation:', channelMapping.type);
+            return { skip: true, reason: 'invalid_channel_type' };
+        }
+
+        // Then check if event type is valid
         if (!validEventTypes[channelMapping.type].includes(parsedContent.event?.type)) {
             console.log('Skipping: Invalid event type:', parsedContent.event?.type);
             return { skip: true, reason: 'invalid_event_type' };
@@ -195,6 +252,8 @@ export async function processMessage({ message, db, channelMapping }) {
             SELECT 
                 content->>'original' as text,
                 type,
+                author,
+                rt_author,
                 1 - (embedding <-> $1::vector) as vector_similarity,
                 content->'entities'->'metrics'->>'impact' as impact,
                 content->'entities'->'metrics'->>'confidence' as confidence
@@ -213,16 +272,18 @@ export async function processMessage({ message, db, channelMapping }) {
                 -- Vector similarity threshold
                 1 - (embedding <-> $1::vector) > 0.85 OR
                 
-                -- For crypto: check token + metrics
+                -- For crypto: check token + metrics + author
                 (source_table = 'crypto' AND
                     content->'entities'->'tokens'->>'primary' = $2 AND
+                    author = $5 AND
                     ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
                     ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )
                 OR
-                -- For trades: check position token + metrics
+                -- For trades: check token + metrics + author
                 (source_table = 'trades' AND
                     content->'entities'->'tokens'->>'primary' = $2 AND
+                    author = $5 AND
                     ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
                     ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )
@@ -232,7 +293,8 @@ export async function processMessage({ message, db, channelMapping }) {
             `[${newEmbedding}]`,
             parsedContent?.tokens?.primary || '',  // For exact token match
             parsedContent?.metrics?.impact || 50,
-            parsedContent?.metrics?.confidence || 50
+            parsedContent?.metrics?.confidence || 50,
+            author || 'none'  // Add author parameter
         ]);
 
         if (similarityCheck.rows.length > 0) {
@@ -254,8 +316,8 @@ export async function processMessage({ message, db, channelMapping }) {
         // 5. Process and save unique content
         await db.query(`
             INSERT INTO ${channelMapping.table}
-            (id, "createdAt", type, "agentId", content, embedding)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            (id, "createdAt", type, "agentId", content, embedding, author, rt_author)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, [
             uuidv4(),
             new Date(),
@@ -264,9 +326,13 @@ export async function processMessage({ message, db, channelMapping }) {
             JSON.stringify({
                 original: cleanText,
                 entities: parsedContent,
-                type: channelMapping.type
+                type: channelMapping.type,
+                author: author || 'none',
+                rt_author: rtAuthor || null
             }),
-            `[${newEmbedding}]`
+            `[${newEmbedding}]`,
+            author || 'none',
+            rtAuthor || null
         ]);
 
         console.log('Saved new content:', {

@@ -5,10 +5,13 @@ Never include instructions or template text in the output.
 Message to analyze:
 {{message}}
 
+Author: {{author}}
+RT Author: {{rtAuthor}}
+
 Required Information:
 1. Headline:
    - Use original message text as headline
-   - Extract Twitter username as source (from url or embed author)
+   - Use provided Twitter username as source
    - For RTs, include both original and RT author
 
 2. Tokens:
@@ -159,8 +162,8 @@ Output format:
 {
     "headline": {
         "text": "original message text",
-        "source": "twitter_username",
-        "rt_source": "original_author" // if RT
+        "source": "{{author}}",
+        "rt_source": "{{rtAuthor}}"
     },
     "tokens": {
         "primary": "main token symbol",
