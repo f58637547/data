@@ -80,7 +80,7 @@ export async function processMessage({ message, db, channelMapping }) {
         // Parse content with author info
         const parsedContent = await extractEntities(
             cleanText, 
-            templateTypes[channelMapping.type],  // converts 'raw' to 'crypto' or 'trades'
+            channelMapping.table,  // Use table name ('crypto' or 'trades') for template selection
             {
                 author: author,
                 rtAuthor: rtAuthor
@@ -332,11 +332,11 @@ export async function processMessage({ message, db, channelMapping }) {
             new Date(),
             process.env.AGENT_ID,
             JSON.stringify({
-                original: cleanText,           // Original cleaned text
-                entities: parsedContent,       // All extracted data
-                type: 'raw',                  // Type for this record
-                author: author || 'none',      // Author info in JSON
-                rt_author: rtAuthor || null    // RT author in JSON
+                original: cleanText,
+                entities: parsedContent,
+                type: 'raw',
+                author: author || 'none',
+                rt_author: rtAuthor || null
             }),
             `[${newEmbedding}]`
         ]);
