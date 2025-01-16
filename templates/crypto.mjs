@@ -6,52 +6,79 @@ Message to analyze:
 {{message}}
 
 Required Information:
-1. Headline/Summary:
-   - Main headline or key summary (REQUIRED)
-   - Source if available
-2. Tokens/Projects:
-   - Main token/project mentioned (REQUIRED)
+1. Headline:
+   - Use original message text as headline
+   - Extract Twitter username as source (from url or embed author)
+   - For RTs, include both original and RT author
+
+2. Tokens:
+   - Primary token symbol (REQUIRED)
    - Related tokens/projects (if any)
+
 3. Market Data (if available):
    - Price (numeric value only)
    - Volume (numeric value only)
-   - Market cap (numeric value only)
-4. Event Type:
-    - Type MUST be one of these exact values (no category headers): 
+
+4. Entities:
+   PROJECTS/ORGS:
+   - Exchanges (e.g. Binance, Coinbase)
+   - Protocols (e.g. Uniswap, Aave)
+   - Companies (e.g. BlackRock, MicroStrategy)
+   - Regulators (e.g. SEC, CFTC)
+
+   PERSONS:
+   - Executives (CEO, CTO, Founders)
+   - Officials (Regulators, Government)
+   - Notable Figures (Influencers, Analysts)
+   
+   LOCATIONS:
+   - Countries (US, China, etc)
+   - Jurisdictions (EU, APAC)
+   - Regions (States, Cities)
+
+5. Event Type:
+    - Type MUST be one of these exact values:
      
+    // Platform Events
     LISTING              // New exchange/platform listings
     DELISTING            // Removed from exchanges
-    DEVELOPMENT          // Code updates, features
-    UPGRADE              // Protocol changes
+    INTEGRATION         // Platform integrations
+    DEX                 // Decentralized exchanges
+    DEX_POOL            // Decentralized exchange pools
+    LIQUIDITY_POOL      // Liquidity pools
     
-    MARKET_MOVE          // General market movement
-    WHALE_MOVE           // Large transactions
-    FUND_FLOW           // Institutional money
+    // Protocol Events
+    DEVELOPMENT         // Code updates, features
+    UPGRADE             // Protocol changes
+    FORK                // Chain splits
+    BRIDGE              // Cross-chain
+    DEFI                // Decentralized finance
+    
+    // Market Events
+    MARKET_MOVE         // General market movement
+    WHALE_MOVE          // Large transactions
+    FUND_FLOW          // Institutional money
     VOLUME_SPIKE        // Trading volume spikes
     PRICE_ALERT         // Price movements
     ACCUMULATION        // Buying zones
     DISTRIBUTION        // Selling zones
     
+    // Security Events
     HACK                // Confirmed breaches
     EXPLOIT             // Vulnerabilities found
     RUGPULL             // Confirmed scams
     
+    // Business Events
     PARTNERSHIP         // Confirmed deals
     ACQUISITION         // Buyouts, mergers
     REGULATION          // Legal updates
     
-    UPDATE              // General updates
-    INTEGRATION         // Platform integrations
+    // Token Events
     AIRDROP             // Token distributions
     TOKENOMICS          // Supply changes
-    FORK                // Chain splits
-    BRIDGE              // Cross-chain
     DELEGATE            // Staking
     REBASE              // Price rebalancing
-    LIQUIDITY_POOL      // Liquidity pools
-    DEX                 // Decentralized exchanges
-    DEFI                // Decentralized finance
-    DEX_POOL            // Decentralized exchange pools
+    UPDATE              // General updates
 
     Use NONE for:
     - Pure opinions/commentary
@@ -60,8 +87,8 @@ Required Information:
     - General discussion
 
    - Description of the event (REQUIRED)
-   - Timestamp (ISO format if available)
-5. Impact Assessment:
+
+6. Impact & Confidence Assessment:
    Score MUST be based on event type and evidence:
 
    HIGH IMPACT (70-100):
@@ -104,39 +131,77 @@ Required Information:
    40-70:  Single reliable source
    0-40:   Unverified/unclear sources
 
-Example:
-"Binance lists new token" = {
-    impact: 80,     // Tier-1 exchange listing
-    confidence: 95  // Official announcement
-}
+7. Sentiment Analysis:
+   Separate from impact/confidence, measures market mood:
 
-"Unverified rumor of partnership" = {
-    impact: 30,     // Potential but unconfirmed
-    confidence: 20  // No reliable source
-}
+   MARKET SENTIMENT (0-100):
+   - BULLISH (>70):
+     • Price increases
+     • Institutional inflows
+     • Positive developments
+   
+   - NEUTRAL (40-70):
+     • Balanced news
+     • Unclear direction
+     • Mixed signals
+   
+   - BEARISH (<40):
+     • Price decreases
+     • Negative news
+     • Market concerns
 
-Output format (numbers must be numeric, not strings):
+   SOCIAL SENTIMENT (0-100):
+   - HIGH (>70): Strong community support
+   - MID (40-70): Mixed reactions
+   - LOW (<40): Negative community response
+
+Output format:
 {
     "headline": {
-        "text": "main headline or summary",
-        "source": "source if available"
+        "text": "original message text",
+        "source": "twitter_username",
+        "rt_source": "original_author" // if RT
     },
     "tokens": {
         "primary": "main token symbol",
         "related": ["token1", "token2"]
     },
-    "market_data": {
-        "price": 0.0,
-        "volume": 0.0,
-        "market_cap": 0.0
+    "entities": {
+        "projects": [{
+            "name": "project/org name",
+            "type": "EXCHANGE|PROTOCOL|COMPANY|REGULATOR",
+            "role": "primary|related"
+        }],
+        "persons": [{
+            "name": "person name",
+            "title": "role/position",
+            "org": "affiliated org"
+        }],
+        "locations": [{
+            "name": "location name",
+            "type": "COUNTRY|REGION|CITY"
+        }]
     },
     "event": {
         "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
         "description": "brief event description",
-        "timestamp": null
     },
     "metrics": {
         "impact": 50,
         "confidence": 50
+    },
+    "sentiment": {
+        "market": {
+            "score": 0-100,
+            "signals": ["reason1", "reason2"]
+        },
+        "social": {
+            "score": 0-100,
+            "signals": ["trend1", "trend2"]
+        }
+    },
+    "market_data": {
+        "price": 0.0,
+        "volume": 0.0
     }
 }`;

@@ -12,8 +12,8 @@ export async function startDiscordBot({ db, templates }) {
 
     // Channel mappings
     const channelMappings = {
-        [process.env.DISCORD_CHANNEL_1]: { table: 'memories', type: 'crypto' },
-        [process.env.DISCORD_CHANNEL_2]: { table: 'memories', type: 'trades' },
+        [process.env.DISCORD_CHANNEL_1]: { table: 'crypto', type: 'raw' },
+        [process.env.DISCORD_CHANNEL_2]: { table: 'trades', type: 'raw' },
         [process.env.DISCORD_CHANNEL_3]: { table: 'memories', type: 'ainews' },
         [process.env.DISCORD_CHANNEL_4]: { table: 'memories', type: 'aiusers' },
     };

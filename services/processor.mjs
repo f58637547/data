@@ -48,13 +48,22 @@ export async function processMessage({ message, db, channelMapping }) {
         // Add validation here before saving
         const validEventTypes = {
             crypto: [
-                // PROJECT NEWS
-                'LISTING',        // New listings
+                // Platform Events
+                'LISTING',        // New exchange/platform listings
                 'DELISTING',      // Removals
+                'INTEGRATION',    // Platform integrations
+                'DEX',           // Decentralized exchanges
+                'DEX_POOL',      // DEX pools
+                'LIQUIDITY_POOL', // Liquidity pools
+                
+                // Protocol Events
                 'DEVELOPMENT',    // Code updates
                 'UPGRADE',        // Protocol changes
+                'FORK',          // Chain splits
+                'BRIDGE',        // Cross-chain
+                'DEFI',          // Decentralized finance
                 
-                // MARKET EVENTS
+                // Market Events
                 'MARKET_MOVE',    // General market movement
                 'WHALE_MOVE',     // Large transactions
                 'FUND_FLOW',      // Institutional money
@@ -63,51 +72,46 @@ export async function processMessage({ message, db, channelMapping }) {
                 'ACCUMULATION',   // Buying zones
                 'DISTRIBUTION',   // Selling zones
                 
-                // SECURITY
-                'HACK',           // Breaches
-                'EXPLOIT',        // Vulnerabilities
-                'RUGPULL',        // Scams
+                // Security Events
+                'HACK',          // Breaches
+                'EXPLOIT',       // Vulnerabilities
+                'RUGPULL',       // Scams
                 
-                // BUSINESS
+                // Business Events
                 'PARTNERSHIP',    // Deals
                 'ACQUISITION',    // Mergers
                 'REGULATION',     // Legal updates
                 
-                // OTHERS
-                'UPDATE',         // General updates
-                'INTEGRATION',    // Platform integrations
-                'AIRDROP',        // Token distributions
-                'TOKENOMICS',     // Supply changes
-                'FORK',           // Chain splits
-                'BRIDGE',         // Cross-chain
-                'DELEGATE',       // Staking
-                'REBASE',         // Price rebalancing
-                'LIQUIDITY_POOL', // Liquidity pools
-                'DEX',            // Decentralized exchanges
-                'DEFI',           // Decentralized finance
-                'DEX_POOL',       // Decentralized exchange pools
+                // Token Events
+                'AIRDROP',       // Token distributions
+                'TOKENOMICS',    // Supply changes
+                'DELEGATE',      // Staking
+                'REBASE',        // Price rebalancing
+                'UPDATE'         // General updates
             ],
             trades: [
-                // ENTRY SIGNALS
+                // Trade Entry Events
                 'SPOT_ENTRY',     // Spot buys
                 'FUTURES_ENTRY',  // Futures positions
                 'LEVERAGE_ENTRY', // Margin trades
                 
-                // EXIT SIGNALS
+                // Trade Exit Events
                 'TAKE_PROFIT',    // Profit targets
                 'STOP_LOSS',      // Stop hits
                 'POSITION_EXIT',  // General exits
                 
-                // ANALYSIS
-                'BREAKOUT',       // Pattern breaks
+                // Technical Analysis Events
+                'BREAKOUT',       // Pattern breaks (triangles, ranges)
                 'REVERSAL',       // Trend changes
-                'ACCUMULATION',   // Buying zones
-                'DISTRIBUTION',   // Selling zones
-                'MARKET_MOVE',    // General market movement
-                'WHALE_MOVE',     // Large transactions
-                'FUND_FLOW',      // Institutional money
+                'ACCUMULATION',   // Buying zone identified
+                'DISTRIBUTION',   // Selling zone identified
+                
+                // Market Analysis Events
+                'MARKET_MOVE',    // General price movement
+                'WHALE_MOVE',     // Large wallet transactions
+                'FUND_FLOW',      // Institutional money flow
                 'VOLUME_SPIKE',   // Unusual trading volume
-                'PRICE_ALERT',    // Significant price moves
+                'PRICE_ALERT'     // Significant price levels
             ]
         };
 
@@ -132,16 +136,44 @@ export async function processMessage({ message, db, channelMapping }) {
         // Or more detailed version:
         const impactThresholds = {
             crypto: {
-                MARKET_MOVE: 50,    // Market moves need higher impact
-                FUND_FLOW: 60,      // Fund flows need significant size
-                WHALE_MOVE: 50,     // Whale moves must be large
-                UPDATE: 40,         // Updates can be lower impact
-                REGULATION: 50,     // Regulatory news needs medium impact
-                default: 40        // Default minimum threshold
+                // Platform Events
+                LISTING: 70,      // Major listings need high impact
+                DEX: 60,         // DEX launches are significant
+                
+                // Protocol Events
+                DEVELOPMENT: 60,  // Core updates
+                UPGRADE: 70,     // Major upgrades
+                
+                // Market Events
+                MARKET_MOVE: 50,  // General moves
+                FUND_FLOW: 60,   // Institutional flows
+                WHALE_MOVE: 50,  // Large transactions
+                
+                // Security Events
+                HACK: 80,        // Critical security
+                EXPLOIT: 70,     // Vulnerabilities
+                RUGPULL: 70,     // Scams
+                
+                // Business Events
+                PARTNERSHIP: 60,  // Major deals
+                REGULATION: 70,   // Regulatory impact
+                
+                default: 40      // Base threshold
             },
             trades: {
+                // Trade Entry Events
                 SPOT_ENTRY: 50,
                 FUTURES_ENTRY: 60,
+                LEVERAGE_ENTRY: 70,
+                
+                // Trade Exit Events
+                TAKE_PROFIT: 60,
+                STOP_LOSS: 60,
+                
+                // Technical Analysis
+                BREAKOUT: 60,
+                REVERSAL: 60,
+                
                 default: 40
             }
         };
@@ -163,28 +195,34 @@ export async function processMessage({ message, db, channelMapping }) {
             SELECT 
                 content->>'original' as text,
                 type,
-                -- Only vector similarity
                 1 - (embedding <-> $1::vector) as vector_similarity,
-                -- Get metrics for comparison
                 content->'entities'->'metrics'->>'impact' as impact,
                 content->'entities'->'metrics'->>'confidence' as confidence
-            FROM memories
-            WHERE "createdAt" > NOW() - INTERVAL '48 hours'
-            AND type IN ('crypto', 'trades')
-            AND (
+            FROM (
+                -- Check crypto table
+                SELECT *, 'crypto' as source_table FROM crypto 
+                WHERE type = 'post' 
+                AND "createdAt" > NOW() - INTERVAL '48 hours'
+                UNION ALL
+                -- Check trades table
+                SELECT *, 'trades' as source_table FROM trades 
+                WHERE type = 'post'
+                AND "createdAt" > NOW() - INTERVAL '48 hours'
+            ) combined
+            WHERE (
                 -- Vector similarity threshold
                 1 - (embedding <-> $1::vector) > 0.85 OR
                 
                 -- For crypto: check token + metrics
-                (type = 'crypto' AND
+                (source_table = 'crypto' AND
                     content->'entities'->'tokens'->>'primary' = $2 AND
                     ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
                     ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )
                 OR
                 -- For trades: check position token + metrics
-                (type = 'trades' AND
-                    content->'entities'->'position'->>'token' = $2 AND
+                (source_table = 'trades' AND
+                    content->'entities'->'tokens'->>'primary' = $2 AND
                     ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
                     ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )

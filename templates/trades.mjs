@@ -6,48 +6,71 @@ Message to analyze:
 {{message}}
 
 Required Information:
-1. Headline/Summary:
-   - Main trade idea/setup
-   - Author/source if available
-2. Position Details:
-   - Token/Pair (REQUIRED)
-   - Entry price (REQUIRED)
+1. Headline:
+   - Use original message text as headline
+   - Extract Twitter username as source
+   - For RTs, include both original and RT author
+
+2. Tokens:
+   - Primary token symbol (REQUIRED)
+   - Related tokens/pairs (if any)
+
+3. Position Details:
+   - Entry price
    - Target price
    - Stop loss
-3. Trade Metrics:
    - Position size
    - Leverage used
    - Risk/Reward ratio
-4. Event Type:
-    - Type MUST be one of these exact values (no category headers):
+
+4. Entities:
+   PROJECTS/ORGS:
+   - Exchanges (e.g. Binance, Bybit)
+   - Protocols (e.g. GMX, dYdX)
    
+   PERSONS:
+   - Traders (Authors, Analysts)
+   - Notable Figures (Influencers)
+   
+   LOCATIONS:
+   - Trading Venues
+   - Jurisdictions
+
+5. Event Type:
+    - Type MUST be one of these exact values:
+   
+    // Trade Entry Events
     SPOT_ENTRY          // Spot market buys
     FUTURES_ENTRY       // Futures positions
     LEVERAGE_ENTRY      // Margin trades
     
+    // Trade Exit Events
     TAKE_PROFIT         // Profit targets hit
     STOP_LOSS          // Stop levels hit
     POSITION_EXIT       // General exits
     
-    BREAKOUT           // Pattern breakouts
-    REVERSAL           // Trend changes
-    ACCUMULATION       // Buying zones
-    DISTRIBUTION       // Selling zones
-    MARKET_MOVE        // General market movement
-    WHALE_MOVE         // Large transactions
-    FUND_FLOW          // Institutional money
+    // Technical Analysis Events
+    BREAKOUT           // Pattern breakouts (triangles, ranges)
+    REVERSAL           // Trend change signals
+    ACCUMULATION       // Buying zone identified
+    DISTRIBUTION       // Selling zone identified
+    
+    // Market Analysis Events
+    MARKET_MOVE        // General price movement
+    WHALE_MOVE         // Large wallet transactions
+    FUND_FLOW          // Institutional money flow
     VOLUME_SPIKE       // Unusual trading volume
-    PRICE_ALERT        // Significant price moves
+    PRICE_ALERT        // Significant price levels
     
     Use NONE for:
     - General market commentary
     - Unconfirmed signals
     - Past trade reviews
+    - Educational content
    
    - Description of the event (REQUIRED)
-   - Timestamp (ISO format if available)
 
-5. Impact Assessment:
+6. Impact & Confidence Assessment:
    Score MUST be based on event type and evidence:
 
    HIGH IMPACT (70-100):
@@ -102,40 +125,97 @@ Required Information:
           • Poor risk/reward
           • Messy chart
 
-Example:
-"BTC breaks major resistance with volume" = {
-    impact: 85,     // Major breakout + volume
-    confidence: 90  // Multiple confirmations
-}
+7. Direction & Bias:
+   POSITION DIRECTION:
+   - LONG: Bullish position entry/setup
+   - SHORT: Bearish position entry/setup
+   - HEDGE: Risk management position
+   - NONE: Analysis only
+   
+   TIMEFRAME:
+   - SCALP: < 24 hours
+   - SWING: 1-7 days
+   - POSITION: > 1 week
 
-"Small altcoin showing possible reversal" = {
-    impact: 35,     // Minor pattern, small cap
-    confidence: 50  // Single timeframe only
-}
+8. Sentiment Analysis:
+   Separate from impact/confidence, measures market mood:
 
-Output format (numbers must be numeric, not strings):
+   MARKET SENTIMENT (0-100):
+   - BULLISH (>70):
+     • Price increases
+     • Institutional inflows
+     • Positive developments
+   
+   - NEUTRAL (40-70):
+     • Balanced news
+     • Unclear direction
+     • Mixed signals
+   
+   - BEARISH (<40):
+     • Price decreases
+     • Negative news
+     • Market concerns
+
+   SOCIAL SENTIMENT (0-100):
+   - HIGH (>70): Strong community support
+   - MID (40-70): Mixed reactions
+   - LOW (<40): Negative community response
+
+Output format:
 {
     "headline": {
-        "text": "brief summary of trade",
-        "author": "source if available"
+        "text": "original message text",
+        "source": "twitter_username",
+        "rt_source": "original_author"
+    },
+    "tokens": {
+        "primary": "main token symbol",
+        "related": ["token1", "token2"]
     },
     "position": {
-        "token": "base token symbol",
-        "pair": "trading pair",
         "entry": 0.0,
         "target": 0.0,
-        "stop": 0.0
-    },
-    "metrics": {
+        "stop": 0.0,
         "size": 0.0,
         "leverage": 0,
-        "risk_reward": 0.0,
+        "risk_reward": 0.0
+    },
+    "metrics": {
         "impact": 50,
         "confidence": 50
     },
-    "event": {
+     "event": {
         "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
-        "description": "brief event description",
-        "timestamp": null
+        "description": "brief event description"
+    },
+    "entities": {
+        "projects": [{
+            "name": "exchange/protocol name",
+            "type": "EXCHANGE|PROTOCOL|VENUE|PLATFORM",
+            "role": "primary|related|venue"
+        }],
+        "persons": [{
+            "name": "trader name",
+            "title": "role/position",
+            "org": "affiliated org"
+        }],
+        "locations": [{
+            "name": "venue name",
+            "type": "EXCHANGE|REGION"
+        }]
+    },
+    "direction": {
+        "bias": "LONG|SHORT|HEDGE",
+        "timeframe": "SCALP|SWING|POSITION"
+    },
+    "sentiment": {
+        "market": {
+            "score": 0-100,
+            "signals": ["reason1", "reason2"]
+        },
+        "social": {
+            "score": 0-100,
+            "signals": ["trend1", "trend2"]
+        }
     }
 }`;
