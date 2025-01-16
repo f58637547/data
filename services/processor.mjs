@@ -3,20 +3,10 @@ import { generateEmbedding } from './openai.mjs';
 import { extractEntities } from '../templates/index.mjs';
 
 function extractTwitterUsername(text) {
-    // Extract from URL
+    // Extract username from Twitter URL
     const twitterUrlRegex = /twitter\.com\/([^\/]+)\/status/;
     const match = text.match(twitterUrlRegex);
-    if (match && match[1]) {
-        return match[1];
-    }
-    
-    // Extract from embed if URL not found
-    if (text.url && text.url.includes('twitter.com')) {
-        const embedMatch = text.url.match(twitterUrlRegex);
-        return embedMatch ? embedMatch[1] : null;
-    }
-    
-    return null;
+    return match ? match[1].replace('@', '') : null;  // Remove @ if present
 }
 
 export async function processMessage({ message, db, channelMapping }) {
@@ -26,14 +16,35 @@ export async function processMessage({ message, db, channelMapping }) {
         console.log('Content:', message.content);
         console.log('Embeds:', message.embeds);
 
-        // 1. Get plain text from Discord
-        let rawText = message.content || '';
+        // 1. Get plain text from Discord - combine text from related messages
+        let rawText = '';
+
+        // Get text from main message content
+        if (message.content) {
+            rawText = message.content;
+        }
+
+        // Get text from embeds
         if (message.embeds?.length > 0) {
             const embedText = message.embeds
-                .map(embed => embed.description)
+                .map(embed => {
+                    // Get text from rich embeds (tweets)
+                    if (embed.data?.type === 'rich' && embed.data?.description) {
+                        return embed.data.description;
+                    }
+                    // Get text from image embeds if they have alt text
+                    if (embed.data?.type === 'image' && embed.data?.description) {
+                        return embed.data.description;
+                    }
+                    return null;
+                })
                 .filter(Boolean)
                 .join(' ');
-            rawText = rawText + ' ' + embedText;
+
+            // Combine with existing text
+            if (embedText) {
+                rawText = rawText ? `${rawText} ${embedText}` : embedText;
+            }
         }
 
         rawText = rawText.trim();
@@ -48,10 +59,16 @@ export async function processMessage({ message, db, channelMapping }) {
         if (message.content) {
             const urls = message.content.match(/https:\/\/twitter\.com\/[^\s]+/g) || [];
             if (urls.length > 0) {
-                author = extractTwitterUsername(urls[0]) || 'none';
+                author = extractTwitterUsername(urls[0]) || 'none';  // Get username from first URL
                 if (urls.length > 1) {
-                    rtAuthor = extractTwitterUsername(urls[1]) ? extractTwitterUsername(urls[1]) : null;
+                    rtAuthor = extractTwitterUsername(urls[1]);  // Get username from second URL if exists
                 }
+            }
+        } else if (message.embeds?.length > 0) {
+            // If no direct URLs, try to get from embed
+            const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
+            if (twitterEmbed) {
+                author = extractTwitterUsername(twitterEmbed.data.url) || 'none';
             }
         }
 
@@ -81,10 +98,10 @@ export async function processMessage({ message, db, channelMapping }) {
         // Parse content with author info - using table name for template
         const parsedContent = await extractEntities(
             cleanText, 
-            channelMapping.table,  // Use table name for template selection
+            channelMapping.table,
             {
-                author: author,
-                rtAuthor: rtAuthor
+                author: author,       // Will be username from URL like 'VikingXBT'
+                rtAuthor: rtAuthor    // Will be username from second URL if exists
             }
         );
         console.log('\n=== Parsed Content ===');
@@ -275,8 +292,8 @@ export async function processMessage({ message, db, channelMapping }) {
             SELECT 
                 content->>'original' as text,
                 type,
-                author,
-                rt_author,
+                content->>'author' as author,
+                content->>'rt_author' as rt_author,
                 1 - (embedding <-> $1::vector) as vector_similarity,
                 (content->'entities'->'metrics'->>'impact')::int as impact,
                 (content->'entities'->'metrics'->>'confidence')::int as confidence
@@ -288,7 +305,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 -- For crypto: check token + metrics + author
                 (source_table = 'crypto' AND
                     content->'entities'->'tokens'->>'primary' = $2 AND
-                    author = $5 AND
+                    content->>'author' = $5 AND
                     ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
                     ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )
@@ -296,7 +313,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 -- For trades: check token + metrics + author
                 (source_table = 'trades' AND
                     content->'entities'->'tokens'->>'primary' = $2 AND
-                    author = $5 AND
+                    content->>'author' = $5 AND
                     ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
                     ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
                 )

@@ -43,27 +43,35 @@ Required Information:
    IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
    
     // Trade Entry Events
-    SPOT_ENTRY          // Spot market buys
-    FUTURES_ENTRY       // Futures positions
-    LEVERAGE_ENTRY      // Margin trades
+    SPOT_ENTRY          // "Bought", "Longed", "Entered long", "Added position"
+    FUTURES_ENTRY       // "Opened futures", "Futures long/short"
+    LEVERAGE_ENTRY      // "Leveraged long", "10x long", "Margin trade"
     
     // Trade Exit Events
-    TAKE_PROFIT         // Profit targets hit
-    STOP_LOSS          // Stop levels hit
-    POSITION_EXIT       // General exits
+    TAKE_PROFIT         // "Took profits", "Closed at target", "TP hit"
+    STOP_LOSS          // "SL hit", "Stopped out", "Cut losses"
+    POSITION_EXIT       // "Closed position", "Exited trade"
     
     // Technical Analysis Events
-    BREAKOUT           // Pattern breakouts (triangles, ranges)
-    REVERSAL           // Trend change signals
-    ACCUMULATION       // Buying zone identified
-    DISTRIBUTION       // Selling zone identified
+    BREAKOUT           // "Breaking out", "Breaking resistance/support"
+    REVERSAL           // "Trend reversal", "Bottom/Top signal"
+    ACCUMULATION       // "Accumulating", "Building position", "DCA"
+    DISTRIBUTION       // "Taking profits", "Distributing", "Selling"
     
     // Market Analysis Events
-    MARKET_MOVE        // General price movement
-    WHALE_MOVE         // Large wallet transactions
-    FUND_FLOW          // Institutional money flow
-    VOLUME_SPIKE       // Unusual trading volume
-    PRICE_ALERT        // Significant price levels
+    MARKET_MOVE        // "Price action", "Market movement"
+    WHALE_MOVE         // "Large wallet", "Whale activity"
+    FUND_FLOW          // "Fund movement", "Institutional flow"
+    VOLUME_SPIKE       // "Volume increase", "Trading activity spike"
+    PRICE_ALERT        // "Price target", "Level reached"
+
+    IMPORTANT: If message mentions:
+    - "Bought", "Longed", "Added" -> Use SPOT_ENTRY
+    - "Futures", "Perpetual" -> Use FUTURES_ENTRY
+    - "Leverage", "10x", "Margin" -> Use LEVERAGE_ENTRY
+    - "TP", "Take profit" -> Use TAKE_PROFIT
+    - "SL", "Stop" -> Use STOP_LOSS
+    - "Closed", "Exited" -> Use POSITION_EXIT
     
     Use NONE for:
     - General market commentary
@@ -167,7 +175,7 @@ Required Information:
 Output format:
 {
     "headline": {
-        "text": "original message text",
+        "text": "{{message}}",
         "source": "{{author}}",
         "rt_source": "{{rtAuthor}}"
     },

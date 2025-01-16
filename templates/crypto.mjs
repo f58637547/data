@@ -10,9 +10,9 @@ RT Author: {{rtAuthor}}
 
 Required Information:
 1. Headline:
-   - Use original message text as headline
-   - Use provided Twitter username as source
-   - For RTs, include both original and RT author
+   - IMPORTANT: Use EXACT original message text as headline
+   - Do not modify or summarize the text
+   - Use Twitter username from URL as source
 
 2. Tokens:
    - Primary token symbol (REQUIRED)
@@ -58,12 +58,12 @@ Required Information:
     DEFI                // Decentralized finance
     
     // Market Events
-    MARKET_MOVE         // General market movement
+    MARKET_MOVE         // General market movement, token purchases
     WHALE_MOVE          // Large transactions
     FUND_FLOW          // Institutional money
     VOLUME_SPIKE        // Trading volume spikes
     PRICE_ALERT         // Price movements
-    ACCUMULATION        // Buying zones
+    ACCUMULATION        // Buying zones, token accumulation
     DISTRIBUTION        // Selling zones
     
     // Security Events
@@ -72,9 +72,11 @@ Required Information:
     RUGPULL             // Confirmed scams
     
     // Business Events
-    PARTNERSHIP         // Confirmed deals
+    PARTNERSHIP         // Partnerships, collaborations
     ACQUISITION         // Buyouts, mergers
-    REGULATION          // Legal updates
+    REGULATION          // Legal/regulatory updates
+    FUNDING             // Investment rounds, valuations
+                       // Examples: "$X million raise", "valuation of $Y"
     
     // Token Events
     AIRDROP             // Token distributions
@@ -158,7 +160,7 @@ Required Information:
 Output format:
 {
     "headline": {
-        "text": "original message text",
+        "text": "{{message}}",
         "source": "{{author}}",
         "rt_source": "{{rtAuthor}}"
     },
