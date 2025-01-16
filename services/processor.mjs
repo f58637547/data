@@ -72,11 +72,20 @@ export async function processMessage({ message, db, channelMapping }) {
         console.log('\n=== Cleaned Text ===');
         console.log(cleanText);
 
+        // Add template type mapping
+        const templateTypes = {
+            'raw': channelMapping.table  // maps 'raw' to either 'crypto' or 'trades' based on table
+        };
+
         // Parse content with author info
-        const parsedContent = await extractEntities(cleanText, channelMapping.type, {
-            author: author,
-            rtAuthor: rtAuthor
-        });
+        const parsedContent = await extractEntities(
+            cleanText, 
+            templateTypes[channelMapping.type],  // converts 'raw' to 'crypto' or 'trades'
+            {
+                author: author,
+                rtAuthor: rtAuthor
+            }
+        );
         console.log('\n=== Parsed Content ===');
         console.log(JSON.stringify(parsedContent, null, 2));
 
@@ -260,7 +269,7 @@ export async function processMessage({ message, db, channelMapping }) {
             FROM (
                 -- Check crypto table
                 SELECT *, 'crypto' as source_table FROM crypto 
-                WHERE type = 'post' 
+                WHERE type = 'post'
                 AND "createdAt" > NOW() - INTERVAL '48 hours'
                 UNION ALL
                 -- Check trades table
@@ -313,26 +322,23 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'similar_content' };
         }
 
-        // 5. Process and save unique content
+        // 5. Process and save unique content - save as 'raw'
         await db.query(`
             INSERT INTO ${channelMapping.table}
-            (id, "createdAt", type, "agentId", content, embedding, author, rt_author)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (id, "createdAt", type, "agentId", content, embedding)
+            VALUES ($1, $2, 'raw', $4, $5, $6)
         `, [
             uuidv4(),
             new Date(),
-            channelMapping.type,
             process.env.AGENT_ID,
             JSON.stringify({
-                original: cleanText,
-                entities: parsedContent,
-                type: channelMapping.type,
-                author: author || 'none',
-                rt_author: rtAuthor || null
+                original: cleanText,           // Original cleaned text
+                entities: parsedContent,       // All extracted data
+                type: 'raw',                  // Type for this record
+                author: author || 'none',      // Author info in JSON
+                rt_author: rtAuthor || null    // RT author in JSON
             }),
-            `[${newEmbedding}]`,
-            author || 'none',
-            rtAuthor || null
+            `[${newEmbedding}]`
         ]);
 
         console.log('Saved new content:', {
