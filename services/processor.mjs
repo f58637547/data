@@ -298,8 +298,14 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'low_impact' };
             }
 
+            // Add before embedding generation
+            console.log('\n=== Starting Embedding Generation ===');
+
             // 3. THEN generate embedding
             const newEmbedding = await generateEmbedding(cleanText);
+
+            // Add before similarity check
+            console.log('\n=== Starting Similarity Check ===');
 
             // 4. THEN do similarity check
             console.log('Running similarity checks...');
@@ -333,6 +339,9 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'similar_content' };
             }
 
+            // Add before final save
+            console.log('\n=== Starting Save Operation ===');
+
             // 5. Process and save unique content
             await db.query(`
                 INSERT INTO ${channelMapping.table}
@@ -356,6 +365,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 type: channelMapping.table,
                 preview: cleanText.substring(0, 100) + '...'
             });
+
+            // Add after successful save
+            console.log('\n=== Operation Complete ===');
+            console.log('Status: Success');
+            console.log('Channel:', channelMapping.table);
+            console.log('Event Type:', parsedContent.event?.type);
+            console.log('Impact Score:', parsedContent.metrics.impact);
 
             return { success: true };
 
