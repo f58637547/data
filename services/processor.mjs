@@ -7,7 +7,9 @@ function extractTwitterUsername(text) {
     const twitterUrlRegex = /twitter\.com\/([^\/]+)\/status/;
     const match = text.match(twitterUrlRegex);
     if (match && match[1]) {
-        return match[1];  // Return username like 'trader1sz'
+        // Get just the username part, remove any query params or extra stuff
+        const username = match[1].split('?')[0];  // Remove query params if any
+        return username;  // Return clean username like 'aixbt_agent'
     }
     return null;
 }
@@ -79,7 +81,7 @@ export async function processMessage({ message, db, channelMapping }) {
             // If no direct URLs, try to get from embed
             const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
             if (twitterEmbed) {
-                author = extractTwitterUsername(twitterEmbed.data.url);  // Will get 'Cointelegraph'
+                author = extractTwitterUsername(twitterEmbed.data.url);  // Will get 'aixbt_agent'
             }
         }
 
@@ -110,14 +112,14 @@ export async function processMessage({ message, db, channelMapping }) {
         console.log('\n=== Cleaned Text ===');
         console.log(cleanText);
 
-        // Parse content with author info - using table name for template
+        // Parse content with author info
         const parsedContent = await extractEntities(
             cleanText, 
             channelMapping.table,
             {
                 message: cleanText,
-                author: author || 'none',  // Pass actual username like 'trader1sz'
-                rtAuthor: rtAuthor || ''   // Pass RT username if exists
+                author: author?.toLowerCase() || 'none',  // Make sure username is lowercase
+                rtAuthor: rtAuthor?.toLowerCase() || ''   // Make sure RT username is lowercase
             }
         );
         console.log('\n=== Parsed Content ===');
@@ -286,13 +288,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 content->>'original' as text,
                 type,
                 1 - (embedding <-> $1::vector) as vector_similarity
-            FROM ${channelMapping.table}  // Check only within same table
+            FROM ${channelMapping.table}
             WHERE type = 'post'
             AND "createdAt" > NOW() - INTERVAL '48 hours'
             AND 1 - (embedding <-> $1::vector) > 0.85
             ORDER BY vector_similarity DESC
         `, [
-            `[${newEmbedding}]`  // Only need embedding for similarity
+            `[${newEmbedding}]`
         ]);
 
         if (similarityCheck.rows.length > 0) {
