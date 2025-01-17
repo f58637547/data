@@ -387,6 +387,22 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Event Type:', parsedContent.event?.type);
             console.log('Impact Score:', parsedContent.metrics.impact);
 
+            // After parsing content, add validation
+            if (parsedContent) {
+                // Validate required fields
+                if (!parsedContent.tokens?.primary || 
+                    !parsedContent.event?.type || 
+                    !parsedContent.metrics?.impact || 
+                    parsedContent.metrics.impact === 0) {  // Catch zero impact scores
+                    console.log('Skipping: Invalid parsed content structure:', {
+                        hasPrimaryToken: !!parsedContent.tokens?.primary,
+                        hasEventType: !!parsedContent.event?.type,
+                        impact: parsedContent.metrics?.impact
+                    });
+                    return { skip: true, reason: 'invalid_content_structure' };
+                }
+            }
+
             return { success: true };
 
         } catch (error) {
