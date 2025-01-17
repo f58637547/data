@@ -9,7 +9,7 @@ function extractTwitterUsername(text) {
     if (match && match[1]) {
         // Get just the username part, remove any query params or extra stuff
         const username = match[1].split('?')[0];  // Remove query params if any
-        return username;  // Return clean username like 'aixbt_agent'
+        return username;   
     }
     return null;
 }
@@ -72,7 +72,7 @@ export async function processMessage({ message, db, channelMapping }) {
         if (message.content) {
             const urls = message.content.match(/https:\/\/twitter\.com\/[^\s]+/g) || [];
             if (urls.length > 0) {
-                author = extractTwitterUsername(urls[0]);  // Get username from first URL
+                author = extractTwitterUsername(urls[0]);   
                 if (urls.length > 1) {
                     rtAuthor = extractTwitterUsername(urls[1]);
                 }
@@ -81,11 +81,11 @@ export async function processMessage({ message, db, channelMapping }) {
             // If no direct URLs, try to get from embed
             const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
             if (twitterEmbed) {
-                author = extractTwitterUsername(twitterEmbed.data.url);  // Will get 'aixbt_agent'
+                author = extractTwitterUsername(twitterEmbed.data.url);  // Will get 'WatcherGuru'
             }
         }
 
-        // Make sure we have valid values for the query
+        // Never default to 'Twitter'
         author = author || 'none';
         rtAuthor = rtAuthor || null;
 
@@ -294,7 +294,7 @@ export async function processMessage({ message, db, channelMapping }) {
             AND 1 - (embedding <-> $1::vector) > 0.85
             ORDER BY vector_similarity DESC
         `, [
-            `[${newEmbedding}]`
+            newEmbedding
         ]);
 
         if (similarityCheck.rows.length > 0) {
