@@ -18,6 +18,91 @@ function extractTwitterUsername(text) {
     return null;
 }
 
+// 1. Improve Discord message text extraction
+function extractDiscordText(message) {
+    let rawText = '';
+    let lastValidText = '';
+    let author = null;
+    let rtAuthor = null;
+
+    try {
+        // 1. Handle direct message content
+        if (typeof message.content === 'string' && message.content.trim()) {
+            rawText = message.content.trim();
+        }
+
+        // 2. Handle embeds array
+        if (Array.isArray(message.embeds)) {
+            const embedTexts = message.embeds.map(embed => {
+                // Safety check for embed object
+                if (!embed || typeof embed !== 'object') return null;
+
+                // Handle rich embeds (tweets, etc)
+                if (embed.data?.type === 'rich' && embed.data?.description) {
+                    lastValidText = embed.data.description;
+                    
+                    // Extract author from URL if present
+                    if (embed.data?.url?.includes('twitter.com')) {
+                        author = extractTwitterUsername(embed.data.url);
+                    }
+                    
+                    return embed.data.description;
+                }
+
+                // Handle image embeds with alt text
+                if (embed.data?.type === 'image' && embed.data?.description) {
+                    return embed.data.description;
+                }
+
+                // Handle title + description combos
+                if (embed.data?.title && embed.data?.description) {
+                    return `${embed.data.title} ${embed.data.description}`;
+                }
+
+                return null;
+            })
+            .filter(Boolean)  // Remove nulls
+            .join(' ');
+
+            if (embedTexts) {
+                rawText = rawText ? `${rawText} ${embedTexts}` : embedTexts;
+            }
+        }
+
+        // 3. Fallback to last valid text if current is empty
+        if (!rawText && lastValidText) {
+            rawText = lastValidText;
+        }
+
+        // 4. Clean and validate
+        rawText = rawText.trim()
+            .replace(/\s+/g, ' ')  // Normalize whitespace
+            .replace(/[^\S\r\n]+/g, ' '); // Remove multiple spaces
+
+        return {
+            text: rawText || null,
+            author,
+            rtAuthor,
+            error: null
+        };
+
+    } catch (error) {
+        console.error('Discord text extraction error:', {
+            error: error.message,
+            messageType: typeof message,
+            hasContent: !!message.content,
+            embedCount: message.embeds?.length
+        });
+
+        return {
+            text: null,
+            author: null,
+            rtAuthor: null,
+            error: 'Failed to extract text from Discord message'
+        };
+    }
+}
+
 export async function processMessage({ message, db, channelMapping }) {
     // Add to queue and return promise
     return messageQueue.add(async () => {
@@ -76,7 +161,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // Extract usernames from URLs
             if (message.content) {
-                const urls = message.content.match(/https:\/\/twitter\.com\/[^\s]+/g) || [];
+                const urls = message.content.match(/https:\/\/twitter.com\/[^\s]+/g) || [];
                 if (urls.length > 0) {
                     author = extractTwitterUsername(urls[0]);   
                     if (urls.length > 1) {
@@ -131,12 +216,36 @@ export async function processMessage({ message, db, channelMapping }) {
                     rtAuthor: rtAuthor || ''
                 }
             ).catch(error => {
-                // Only throw if it's not a channel type error
+                // Log the full error for debugging
+                console.log('Entity extraction error:', {
+                    error: error.message,
+                    type: error.type || 'unknown',
+                    text: originalText.substring(0, 100)
+                });
+
+                // Handle specific error types
+                if (error.message.includes('Failed to parse LLM response')) {
+                    // Try parsing again with cleaned text
+                    return extractEntities(
+                        cleanText,
+                        channelMapping.table,
+                        {
+                            message: cleanText,
+                            author: author || 'none',
+                            rtAuthor: rtAuthor || ''
+                        }
+                    ).catch(retryError => {
+                        console.log('Retry failed:', retryError.message);
+                        return null;
+                    });
+                }
+
+                // Only throw if it's not a known error type
                 if (!error.message.includes('Not a trade message') && 
                     !error.message.includes('Not a crypto update')) {
                     throw error;
                 }
-                // Otherwise, continue processing
+                
                 return null;
             });
 
