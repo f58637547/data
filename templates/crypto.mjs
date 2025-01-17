@@ -5,9 +5,6 @@ Never include instructions or template text in the output.
 Message to analyze:
 {{message}}
 
-Author: {{author}}
-RT Author: {{rtAuthor}}
-
 Required Information:
 1. Headline:
    - IMPORTANT: Use EXACT original message text as headline
@@ -76,7 +73,6 @@ Required Information:
     ACQUISITION         // Buyouts, mergers
     REGULATION          // Legal/regulatory updates
     FUNDING             // Investment rounds, valuations
-                       // Examples: "$X million raise", "valuation of $Y"
     
     // Token Events
     AIRDROP             // Token distributions
@@ -161,8 +157,6 @@ Output format:
 {
     "headline": {
         "text": "{{message}}",
-        "source": "{{author}}",
-        "rt_source": "{{rtAuthor}}"
     },
     "tokens": {
         "primary": "main token symbol",

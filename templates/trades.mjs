@@ -5,9 +5,6 @@ Never include instructions or template text in the output.
 Message to analyze:
 {{message}}
 
-Author: {{author}}
-RT Author: {{rtAuthor}}
-
 Required Information:
 1. Headline:
    - Use original message text as headline
@@ -181,8 +178,6 @@ Output format:
 {
     "headline": {
         "text": "{{message}}",
-        "source": "{{author}}",
-        "rt_source": "{{rtAuthor}}"
     },
     "tokens": {
         "primary": "main token symbol",

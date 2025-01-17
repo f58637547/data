@@ -167,6 +167,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 'PARTNERSHIP',    // Deals
                 'ACQUISITION',    // Mergers
                 'REGULATION',     // Legal updates
+                'FUNDING',       // Investment rounds, raises
                 
                 // Token Events
                 'AIRDROP',       // Token distributions
@@ -251,6 +252,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 PARTNERSHIP: 40,  // Allow partnerships/collaborations
                 ACQUISITION: 60,  // Major deals
                 REGULATION: 60,   // Regulatory impact
+                FUNDING: 60,      // Investment rounds
                 
                 default: 40      // Lower base threshold
             },
