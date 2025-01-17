@@ -91,7 +91,14 @@ Required Information:
     - General market commentary
     - Unconfirmed signals
     - Past trade reviews
-    - Educational content
+    - Pure opinions/commentary without facts
+    - Market speculation without data
+    - General discussion without news
+    - Personal thoughts/reactions
+    - Memes and jokes
+    - Repeated/old news
+    - Vague rumors/unconfirmed info
+    - Educational/explanatory content
    
    - Description of the event (REQUIRED)
 

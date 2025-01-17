@@ -55,7 +55,8 @@ Required Information:
     DEFI                // Decentralized finance
     
     // Market Events
-    MARKET_MOVE         // General market movement, token purchases
+    MARKET_MOVE         // General market movement, price updates
+    UPDATE              // General news, updates, announcements
     WHALE_MOVE          // Large transactions
     FUND_FLOW          // Institutional money
     VOLUME_SPIKE        // Trading volume spikes
@@ -82,8 +83,17 @@ Required Information:
     UPDATE              // General updates
 
     DO NOT create new event types. If none match exactly, use UPDATE.
-    Use NONE for pure opinions/commentary/speculation.
-
+    
+    Use NONE for:
+    - Pure opinions/commentary without facts
+    - Market speculation without data
+    - General discussion without news
+    - Personal thoughts/reactions
+    - Memes and jokes
+    - Repeated/old news
+    - Vague rumors/unconfirmed info
+    - Educational/explanatory content
+    
     - Description of the event (REQUIRED)
 
 6. Impact & Confidence Assessment:

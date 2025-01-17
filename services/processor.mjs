@@ -221,6 +221,11 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             // Then check if event type is valid
+            if (parsedContent.event?.type === 'NONE') {
+                console.log('Skipping: Content marked as NONE type');
+                return { skip: true, reason: 'none_type' };
+            }
+
             if (!validEventTypes[channelMapping.table].includes(parsedContent.event?.type)) {
                 console.log('Skipping: Invalid event type:', parsedContent.event?.type);
                 return { skip: true, reason: 'invalid_event_type' };
