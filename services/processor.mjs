@@ -315,7 +315,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     type,
                     1 - (embedding <-> $1::vector) as vector_similarity
                 FROM ${channelMapping.table}
-                WHERE type = 'post'
+                WHERE type IN ('raw', 'post')
                 AND "createdAt" > NOW() - INTERVAL '48 hours'
                 AND 1 - (embedding <-> $1::vector) > 0.85
                 ORDER BY vector_similarity DESC
