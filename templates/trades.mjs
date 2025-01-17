@@ -7,12 +7,10 @@ Message to analyze:
 
 Required Information:
 1. Headline:
-   - Use original message text as headline
-   - Extract Twitter username as source
-   - For RTs, include both original and RT author
+  IMPORTANT: Use original message text as headline
 
 2. Tokens:
-   - Primary token symbol (REQUIRED)
+   - Primary token symbol
    - Related tokens/pairs (if any)
 
 3. Position Details (OPTIONAL for market analysis):
@@ -36,7 +34,7 @@ Required Information:
    - Trading Venues
    - Jurisdictions
 
-5. Event Type:
+5. Event Type (REQUIRED):
    IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
    
     // Market Events - CHECK THESE FIRST
@@ -100,9 +98,9 @@ Required Information:
     - Vague rumors/unconfirmed info
     - Educational/explanatory content
    
-   - Description of the event (REQUIRED)
+   - Description of the event
 
-6. Impact & Confidence Assessment:
+6. Impact & Confidence Assessment (REQUIRED):
    Score MUST be based on event type and evidence:
 
    HIGH IMPACT (70-100):
@@ -139,7 +137,7 @@ Required Information:
    - Single timeframe signals
    - Unconfirmed movements
 
-   CONFIDENCE SCORING:
+   CONFIDENCE SCORING (REQUIRED):
    90-100: Multiple confirmations:
           • Multiple timeframe alignment
           • Volume confirmation

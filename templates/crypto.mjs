@@ -8,11 +8,9 @@ Message to analyze:
 Required Information:
 1. Headline:
    - IMPORTANT: Use EXACT original message text as headline
-   - Do not modify or summarize the text
-   - Use Twitter username from URL as source
 
 2. Tokens:
-   - Primary token symbol (REQUIRED)
+   - Primary token symbol
    - Related tokens/projects (if any)
 
 3. Market Data (if available):
@@ -36,7 +34,7 @@ Required Information:
    - Jurisdictions (EU, APAC)
    - Regions (States, Cities)
 
-5. Event Type:
+5. Event Type (REQUIRED):
     IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
     
     // Platform Events
@@ -94,9 +92,9 @@ Required Information:
     - Vague rumors/unconfirmed info
     - Educational/explanatory content
     
-    - Description of the event (REQUIRED)
+    - Description of the event
 
-6. Impact & Confidence Assessment:
+6. Impact & Confidence Assessment (REQUIRED):
    Score MUST be based on event type and evidence:
 
    HIGH IMPACT (70-100):

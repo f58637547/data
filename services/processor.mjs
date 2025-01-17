@@ -414,12 +414,28 @@ export async function processMessage({ message, db, channelMapping }) {
                 }
             };
 
-            const minImpact = impactThresholds[channelMapping.table][parsedContent.event.type] || 
-                             impactThresholds[channelMapping.table].default;
+            // Keep only essential field validation
+            if (parsedContent) {
+                // 1. Must have event type
+                if (!parsedContent.event?.type || parsedContent.event.type === 'NONE') {
+                    console.log('Missing or NONE event type');
+                    return { skip: true, reason: 'invalid_event_type' };
+                }
 
-            if (parsedContent.metrics.impact < minImpact) {
-                console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact} for ${parsedContent.event.type}`);
-                return { skip: true, reason: 'low_impact' };
+                // 2. Must have impact score
+                if (!parsedContent.metrics?.impact) {
+                    console.log('Missing impact score');
+                    return { skip: true, reason: 'missing_impact' };
+                }
+
+                // Check impact thresholds
+                const minImpact = impactThresholds[channelMapping.table][parsedContent.event.type] || 
+                                 impactThresholds[channelMapping.table].default;
+
+                if (parsedContent.metrics.impact < minImpact) {
+                    console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact} for ${parsedContent.event.type}`);
+                    return { skip: true, reason: 'low_impact' };
+                }
             }
 
             // Add before embedding generation
@@ -496,57 +512,6 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Channel:', channelMapping.table);
             console.log('Event Type:', parsedContent.event?.type);
             console.log('Impact Score:', parsedContent.metrics.impact);
-
-            // 2. Improve parsed content validation
-            if (parsedContent) {
-                // Check structure first
-                if (!parsedContent.tokens || !parsedContent.event || !parsedContent.metrics) {
-                    console.log('Skipping: Missing required fields:', {
-                        hasTokens: !!parsedContent.tokens,
-                        hasEvent: !!parsedContent.event,
-                        hasMetrics: !!parsedContent.metrics
-                    });
-                    return { skip: true, reason: 'invalid_structure' };
-                }
-
-                // Then check specific fields
-                const validationErrors = [];
-                if (!parsedContent.tokens.primary) validationErrors.push('missing_primary_token');
-                if (!parsedContent.event.type) validationErrors.push('missing_event_type');
-                if (!parsedContent.event.description) validationErrors.push('missing_event_description');
-                if (parsedContent.metrics.impact === 0) validationErrors.push('zero_impact');
-                
-                if (validationErrors.length > 0) {
-                    console.log('Content validation failed:', validationErrors);
-                    return { skip: true, reason: 'validation_failed', errors: validationErrors };
-                }
-            }
-
-            // 3. Add channel-specific validation
-            const channelValidation = {
-                trades: (content) => {
-                    // Must have direction for trades
-                    if (!content.direction?.bias || content.direction.bias === 'NONE') {
-                        return false;
-                    }
-                    return true;
-                },
-                crypto: (content) => {
-                    // Must have entities for crypto news
-                    if (!content.entities?.projects?.length) {
-                        return false;
-                    }
-                    return true;
-                }
-            };
-
-            if (channelValidation[channelMapping.table]) {
-                const isValid = channelValidation[channelMapping.table](parsedContent);
-                if (!isValid) {
-                    console.log(`Failed ${channelMapping.table} specific validation`);
-                    return { skip: true, reason: 'channel_validation_failed' };
-                }
-            }
 
             return { success: true };
 
