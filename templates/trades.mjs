@@ -59,11 +59,17 @@ Required Information:
     DISTRIBUTION       // "Taking profits", "Distributing", "Selling"
     
     // Market Analysis Events
-    MARKET_MOVE        // "Price action", "Market movement"
+    MARKET_MOVE        // "Price action", "Market movement", "Looks bullish/bearish"
     WHALE_MOVE         // "Large wallet", "Whale activity"
     FUND_FLOW          // "Fund movement", "Institutional flow"
     VOLUME_SPIKE       // "Volume increase", "Trading activity spike"
-    PRICE_ALERT        // "Price target", "Level reached"
+    PRICE_ALERT        // "Price target", "Level reached", "Price opinion"
+
+    IMPORTANT: If message contains:
+    - "bullish", "bearish" -> Use MARKET_MOVE
+    - "looks good/bad" -> Use MARKET_MOVE
+    - Price targets -> Use PRICE_ALERT
+    - Market opinion -> Use MARKET_MOVE
 
     IMPORTANT: If message mentions:
     - "Bought", "Longed", "Added" -> Use SPOT_ENTRY
@@ -138,10 +144,9 @@ Required Information:
 
 7. Direction & Bias:
    POSITION DIRECTION:
-   - LONG: Bullish position entry/setup
-   - SHORT: Bearish position entry/setup
-   - HEDGE: Risk management position
-   - NONE: Analysis only
+   - LONG: Any bullish sentiment/outlook
+   - SHORT: Any bearish sentiment/outlook
+   - NONE: Neutral/unclear direction
    
    TIMEFRAME:
    - SCALP: < 24 hours
@@ -153,9 +158,9 @@ Required Information:
 
    MARKET SENTIMENT (0-100):
    - BULLISH (>70):
-     • Price increases
-     • Institutional inflows
-     • Positive developments
+     • "Looks bullish"
+     • "Going up"
+     • Positive outlook
    
    - NEUTRAL (40-70):
      • Balanced news

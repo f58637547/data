@@ -6,7 +6,10 @@ function extractTwitterUsername(text) {
     // Extract username from Twitter URL
     const twitterUrlRegex = /twitter\.com\/([^\/]+)\/status/;
     const match = text.match(twitterUrlRegex);
-    return match ? match[1].replace('@', '') : null;  // Remove @ if present
+    if (match && match[1]) {
+        return match[1];  // Return username like 'trader1sz'
+    }
+    return null;
 }
 
 export async function processMessage({ message, db, channelMapping }) {
@@ -214,12 +217,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 DEX: 60,         // DEX launches are significant
                 
                 // Protocol Events
-                DEVELOPMENT: 60,  // Core updates
-                UPGRADE: 70,     // Major upgrades
+                DEVELOPMENT: 50,  // Code updates
+                UPGRADE: 60,     // Major upgrades
+                INTEGRATION: 40,  // Allow integrations
                 
                 // Market Events
-                MARKET_MOVE: 50,  // General moves
-                FUND_FLOW: 60,   // Institutional flows
+                MARKET_MOVE: 40,  // Allow market opinions
+                FUND_FLOW: 50,   // Institutional flows
                 WHALE_MOVE: 50,  // Large transactions
                 
                 // Security Events
@@ -228,10 +232,11 @@ export async function processMessage({ message, db, channelMapping }) {
                 RUGPULL: 70,     // Scams
                 
                 // Business Events
-                PARTNERSHIP: 60,  // Major deals
-                REGULATION: 70,   // Regulatory impact
+                PARTNERSHIP: 40,  // Allow partnerships/collaborations
+                ACQUISITION: 60,  // Major deals
+                REGULATION: 60,   // Regulatory impact
                 
-                default: 40      // Base threshold
+                default: 40      // Lower base threshold
             },
             trades: {
                 // Trade Entry Events
