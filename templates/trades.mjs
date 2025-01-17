@@ -15,13 +15,13 @@ Required Information:
    - Primary token symbol (REQUIRED)
    - Related tokens/pairs (if any)
 
-3. Position Details:
-   - Entry price
-   - Target price
-   - Stop loss
-   - Position size
-   - Leverage used
-   - Risk/Reward ratio
+3. Position Details (OPTIONAL for market analysis):
+   - Entry price (Required only for actual trades)
+   - Target price (Required only for actual trades)
+   - Stop loss (Required only for actual trades)
+   - Position size (Required only for actual trades)
+   - Leverage used (Required only for actual trades)
+   - Risk/Reward ratio (Required only for actual trades)
 
 4. Entities:
    PROJECTS/ORGS:
@@ -39,34 +39,45 @@ Required Information:
 5. Event Type:
    IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
    
+    // Market Events - CHECK THESE FIRST
+    MARKET_MOVE         // General market movement, token purchases
+    WHALE_MOVE          // Large transactions
+    FUND_FLOW          // Institutional money
+    VOLUME_SPIKE        // Trading volume spikes
+    PRICE_ALERT         // Price movements
+    ACCUMULATION        // Buying zones, token accumulation
+    DISTRIBUTION        // Selling zones
+    
     // Trade Entry Events
-    SPOT_ENTRY          // "Bought", "Longed", "Entered long", "Added position"
-    FUTURES_ENTRY       // "Opened futures", "Futures long/short"
-    LEVERAGE_ENTRY      // "Leveraged long", "10x long", "Margin trade"
+    SPOT_ENTRY          // Spot buys
+    FUTURES_ENTRY       // Futures positions
+    LEVERAGE_ENTRY      // Margin trades
     
     // Trade Exit Events
-    TAKE_PROFIT         // "Took profits", "Closed at target", "TP hit"
-    STOP_LOSS          // "SL hit", "Stopped out", "Cut losses"
-    POSITION_EXIT       // "Closed position", "Exited trade"
+    TAKE_PROFIT         // Profit targets
+    STOP_LOSS          // Stop hits
+    POSITION_EXIT       // General exits
     
     // Technical Analysis Events
-    BREAKOUT           // "Breaking out", "Breaking resistance/support"
-    REVERSAL           // "Trend reversal", "Bottom/Top signal"
-    ACCUMULATION       // "Accumulating", "Building position", "DCA"
-    DISTRIBUTION       // "Taking profits", "Distributing", "Selling"
-    
-    // Market Analysis Events
-    MARKET_MOVE        // "Price action", "Market movement", "Looks bullish/bearish"
-    WHALE_MOVE         // "Large wallet", "Whale activity"
-    FUND_FLOW          // "Fund movement", "Institutional flow"
-    VOLUME_SPIKE       // "Volume increase", "Trading activity spike"
-    PRICE_ALERT        // "Price target", "Level reached", "Price opinion"
+    BREAKOUT           // Pattern breaks (triangles, ranges)
+    REVERSAL           // Trend changes
+
+    IMPORTANT: DEFAULT TO MARKET_MOVE FOR:
+    - Any market commentary
+    - Price opinions
+    - Token analysis
+    - Sentiment discussion
+    - Project updates
+    - General outlook
+    - Holding suggestions
 
     IMPORTANT: If message contains:
     - "bullish", "bearish" -> Use MARKET_MOVE
     - "looks good/bad" -> Use MARKET_MOVE
     - Price targets -> Use PRICE_ALERT
     - Market opinion -> Use MARKET_MOVE
+    - "hodl", "hold" -> Use MARKET_MOVE
+    - "sentiment", "outlook" -> Use MARKET_MOVE
 
     IMPORTANT: If message mentions:
     - "Bought", "Longed", "Added" -> Use SPOT_ENTRY
@@ -177,19 +188,19 @@ Required Information:
 Output format:
 {
     "headline": {
-        "text": "{{message}}",
+        "text": "{{message}}"
     },
     "tokens": {
         "primary": "main token symbol",
         "related": ["token1", "token2"]
     },
     "position": {
-        "entry": 0.0,
-        "target": 0.0,
-        "stop": 0.0,
-        "size": 0.0,
-        "leverage": 0,
-        "risk_reward": 0.0
+        "entry": null,
+        "target": null,
+        "stop": null,
+        "size": null,
+        "leverage": null,
+        "risk_reward": null
     },
     "metrics": {
         "impact": 50,

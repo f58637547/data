@@ -257,12 +257,17 @@ export async function processMessage({ message, db, channelMapping }) {
                 default: 40      // Lower base threshold
             },
             trades: {
-                // Trade Entry Events
+                // Market Analysis
+                MARKET_MOVE: 40,    // Allow general market commentary
+                PRICE_ALERT: 50,    // Price targets/levels
+                WHALE_MOVE: 60,     // Large wallet activity
+                FUND_FLOW: 60,      // Institutional activity
+                VOLUME_SPIKE: 50,   // Volume analysis
+                
+                // Trade Entry/Exit (existing)
                 SPOT_ENTRY: 50,
                 FUTURES_ENTRY: 60,
                 LEVERAGE_ENTRY: 70,
-                
-                // Trade Exit Events
                 TAKE_PROFIT: 60,
                 STOP_LOSS: 60,
                 

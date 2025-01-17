@@ -197,7 +197,7 @@ Output format:
         }
     },
     "market_data": {
-        "price": 0.0,
-        "volume": 0.0
+        "price": null,
+        "volume": null,
     }
 }`;
