@@ -94,9 +94,11 @@ export async function processMessage({ message, db, channelMapping }) {
             .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, '') // Remove emojis
             .replace(/<:[^>]+>/g, '') // Remove Discord emotes
             .replace(/https?:\/\/\S+/g, '') // Remove URLs
-            .replace(/[^\w\s$.,!?#@/-]/g, '') // Keep alphanumeric, $, #, @, /, basic punctuation
-            .replace(/\s+/g, ' ')
+            .replace(/\n+/g, ' ') // Replace newlines with spaces
             .trim();
+
+        // Keep the original text with tickers
+        const originalText = cleanText;  // Save before further cleaning
 
         if (cleanText.length < 10) {
             return { skip: true, reason: 'no_content' };
@@ -114,12 +116,12 @@ export async function processMessage({ message, db, channelMapping }) {
 
         // Parse content with author info
         const parsedContent = await extractEntities(
-            cleanText, 
+            originalText,  // Use original text with tickers
             channelMapping.table,
             {
-                message: cleanText,
-                author: author?.toLowerCase() || 'none',  // Make sure username is lowercase
-                rtAuthor: rtAuthor?.toLowerCase() || ''   // Make sure RT username is lowercase
+                message: originalText,
+                author: author || 'none',
+                rtAuthor: rtAuthor || ''
             }
         );
         console.log('\n=== Parsed Content ===');
@@ -317,19 +319,19 @@ export async function processMessage({ message, db, channelMapping }) {
         await db.query(`
             INSERT INTO ${channelMapping.table}
             (id, "createdAt", type, "agentId", content, embedding)
-            VALUES ($1, $2, 'raw', $4, $5, $6::vector)  // Add ::vector cast
+            VALUES ($1, $2, 'raw', $4, $5, $6::vector)
         `, [
             uuidv4(),
             new Date(),
             process.env.AGENT_ID,
             JSON.stringify({
-                original: cleanText,
+                original: originalText,  // Save original text with tickers
                 entities: parsedContent,
                 type: 'raw',
-                author: author || 'none',     // Save actual username
-                rt_author: rtAuthor || null   // Save RT username
+                author: author || 'none',
+                rt_author: rtAuthor || null
             }),
-            `[${newEmbedding.join(',')}]`  // Format embedding array correctly
+            `[${newEmbedding.join(',')}]`
         ]);
 
         console.log('Saved new content:', {
