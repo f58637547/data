@@ -294,7 +294,7 @@ export async function processMessage({ message, db, channelMapping }) {
             AND 1 - (embedding <-> $1::vector) > 0.85
             ORDER BY vector_similarity DESC
         `, [
-            `[${newEmbedding.join(',')}]`  // Format embedding as proper PostgreSQL array
+            `[${newEmbedding.join(',')}]`  // Format embedding array correctly
         ]);
 
         if (similarityCheck.rows.length > 0) {
@@ -317,7 +317,7 @@ export async function processMessage({ message, db, channelMapping }) {
         await db.query(`
             INSERT INTO ${channelMapping.table}
             (id, "createdAt", type, "agentId", content, embedding)
-            VALUES ($1, $2, 'raw', $4, $5, $6)
+            VALUES ($1, $2, 'raw', $4, $5, $6::vector)  // Add ::vector cast
         `, [
             uuidv4(),
             new Date(),
@@ -329,7 +329,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 author: author || 'none',     // Save actual username
                 rt_author: rtAuthor || null   // Save RT username
             }),
-            `[${newEmbedding.join(',')}]`  // Format embedding as proper PostgreSQL array
+            `[${newEmbedding.join(',')}]`  // Format embedding array correctly
         ]);
 
         console.log('Saved new content:', {
