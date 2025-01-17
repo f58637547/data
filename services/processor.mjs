@@ -21,6 +21,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
         // 1. Get plain text from Discord - combine text from related messages
         let rawText = '';
+        let lastValidText = '';  // Store last valid text
 
         // Get text from main message content
         if (message.content) {
@@ -33,6 +34,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 .map(embed => {
                     // Get text from rich embeds (tweets)
                     if (embed.data?.type === 'rich' && embed.data?.description) {
+                        lastValidText = embed.data.description;  // Store valid text
                         return embed.data.description;
                     }
                     // Get text from image embeds if they have alt text
@@ -50,6 +52,12 @@ export async function processMessage({ message, db, channelMapping }) {
             }
         }
 
+        // If current message is just media, use last valid text
+        if (!rawText && message.embeds?.length > 0 && 
+            message.embeds[0].data?.type === 'image' && lastValidText) {
+            rawText = lastValidText;
+        }
+
         rawText = rawText.trim();
         if (!rawText) {
             return { skip: true, reason: 'no_content' };
@@ -64,16 +72,20 @@ export async function processMessage({ message, db, channelMapping }) {
             if (urls.length > 0) {
                 author = extractTwitterUsername(urls[0]);  // Get username from first URL
                 if (urls.length > 1) {
-                    rtAuthor = extractTwitterUsername(urls[1]);  // Get username from second URL if exists
+                    rtAuthor = extractTwitterUsername(urls[1]);
                 }
             }
         } else if (message.embeds?.length > 0) {
             // If no direct URLs, try to get from embed
             const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
             if (twitterEmbed) {
-                author = extractTwitterUsername(twitterEmbed.data.url);
+                author = extractTwitterUsername(twitterEmbed.data.url);  // Will get 'Cointelegraph'
             }
         }
+
+        // Make sure we have valid values for the query
+        author = author || 'none';
+        rtAuthor = rtAuthor || null;
 
         // Clean text but keep important stuff
         const cleanText = rawText
@@ -270,67 +282,17 @@ export async function processMessage({ message, db, channelMapping }) {
         // 4. THEN do similarity check
         console.log('Running similarity checks...');
         const similarityCheck = await db.query(`
-            WITH combined AS (
-                -- Check crypto table
-                SELECT 
-                    id::text,
-                    "createdAt"::timestamp with time zone,
-                    type::text,
-                    content,
-                    embedding,
-                    'crypto' as source_table 
-                FROM crypto 
-                WHERE type = 'post'
-                AND "createdAt" > NOW() - INTERVAL '48 hours'
-                UNION ALL
-                -- Check trades table
-                SELECT 
-                    id::text,
-                    "createdAt"::timestamp with time zone,
-                    type::text,
-                    content,
-                    embedding,
-                    'trades' as source_table 
-                FROM trades 
-                WHERE type = 'post'
-                AND "createdAt" > NOW() - INTERVAL '48 hours'
-            )
             SELECT 
                 content->>'original' as text,
                 type,
-                content->>'author' as author,
-                content->>'rt_author' as rt_author,
-                1 - (embedding <-> $1::vector) as vector_similarity,
-                (content->'entities'->'metrics'->>'impact')::int as impact,
-                (content->'entities'->'metrics'->>'confidence')::int as confidence
-            FROM combined
-            WHERE (
-                -- Vector similarity threshold
-                1 - (embedding <-> $1::vector) > 0.85 OR
-                
-                -- For crypto: check token + metrics + author
-                (source_table = 'crypto' AND
-                    content->'entities'->'tokens'->>'primary' = $2 AND
-                    content->>'author' = $5 AND
-                    ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
-                    ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
-                )
-                OR
-                -- For trades: check token + metrics + author
-                (source_table = 'trades' AND
-                    content->'entities'->'tokens'->>'primary' = $2 AND
-                    content->>'author' = $5 AND
-                    ABS((content->'entities'->'metrics'->>'impact')::int - $3::int) < 20 AND
-                    ABS((content->'entities'->'metrics'->>'confidence')::int - $4::int) < 20
-                )
-            )
+                1 - (embedding <-> $1::vector) as vector_similarity
+            FROM ${channelMapping.table}  // Check only within same table
+            WHERE type = 'post'
+            AND "createdAt" > NOW() - INTERVAL '48 hours'
+            AND 1 - (embedding <-> $1::vector) > 0.85
             ORDER BY vector_similarity DESC
         `, [
-            `[${newEmbedding}]`,
-            parsedContent?.tokens?.primary || '',  // For exact token match
-            parsedContent?.metrics?.impact || 50,
-            parsedContent?.metrics?.confidence || 50,
-            author || 'none'  // Add author parameter
+            `[${newEmbedding}]`  // Only need embedding for similarity
         ]);
 
         if (similarityCheck.rows.length > 0) {
