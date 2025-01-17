@@ -129,7 +129,21 @@ export async function processMessage({ message, db, channelMapping }) {
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }
-            );
+            ).catch(error => {
+                // Only throw if it's not a channel type error
+                if (!error.message.includes('Not a trade message') && 
+                    !error.message.includes('Not a crypto update')) {
+                    throw error;
+                }
+                // Otherwise, continue processing
+                return null;
+            });
+
+            if (!parsedContent) {
+                console.log('Skipping: Could not parse content');
+                return { skip: true, reason: 'parse_failed' };
+            }
+
             console.log('\n=== Parsed Content ===');
             console.log(JSON.stringify(parsedContent, null, 2));
 
