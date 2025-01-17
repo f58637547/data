@@ -294,7 +294,7 @@ export async function processMessage({ message, db, channelMapping }) {
             AND 1 - (embedding <-> $1::vector) > 0.85
             ORDER BY vector_similarity DESC
         `, [
-            newEmbedding
+            `[${newEmbedding.join(',')}]`  // Format embedding as proper PostgreSQL array
         ]);
 
         if (similarityCheck.rows.length > 0) {
@@ -329,7 +329,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 author: author || 'none',     // Save actual username
                 rt_author: rtAuthor || null   // Save RT username
             }),
-            `[${newEmbedding}]`
+            `[${newEmbedding.join(',')}]`  // Format embedding as proper PostgreSQL array
         ]);
 
         console.log('Saved new content:', {
