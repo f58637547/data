@@ -106,8 +106,9 @@ export async function processMessage({ message, db, channelMapping }) {
             // Keep the original text with tickers
             const originalText = cleanText;  // Save before further cleaning
 
-            if (cleanText.length < 10) {
-                return { skip: true, reason: 'no_content' };
+            if (!cleanText || cleanText.length < 10) {
+                console.log('Skipping: Content too short or empty');
+                return { skip: true, reason: 'invalid_content' };
             }
 
             // Only keep the basic channel mapping validation
@@ -387,19 +388,54 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Event Type:', parsedContent.event?.type);
             console.log('Impact Score:', parsedContent.metrics.impact);
 
-            // After parsing content, add validation
+            // 2. Improve parsed content validation
             if (parsedContent) {
-                // Validate required fields
-                if (!parsedContent.tokens?.primary || 
-                    !parsedContent.event?.type || 
-                    !parsedContent.metrics?.impact || 
-                    parsedContent.metrics.impact === 0) {  // Catch zero impact scores
-                    console.log('Skipping: Invalid parsed content structure:', {
-                        hasPrimaryToken: !!parsedContent.tokens?.primary,
-                        hasEventType: !!parsedContent.event?.type,
-                        impact: parsedContent.metrics?.impact
+                // Check structure first
+                if (!parsedContent.tokens || !parsedContent.event || !parsedContent.metrics) {
+                    console.log('Skipping: Missing required fields:', {
+                        hasTokens: !!parsedContent.tokens,
+                        hasEvent: !!parsedContent.event,
+                        hasMetrics: !!parsedContent.metrics
                     });
-                    return { skip: true, reason: 'invalid_content_structure' };
+                    return { skip: true, reason: 'invalid_structure' };
+                }
+
+                // Then check specific fields
+                const validationErrors = [];
+                if (!parsedContent.tokens.primary) validationErrors.push('missing_primary_token');
+                if (!parsedContent.event.type) validationErrors.push('missing_event_type');
+                if (!parsedContent.event.description) validationErrors.push('missing_event_description');
+                if (parsedContent.metrics.impact === 0) validationErrors.push('zero_impact');
+                
+                if (validationErrors.length > 0) {
+                    console.log('Content validation failed:', validationErrors);
+                    return { skip: true, reason: 'validation_failed', errors: validationErrors };
+                }
+            }
+
+            // 3. Add channel-specific validation
+            const channelValidation = {
+                trades: (content) => {
+                    // Must have direction for trades
+                    if (!content.direction?.bias || content.direction.bias === 'NONE') {
+                        return false;
+                    }
+                    return true;
+                },
+                crypto: (content) => {
+                    // Must have entities for crypto news
+                    if (!content.entities?.projects?.length) {
+                        return false;
+                    }
+                    return true;
+                }
+            };
+
+            if (channelValidation[channelMapping.table]) {
+                const isValid = channelValidation[channelMapping.table](parsedContent);
+                if (!isValid) {
+                    console.log(`Failed ${channelMapping.table} specific validation`);
+                    return { skip: true, reason: 'channel_validation_failed' };
                 }
             }
 
