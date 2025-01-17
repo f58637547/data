@@ -59,7 +59,7 @@ export async function processMessage({ message, db, channelMapping }) {
         if (message.content) {
             const urls = message.content.match(/https:\/\/twitter\.com\/[^\s]+/g) || [];
             if (urls.length > 0) {
-                author = extractTwitterUsername(urls[0]) || 'none';  // Get username from first URL
+                author = extractTwitterUsername(urls[0]);  // Get username from first URL
                 if (urls.length > 1) {
                     rtAuthor = extractTwitterUsername(urls[1]);  // Get username from second URL if exists
                 }
@@ -68,7 +68,7 @@ export async function processMessage({ message, db, channelMapping }) {
             // If no direct URLs, try to get from embed
             const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
             if (twitterEmbed) {
-                author = extractTwitterUsername(twitterEmbed.data.url) || 'none';
+                author = extractTwitterUsername(twitterEmbed.data.url);
             }
         }
 
@@ -100,8 +100,9 @@ export async function processMessage({ message, db, channelMapping }) {
             cleanText, 
             channelMapping.table,
             {
-                author: author,       // Will be username from URL like 'VikingXBT'
-                rtAuthor: rtAuthor    // Will be username from second URL if exists
+                message: cleanText,
+                author: author || 'none',  // Pass actual username like 'trader1sz'
+                rtAuthor: rtAuthor || ''   // Pass RT username if exists
             }
         );
         console.log('\n=== Parsed Content ===');
@@ -356,8 +357,8 @@ export async function processMessage({ message, db, channelMapping }) {
                 original: cleanText,
                 entities: parsedContent,
                 type: 'raw',
-                author: author || 'none',
-                rt_author: rtAuthor || null
+                author: author || 'none',     // Save actual username
+                rt_author: rtAuthor || null   // Save RT username
             }),
             `[${newEmbedding}]`
         ]);
