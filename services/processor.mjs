@@ -441,23 +441,32 @@ export async function processMessage({ message, db, channelMapping }) {
             // Add before embedding generation
             console.log('\n=== Starting Embedding Generation ===');
 
-            // 3. THEN generate embedding
-            const newEmbedding = await generateEmbedding(cleanText);
+            // Generate embedding from full content data
+            const contentData = {
+                original: originalText,
+                entities: parsedContent,
+                type: 'raw',
+                author: author || 'none',
+                rt_author: rtAuthor || null
+            };
+
+            // Generate embedding from full JSON content
+            const newEmbedding = await generateEmbedding(JSON.stringify(contentData));
 
             // Add before similarity check
             console.log('\n=== Starting Similarity Check ===');
 
-            // 4. THEN do similarity check
+            // 4. THEN do similarity check with full content embeddings
             console.log('Running similarity checks...');
             const similarityCheck = await db.query(`
                 SELECT 
-                    content->>'original' as text,
+                    content,
                     type,
                     1 - (embedding <-> $1::vector) as vector_similarity
                 FROM ${channelMapping.table}
                 WHERE type IN ('raw', 'post')
                 AND "createdAt" > NOW() - INTERVAL '48 hours'
-                AND 1 - (embedding <-> $1::vector) > 0.85
+                AND 1 - (embedding <-> $1::vector) > 0.65
                 ORDER BY vector_similarity DESC
             `, [
                 `[${newEmbedding.join(',')}]`  // Format as PostgreSQL array
@@ -465,15 +474,12 @@ export async function processMessage({ message, db, channelMapping }) {
 
             if (similarityCheck.rows.length > 0) {
                 console.log('Similar content found:', {
-                    new_text: cleanText.substring(0, 100) + '...',
+                    new_content: JSON.stringify(contentData).substring(0, 100) + '...',
                     similar_count: similarityCheck.rows.length,
                     matches: similarityCheck.rows.map(row => ({
-                        text: row.text.substring(0, 100) + '...',
+                        content: row.content.substring(0, 100) + '...',
                         type: row.type,
-                        vector_sim: (row.vector_similarity * 100).toFixed(2) + '%',
-                        text_sim: (row.text_similarity * 100).toFixed(2) + '%',
-                        token_sim: row.token_similarity ? 
-                            (row.token_similarity * 100).toFixed(2) + '%' : 'N/A'
+                        vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
                     }))
                 });
                 return { skip: true, reason: 'similar_content' };
@@ -482,7 +488,7 @@ export async function processMessage({ message, db, channelMapping }) {
             // Add before final save
             console.log('\n=== Starting Save Operation ===');
 
-            // 5. Process and save unique content
+            // 5. Save with same content data used for embedding
             await db.query(`
                 INSERT INTO ${channelMapping.table}
                 (id, "createdAt", type, "agentId", content, embedding)
@@ -491,19 +497,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 uuidv4(),
                 new Date(),
                 process.env.AGENT_ID,
-                JSON.stringify({
-                    original: originalText,
-                    entities: parsedContent,
-                    type: 'raw',
-                    author: author || 'none',
-                    rt_author: rtAuthor || null
-                }),
-                `[${newEmbedding.join(',')}]`  // Format as PostgreSQL array
+                JSON.stringify(contentData),  // Use same content data
+                `[${newEmbedding.join(',')}]`
             ]);
 
             console.log('Saved new content:', {
                 type: channelMapping.table,
-                preview: cleanText.substring(0, 100) + '...'
+                preview: originalText.substring(0, 100) + '...'
             });
 
             // Add after successful save
