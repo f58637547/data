@@ -5,244 +5,547 @@ Never include instructions or template text in the output.
 Message to analyze:
 {{message}}
 
+IMPORTANT - SIGNAL VALIDATION:
+Before extraction, check for manipulation signals:
+1. Pump & Dump Patterns:
+   - Coordinated buying signals
+   - Unrealistic price targets
+   - Urgency in entry ("buy now!", "last chance")
+   - Promises of quick returns
+   - Multiple reposts of same signal
+
+2. Suspicious Trade Signals:
+   - No clear entry/exit levels
+   - Missing risk management
+   - Unrealistic leverage suggestions
+   - No technical justification
+   - Pure price predictions
+
+3. Manipulation Attempts:
+   - False volume claims
+   - Fake order book screenshots
+   - Coordinated group actions
+   - Front-running attempts
+   - Wash trading signals
+
+4. Source Credibility:
+   VERIFIED SOURCES:
+   - Known traders with track record
+   - Professional analysts
+   - Established trading firms
+   - Verified exchange data
+
+   RELIABLE SOURCES:
+   - Technical analysis with evidence
+   - On-chain data analysis
+   - Market maker activity
+   - Order flow analysis
+
+   SUSPICIOUS SOURCES:
+   - Anonymous signals
+   - Unverified claims
+   - Telegram/Discord pumps
+   - Copy trading promotions
+
+If ANY manipulation signals detected:
+- Set event_type to "NONE"
+- Set impact to 0
+- Set confidence to 0
+- Add detected signals to sentiment.market.signals
+- Clear all position details
+
 Required Information:
 1. Headline:
-  IMPORTANT: Use original message text as headline
+   - Use EXACT original message text
+   - Preserve all formatting
+   - Keep original language/style
+   - Do not clean/modify text
 
 2. Tokens:
-   - Primary token symbol
-   - Related tokens/pairs (if any)
+   PRIMARY TOKEN:
+   - Must be valid trading pair
+   - Include base/quote (e.g., "BTC/USD")
+   - Verify against major exchanges
+   - Remove unofficial pairs
 
-3. Position Details (OPTIONAL for market analysis):
-   - Entry price (Required only for actual trades)
-   - Target price (Required only for actual trades)
-   - Stop loss (Required only for actual trades)
-   - Position size (Required only for actual trades)
-   - Leverage used (Required only for actual trades)
-   - Risk/Reward ratio (Required only for actual trades)
+   RELATED TOKENS:
+   - Only correlated pairs
+   - Max 3 related pairs
+   - Must be liquid markets
+   - Include correlation type
+
+3. Position Details:
+   ENTRY VALIDATION:
+   - Must be current market price ±5%
+   - Must include spread/slippage
+   - Must be on major venue
+   - Must have volume support
+
+   TARGET VALIDATION:
+   - Must have technical reason
+   - Must be realistic range
+   - Must include timeframe
+   - Multiple targets allowed
+
+   STOP VALIDATION:
+   - Must be logical level
+   - Must protect capital
+   - Must be within 5% for leverage
+   - Must be at structure
+
+   SIZE VALIDATION:
+   - Must be reasonable %
+   - Must match risk model
+   - Must consider liquidity
+   - No overleveraging
+
+   LEVERAGE CHECK:
+   - Max 10x for majors
+   - Max 5x for alts
+   - Must match volatility
+   - Must have margin buffer
+
+   RISK/REWARD:
+   - Minimum 1:1.5 ratio
+   - Must include fees
+   - Must be realistic
+   - Must match timeframe
 
 4. Entities:
-   PROJECTS/ORGS:
-   - Exchanges (e.g. Binance, Bybit)
-   - Protocols (e.g. GMX, dYdX)
-   
-   PERSONS:
-   - Traders (Authors, Analysts)
-   - Notable Figures (Influencers)
-   
-   LOCATIONS:
-   - Trading Venues
-   - Jurisdictions
+   VENUES:
+   Required fields:
+   {
+     "name": "exact venue name",
+     "type": "SPOT|FUTURES|DEX",
+     "tier": "MAJOR|MEDIUM|MINOR",
+     "liquidity": "HIGH|MEDIUM|LOW"
+   }
+
+   TRADERS:
+   Required fields:
+   {
+     "name": "trader identifier",
+     "track_record": {
+       "verified": boolean,
+       "win_rate": number,
+       "avg_rrr": number
+     },
+     "reputation": "VERIFIED|RELIABLE|UNKNOWN"
+   }
+
+   ANALYSIS:
+   Required fields:
+   {
+     "type": "TECHNICAL|FUNDAMENTAL|ONCHAIN",
+     "timeframes": ["1H", "4H", "1D"],
+     "indicators": ["MA", "RSI", "etc"],
+     "patterns": ["patterns used"]
+   }
 
 5. Event Type (REQUIRED):
-   IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
-   
-    // Market Events - CHECK THESE FIRST
-    MARKET_MOVE         // General market movement, token purchases
-    WHALE_MOVE          // Large transactions
-    FUND_FLOW          // Institutional money
-    VOLUME_SPIKE        // Trading volume spikes
-    PRICE_ALERT         // Price movements
-    ACCUMULATION        // Buying zones, token accumulation
-    DISTRIBUTION        // Selling zones
-    
-    // Trade Entry Events
-    SPOT_ENTRY          // Spot buys
-    FUTURES_ENTRY       // Futures positions
-    LEVERAGE_ENTRY      // Margin trades
-    
-    // Trade Exit Events
-    TAKE_PROFIT         // Profit targets
-    STOP_LOSS          // Stop hits
-    POSITION_EXIT       // General exits
-    
-    // Technical Analysis Events
-    BREAKOUT           // Pattern breaks (triangles, ranges)
-    REVERSAL           // Trend changes
+   VALIDATION REQUIREMENTS:
+   1. Check source credibility
+   2. Verify technical basis
+   3. Confirm execution possible
+   4. No manipulation signals
 
-    IMPORTANT: DEFAULT TO MARKET_MOVE FOR:
-    - Any market commentary
-    - Price opinions
-    - Token analysis
-    - Sentiment discussion
-    - Project updates
-    - General outlook
-    - Holding suggestions
+   If validation fails:
+   - Use "NONE" as type
+   - Zero all metrics
+   - Clear position data
 
-    IMPORTANT: If message contains:
-    - "bullish", "bearish" -> Use MARKET_MOVE
-    - "looks good/bad" -> Use MARKET_MOVE
-    - Price targets -> Use PRICE_ALERT
-    - Market opinion -> Use MARKET_MOVE
-    - "hodl", "hold" -> Use MARKET_MOVE
-    - "sentiment", "outlook" -> Use MARKET_MOVE
+   MARKET EVENTS:
+   MARKET_MOVE:
+   - Clear price action
+   - Volume confirmation
+   - Multiple timeframes
 
-    IMPORTANT: If message mentions:
-    - "Bought", "Longed", "Added" -> Use SPOT_ENTRY
-    - "Futures", "Perpetual" -> Use FUTURES_ENTRY
-    - "Leverage", "10x", "Margin" -> Use LEVERAGE_ENTRY
-    - "TP", "Take profit" -> Use TAKE_PROFIT
-    - "SL", "Stop" -> Use STOP_LOSS
-    - "Closed", "Exited" -> Use POSITION_EXIT
-    
-    Use NONE for:
-    - General market commentary
-    - Unconfirmed signals
-    - Past trade reviews
-    - Pure opinions/commentary without facts
-    - Market speculation without data
-    - General discussion without news
-    - Personal thoughts/reactions
-    - Memes and jokes
-    - Repeated/old news
-    - Vague rumors/unconfirmed info
-    - Educational/explanatory content
-   
-   - Description of the event
+   WHALE_MOVE:
+   - Order flow data
+   - Size verification
+   - Venue confirmation
 
-6. Impact & Confidence Assessment (REQUIRED):
-   Score MUST be based on event type and evidence:
+   FUND_FLOW:
+   - Institution proof
+   - Size verification
+   - Direction clear
+
+   VOLUME_SPIKE:
+   - Multiple venues
+   - Clean volume
+   - No wash trading
+
+   PRICE_ALERT:
+   - Technical levels
+   - Multiple timeframes
+   - Clear reasoning
+
+   ACCUMULATION:
+   - Clear buying pattern
+   - Size appropriate
+   - Time window clear
+
+   DISTRIBUTION:
+   - Clear selling pattern
+   - Size appropriate
+   - Time window clear
+
+   TRADE ENTRIES:
+   SPOT_ENTRY:
+   - Spot exchange
+   - Clear entry zone
+   - Volume possible
+
+   FUTURES_ENTRY:
+   - Futures venue
+   - Funding rate check
+   - Liquidity check
+
+   LEVERAGE_ENTRY:
+   - Margin checks
+   - Risk appropriate
+   - Liquidation safe
+
+   TRADE EXITS:
+   TAKE_PROFIT:
+   - Technical target
+   - Volume possible
+   - Clear reasoning
+
+   STOP_LOSS:
+   - Technical level
+   - Risk appropriate
+   - Clear reasoning
+
+   POSITION_EXIT:
+   - Full/partial clear
+   - Reason specified
+   - Result recorded
+
+   TECHNICAL EVENTS:
+   BREAKOUT:
+   - Pattern valid
+   - Volume confirm
+   - Multiple timeframes
+
+   REVERSAL:
+   - Pattern complete
+   - Volume confirm
+   - Multiple timeframes
+
+6. Impact & Confidence Assessment:
+   VALIDATION REQUIREMENTS:
+   1. Technical confirmation
+   2. Volume verification
+   3. Risk assessment
+   4. Execution possible
+
+   If validation fails:
+   - Set impact = 0
+   - Set confidence = 0
+
+   Impact Reduction Factors:
+   - Poor risk/reward: -30
+   - High leverage: -20
+   - Single timeframe: -20
+   - Low volume: -30
+   - Poor structure: -40
+
+   Impact Boost Factors:
+   - Multiple timeframes: +20
+   - Strong volume: +20
+   - Clear structure: +30
+   - Institutional flow: +40
 
    HIGH IMPACT (70-100):
-   - ENTRY SIGNALS:
-     • LEVERAGE_ENTRY: Large size (>$100K), clear setup
-     • FUTURES_ENTRY: Major support/resistance levels
-     • SPOT_ENTRY: Strong accumulation zones
-   
-   - EXIT SIGNALS:
-     • TAKE_PROFIT: Major targets hit
-     • STOP_LOSS: Key level breaches
-     • POSITION_EXIT: Complete position close
-   
-   - ANALYSIS:
-     • BREAKOUT: Major pattern completion
-     • REVERSAL: Trend change confirmation
-     • WHALE_MOVE: >$10M position changes
-     • VOLUME_SPIKE: >3x average volume
-   
-   MEDIUM IMPACT (40-70):
-   - ENTRY/EXIT:
-     • Regular position sizes
-     • Partial entries/exits
-     • Multiple timeframe alignment
-   
-   - MARKET EVENTS:
-     • ACCUMULATION: Clear buying patterns
-     • DISTRIBUTION: Notable selling
-     • FUND_FLOW: Institutional activity
-   
-   LOW IMPACT (0-40):
-   - Small position sizes
-   - Unclear patterns
-   - Single timeframe signals
-   - Unconfirmed movements
+   ENTRIES:
+   - Perfect technical setup
+   - Multiple timeframe aligned
+   - Strong volume profile
+   - Clear risk management
 
-   CONFIDENCE SCORING (REQUIRED):
-   90-100: Multiple confirmations:
-          • Multiple timeframe alignment
-          • Volume confirmation
-          • Pattern completion
-   70-90:  Strong setup:
-          • Clear support/resistance
-          • Good risk/reward
-          • Clean chart structure
-   40-70:  Basic setup:
-          • Single timeframe
-          • Basic pattern
-          • Average risk/reward
-   0-40:   Weak setup:
-          • No clear levels
-          • Poor risk/reward
-          • Messy chart
+   EXITS:
+   - Target achievement
+   - Clean exit possible
+   - Volume supporting
+   - Risk protected
+
+   ANALYSIS:
+   - Major pattern completion
+   - Multiple confirmations
+   - Clear market structure
+   - Strong volume
+
+   MEDIUM IMPACT (40-70):
+   ENTRIES:
+   - Good technical setup
+   - Some timeframe alignment
+   - Adequate volume
+   - Basic risk management
+
+   EXITS:
+   - Partial targets
+   - Exit possible
+   - Some volume
+   - Risk defined
+
+   ANALYSIS:
+   - Pattern developing
+   - Some confirmation
+   - Visible structure
+   - Normal volume
+
+   LOW IMPACT (0-40):
+   - Weak technicals
+   - Single timeframe
+   - Poor volume
+   - Unclear risk
+
+   ZERO IMPACT (0):
+   - Manipulation detected
+   - No technical basis
+   - No volume support
+   - No risk management
+
+   CONFIDENCE SCORING:
+   Requirements for each level:
+
+   90-100:
+   - All timeframes aligned
+   - Perfect technical setup
+   - Strong volume profile
+   - Clear market structure
+   - Defined risk/reward
+
+   70-90:
+   - Most timeframes aligned
+   - Good technical setup
+   - Adequate volume
+   - Visible structure
+   - Risk management present
+
+   40-70:
+   - Some alignment
+   - Basic setup
+   - Sufficient volume
+   - Basic structure
+   - Some risk management
+
+   0-40:
+   - No alignment
+   - Poor setup
+   - Low volume
+   - No structure
+   - No risk management
+
+   0:
+   - Manipulation detected
+   - No technical basis
+   - No volume support
+   - No risk control
 
 7. Direction & Bias:
-   POSITION DIRECTION:
-   - LONG: Any bullish sentiment/outlook
-   - SHORT: Any bearish sentiment/outlook
-   - NONE: Neutral/unclear direction
-   
-   TIMEFRAME:
-   - SCALP: < 24 hours
-   - SWING: 1-7 days
-   - POSITION: > 1 week
+   VALIDATION REQUIREMENTS:
+   1. Technical confirmation
+   2. Timeframe alignment
+   3. Volume support
+   4. Risk definition
+
+   LONG BIAS:
+   - Above key MAs
+   - Higher lows formed
+   - Volume supporting
+   - Bullish structure
+
+   SHORT BIAS:
+   - Below key MAs
+   - Lower highs formed
+   - Volume supporting
+   - Bearish structure
+
+   TIMEFRAMES:
+   SCALP:
+   - Under 24h
+   - Clear ranges
+   - High volume
+   - Tight stops
+
+   SWING:
+   - 1-7 days
+   - Trend following
+   - Multiple targets
+   - Wider stops
+
+   POSITION:
+   - Over 1 week
+   - Major trends
+   - Multiple entries
+   - Scale in/out
 
 8. Sentiment Analysis:
-   Separate from impact/confidence, measures market mood:
+   MARKET SENTIMENT:
+   BULLISH (70-100):
+   - Above key MAs
+   - Higher highs/lows
+   - Strong volume
+   - Clear uptrend
+   - Institutional buying
 
-   MARKET SENTIMENT (0-100):
-   - BULLISH (>70):
-     • "Looks bullish"
-     • "Going up"
-     • Positive outlook
-   
-   - NEUTRAL (40-70):
-     • Balanced news
-     • Unclear direction
-     • Mixed signals
-   
-   - BEARISH (<40):
-     • Price decreases
-     • Negative news
-     • Market concerns
+   NEUTRAL (40-70):
+   - At key MAs
+   - Range bound
+   - Normal volume
+   - No clear trend
+   - Mixed flows
 
-   SOCIAL SENTIMENT (0-100):
-   - HIGH (>70): Strong community support
-   - MID (40-70): Mixed reactions
-   - LOW (<40): Negative community response
+   BEARISH (0-40):
+   - Below key MAs
+   - Lower highs/lows
+   - Weak volume
+   - Clear downtrend
+   - Institutional selling
+
+   SOCIAL SENTIMENT:
+   POSITIVE (70-100):
+   - Strong accumulation
+   - Active buying
+   - Position building
+   - Positive flows
+   - Clear demand
+
+   NEUTRAL (40-70):
+   - Mixed positions
+   - Balanced flows
+   - Normal activity
+   - Range trading
+   - Unclear bias
+
+   NEGATIVE (0-40):
+   - Heavy distribution
+   - Active selling
+   - Position reduction
+   - Negative flows
+   - Clear supply
 
 Output format:
 {
     "headline": {
-        "text": "{{message}}"
+        "text": "exact original message",
+        "analysis": {
+            "has_signals": boolean,
+            "manipulation_flags": ["flag1", "flag2"]
+        }
     },
     "tokens": {
-        "primary": "main token symbol",
-        "related": ["token1", "token2"]
+        "primary": {
+            "pair": "BASE/QUOTE",
+            "venue": "exchange name",
+            "liquidity": "HIGH|MEDIUM|LOW"
+        },
+        "related": [{
+            "pair": "BASE/QUOTE",
+            "correlation": "POSITIVE|NEGATIVE",
+            "strength": 0-100
+        }]
     },
     "position": {
-        "entry": null,
-        "target": null,
-        "stop": null,
-        "size": null,
-        "leverage": null,
-        "risk_reward": null
+        "entry": {
+            "price": number|null,
+            "zone": ["lower", "upper"],
+            "timeframe": "string",
+            "volume_support": boolean
+        },
+        "targets": [{
+            "price": number,
+            "reason": "string",
+            "timeframe": "string"
+        }],
+        "stop": {
+            "price": number|null,
+            "reason": "string",
+            "risk_percent": number
+        },
+        "size": {
+            "amount": number|null,
+            "risk_percent": number,
+            "portfolio_percent": number
+        },
+        "leverage": {
+            "multiple": number|null,
+            "liquidation_price": number|null,
+            "margin_ratio": number
+        },
+        "risk_reward": {
+            "ratio": number|null,
+            "adjusted_ratio": number,
+            "includes_fees": boolean
+        }
     },
     "metrics": {
-        "impact": 50,
-        "confidence": 50
+        "impact": 0-100,
+        "confidence": 0-100,
+        "factors": {
+            "reductions": ["reason1", "reason2"],
+            "boosts": ["reason1", "reason2"]
+        }
     },
-     "event": {
-        "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
-        "description": "brief event description"
+    "event": {
+        "type": "EXACT_TYPE_FROM_LIST",
+        "description": "brief factual summary",
+        "validation": {
+            "technical_confirmed": boolean,
+            "volume_confirmed": boolean,
+            "risk_defined": boolean,
+            "manipulation_flags": ["flag1", "flag2"]
+        }
     },
     "entities": {
-        "projects": [{
-            "name": "exchange/protocol name",
-            "type": "EXCHANGE|PROTOCOL|VENUE|PLATFORM",
-            "role": "primary|related|venue"
+        "venues": [{
+            "name": "exact venue name",
+            "type": "SPOT|FUTURES|DEX",
+            "tier": "MAJOR|MEDIUM|MINOR",
+            "liquidity": "HIGH|MEDIUM|LOW"
         }],
-        "persons": [{
-            "name": "trader name",
-            "title": "role/position",
-            "org": "affiliated org"
+        "traders": [{
+            "name": "trader identifier",
+            "track_record": {
+                "verified": boolean,
+                "win_rate": number,
+                "avg_rrr": number
+            },
+            "reputation": "VERIFIED|RELIABLE|UNKNOWN"
         }],
-        "locations": [{
-            "name": "venue name",
-            "type": "EXCHANGE|REGION"
-        }]
+        "analysis": {
+            "type": "TECHNICAL|FUNDAMENTAL|ONCHAIN",
+            "timeframes": ["1H", "4H", "1D"],
+            "indicators": ["MA", "RSI", "etc"],
+            "patterns": ["patterns used"]
+        }
     },
     "direction": {
         "bias": "LONG|SHORT|HEDGE",
-        "timeframe": "SCALP|SWING|POSITION"
+        "timeframe": "SCALP|SWING|POSITION",
+        "conviction": {
+            "score": 0-100,
+            "reasons": ["reason1", "reason2"]
+        }
     },
     "sentiment": {
         "market": {
             "score": 0-100,
-            "signals": ["reason1", "reason2"]
+            "signals": ["signal1", "signal2"],
+            "validation": {
+                "technical_confirmed": boolean,
+                "volume_confirmed": boolean
+            }
         },
         "social": {
             "score": 0-100,
-            "signals": ["trend1", "trend2"]
+            "signals": ["trend1", "trend2"],
+            "validation": {
+                "genuine_activity": boolean,
+                "manipulation_detected": boolean
+            }
         }
     }
 }`;

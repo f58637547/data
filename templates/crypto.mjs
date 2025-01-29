@@ -5,194 +5,489 @@ Never include instructions or template text in the output.
 Message to analyze:
 {{message}}
 
+IMPORTANT - SPAM DETECTION:
+Before extraction, check for spam signals:
+1. Promotional Content:
+   - Referral codes/links
+   - Giveaways/airdrops without official source
+   - "Early access" or "limited time" offers
+   - Promises of returns/gains
+   - Affiliate/referral programs
+   - Unauthorized promotions
+
+2. Suspicious Patterns:
+   - Claims of hacks/breaches without proof
+   - Unauthorized access/leaked information
+   - Impersonation of officials/projects
+   - Unverified insider information
+   - Fake screenshots/evidence
+   - Unauthorized leaks
+
+3. Manipulation Attempts:
+   - Pump and dump signals
+   - Coordinated buying/selling
+   - False urgency ("last chance", "hurry")
+   - FOMO inducing language
+   - Price manipulation signals
+   - Fake volume/trading activity
+
+4. Source Verification:
+   OFFICIAL SOURCES:
+   - Verified project accounts
+   - Official company websites
+   - Registered company blogs
+   - Official press releases
+
+   RELIABLE SOURCES:
+   - Major news outlets
+   - Established crypto media
+   - Verified journalists
+   - Industry analysts
+
+   SUSPICIOUS SOURCES:
+   - Anonymous accounts
+   - Unverified claims
+   - New/unknown websites
+   - Telegram/Discord groups
+
+If ANY spam signals are detected:
+- Set event_type to "NONE"
+- Set impact to 0
+- Set confidence to 0
+- Add detected signals to sentiment.market.signals
+
 Required Information:
 1. Headline:
    - IMPORTANT: Use EXACT original message text as headline
+   - Do not modify or clean the text
+   - Preserve all formatting/symbols
 
 2. Tokens:
-   - Primary token symbol
-   - Related tokens/projects (if any)
+   PRIMARY TOKEN:
+   - Must be official symbol
+   - Verify against known tokens
+   - Remove $ prefix if present
+   - Convert to uppercase
 
-3. Market Data (if available):
-   - Price (numeric value only)
-   - Volume (numeric value only)
+   RELATED TOKENS:
+   - Only include directly mentioned
+   - Verify each symbol
+   - Remove duplicates
+   - Max 5 related tokens
+
+3. Market Data:
+   PRICE:
+   - Only exact numbers
+   - Remove currency symbols
+   - Convert written numbers
+   - Use decimals appropriately
+
+   VOLUME:
+   - 24h trading volume
+   - Remove currency symbols
+   - Convert K/M/B to numbers
+   - Use whole numbers only
 
 4. Entities:
    PROJECTS/ORGS:
-   - Exchanges (e.g. Binance, Coinbase)
-   - Protocols (e.g. Uniswap, Aave)
-   - Companies (e.g. BlackRock, MicroStrategy)
-   - Regulators (e.g. SEC, CFTC)
+   Required fields:
+   {
+     "name": "exact official name",
+     "type": "EXCHANGE|PROTOCOL|COMPANY|REGULATOR",
+     "role": "primary|related",
+     "verified": boolean,
+     "source": "official|reliable|unverified"
+   }
+
+   Types:
+   - EXCHANGE: Trading platforms
+   - PROTOCOL: DeFi/blockchain protocols
+   - COMPANY: Traditional businesses
+   - REGULATOR: Government bodies
 
    PERSONS:
-   - Executives (CEO, CTO, Founders)
-   - Officials (Regulators, Government)
-   - Notable Figures (Influencers, Analysts)
-   
+   Required fields:
+   {
+     "name": "full official name",
+     "title": "exact position/role",
+     "org": "affiliated organization",
+     "verified": boolean,
+     "source": "official|reliable|unverified"
+   }
+
+   Categories:
+   - Executives: C-level, founders
+   - Officials: Government, regulatory
+   - Influencers: Community leaders
+
    LOCATIONS:
-   - Countries (US, China, etc)
-   - Jurisdictions (EU, APAC)
-   - Regions (States, Cities)
+   Required fields:
+   {
+     "name": "official location name",
+     "type": "COUNTRY|REGION|CITY",
+     "context": "primary|related"
+   }
 
 5. Event Type (REQUIRED):
-    IMPORTANT: Type MUST be EXACTLY one of these values, no variations allowed:
-    
-    // Platform Events
-    LISTING              // New exchange/platform listings
-    DELISTING            // Removed from exchanges
-    INTEGRATION         // Platform integrations
-    DEX                 // Decentralized exchanges
-    DEX_POOL            // Decentralized exchange pools
-    LIQUIDITY_POOL      // Liquidity pools
-    
-    // Protocol Events
-    DEVELOPMENT         // Code updates, features
-    UPGRADE             // Protocol changes
-    FORK                // Chain splits
-    BRIDGE              // Cross-chain
-    DEFI                // Decentralized finance
-    
-    // Market Events
-    MARKET_MOVE         // General market movement, price updates
-    UPDATE              // General news, updates, announcements
-    WHALE_MOVE          // Large transactions
-    FUND_FLOW          // Institutional money
-    VOLUME_SPIKE        // Trading volume spikes
-    PRICE_ALERT         // Price movements
-    ACCUMULATION        // Buying zones, token accumulation
-    DISTRIBUTION        // Selling zones
-    
-    // Security Events
-    HACK                // Confirmed breaches
-    EXPLOIT             // Vulnerabilities found
-    RUGPULL             // Confirmed scams
-    
-    // Business Events
-    PARTNERSHIP         // Partnerships, collaborations
-    ACQUISITION         // Buyouts, mergers
-    REGULATION          // Legal/regulatory updates
-    FUNDING             // Investment rounds, valuations
-    
-    // Token Events
-    AIRDROP             // Token distributions
-    TOKENOMICS          // Supply changes
-    DELEGATE            // Staking
-    REBASE              // Price rebalancing
-    UPDATE              // General updates
+    IMPORTANT: Before assigning type, verify:
+    1. Source credibility
+    2. Information authenticity
+    3. No spam signals present
 
-    DO NOT create new event types. If none match exactly, use UPDATE.
-    
-    Use NONE for:
-    - Pure opinions/commentary without facts
-    - Market speculation without data
-    - General discussion without news
-    - Personal thoughts/reactions
-    - Memes and jokes
-    - Repeated/old news
-    - Vague rumors/unconfirmed info
-    - Educational/explanatory content
-    
-    - Description of the event
+    If ANY verification fails:
+    - Use "NONE" as event type
+    - Set impact/confidence to 0
+
+    Platform Events:
+    LISTING:             // New exchange listings
+    - Official announcement
+    - Specific timeline
+    - Clear token/pair info
+
+    DELISTING:           // Removed from exchanges
+    - Official notice
+    - Clear reasoning
+    - Timeline provided
+
+    INTEGRATION:         // Platform integrations
+    - Technical details
+    - Both parties verified
+    - Clear benefits
+
+    DEX:                 // DEX updates
+    - Protocol changes
+    - Volume/TVL data
+    - Technical details
+
+    DEX_POOL:           // Pool updates
+    - Liquidity amounts
+    - Token pairs
+    - APY/rewards
+
+    LIQUIDITY_POOL:     // LP events
+    - Pool size
+    - Token ratios
+    - Staking details
+
+    Protocol Events:
+    DEVELOPMENT:        // Code updates
+    - GitHub activity
+    - Technical specs
+    - Team verification
+
+    UPGRADE:            // Protocol changes
+    - Version details
+    - Change summary
+    - Timeline
+
+    FORK:               // Chain splits
+    - Technical reason
+    - Node requirements
+    - Timeline
+
+    BRIDGE:             // Cross-chain
+    - Connected chains
+    - Technical details
+    - Security measures
+
+    DEFI:               // DeFi updates
+    - Protocol metrics
+    - TVL changes
+    - Yield data
+
+    Market Events:
+    MARKET_MOVE:        // Price movement
+    - Clear price data
+    - Volume confirmation
+    - Multiple sources
+
+    WHALE_MOVE:         // Large transfers
+    - Transaction hash
+    - Amount verified
+    - Wallet analysis
+
+    FUND_FLOW:         // Institution activity
+    - Amount verified
+    - Source confirmed
+    - Direction clear
+
+    VOLUME_SPIKE:       // Volume increase
+    - Multiple exchanges
+    - Percentage change
+    - Time period
+
+    PRICE_ALERT:        // Price updates
+    - Exact numbers
+    - Time period
+    - Multiple sources
+
+    ACCUMULATION:       // Buying activity
+    - Wallet analysis
+    - Time period
+    - Amount range
+
+    DISTRIBUTION:       // Selling activity
+    - Wallet analysis
+    - Time period
+    - Amount range
+
+    Security Events:
+    HACK:               // Confirmed breach
+    - Amount lost
+    - Attack vector
+    - Timeline
+
+    EXPLOIT:            // Vulnerability
+    - Technical details
+    - Risk assessment
+    - Timeline
+
+    RUGPULL:            // Scam confirmed
+    - Evidence
+    - Amount lost
+    - Timeline
+
+    Business Events:
+    PARTNERSHIP:        // Collaboration
+    - Both parties verified
+    - Clear benefits
+    - Timeline
+
+    ACQUISITION:        // Buyout/merger
+    - Deal terms
+    - Amount if public
+    - Timeline
+
+    REGULATION:         // Legal updates
+    - Official source
+    - Jurisdiction
+    - Timeline
+
+    FUNDING:            // Investment
+    - Amount verified
+    - Investors listed
+    - Terms if public
+
+    Token Events:
+    AIRDROP:            // Distribution
+    - Amount/value
+    - Criteria
+    - Timeline
+
+    TOKENOMICS:         // Supply changes
+    - Exact numbers
+    - Mechanism
+    - Timeline
+
+    DELEGATE:           // Staking
+    - Amount/ratio
+    - Terms
+    - Duration
+
+    REBASE:             // Price adjust
+    - Mechanism
+    - Change size
+    - Timeline
+
+    UPDATE:             // General news
+    - Verified info
+    - Clear impact
+    - Timeline
 
 6. Impact & Confidence Assessment (REQUIRED):
-   Score MUST be based on event type and evidence:
+   IMPORTANT: Before scoring, verify:
+   1. No spam signals present
+   2. Source is credible
+   3. Information is verifiable
+
+   If verification fails:
+   - Set impact = 0
+   - Set confidence = 0
+
+   Additional Impact Reduction Factors:
+   - Unverified claims: -50 points
+   - Missing source: -30 points
+   - Promotional content: -40 points
+   - Suspicious patterns: -60 points
+   - Manipulation attempts: -70 points
 
    HIGH IMPACT (70-100):
-   - MARKET EVENTS:
-     • WHALE_MOVE: Moves > $10M, multiple transactions
-     • FUND_FLOW: Institutional-size flows, verified sources
-     • VOLUME_SPIKE: >3x average volume, multiple exchanges
-     • PRICE_ALERT: >10% price change with volume
-   
-   - SECURITY:
-     • HACK: Confirmed breaches >$1M
-     • EXPLOIT: Critical vulnerabilities, active threats
-     • RUGPULL: Large-scale scams, multiple victims
-   
-   - PROJECT NEWS:
-     • LISTING: Tier-1 exchanges, major platforms
-     • DEVELOPMENT: Core protocol upgrades
-     • UPGRADE: Network-wide changes
-   
+   MARKET EVENTS:
+   - WHALE_MOVE: >$10M verified
+   - FUND_FLOW: Institutional >$50M
+   - VOLUME_SPIKE: >5x average
+   - PRICE_ALERT: >20% with volume
+
+   SECURITY:
+   - HACK: >$5M confirmed
+   - EXPLOIT: Critical protocol risk
+   - RUGPULL: >$1M verified
+
+   BUSINESS:
+   - ACQUISITION: >$100M deal
+   - FUNDING: >$50M round
+   - REGULATION: Major policy
+
+   PROTOCOL:
+   - UPGRADE: Core protocol
+   - DEVELOPMENT: Major release
+   - INTEGRATION: Top platform
+
    MEDIUM IMPACT (40-70):
-   - MARKET EVENTS:
-     • WHALE_MOVE: Moves $1M-$10M
-     • ACCUMULATION: Sustained buying, clear pattern
-     • DISTRIBUTION: Notable selling pressure
-   
-   - BUSINESS:
-     • PARTNERSHIP: Verified collaborations
-     • ACQUISITION: Strategic buyouts
-     • REGULATION: Regional policy changes
-   
+   MARKET EVENTS:
+   - WHALE_MOVE: $1M-$10M
+   - FUND_FLOW: $10M-$50M
+   - VOLUME_SPIKE: 2x-5x
+   - PRICE_ALERT: 5%-20%
+
+   SECURITY:
+   - HACK: $1M-$5M
+   - EXPLOIT: Moderate risk
+   - RUGPULL: <$1M
+
+   BUSINESS:
+   - ACQUISITION: $10M-$100M
+   - FUNDING: $10M-$50M
+   - PARTNERSHIP: Major names
+
    LOW IMPACT (0-40):
-   - General updates
-   - Minor integrations
    - Small market moves
+   - Minor updates
    - Unverified news
+   - General information
+
+   ZERO IMPACT (0):
+   MUST BE USED FOR:
+   - Any detected spam
+   - Promotional content
+   - Unverified claims
+   - Manipulation attempts
 
    CONFIDENCE SCORING:
-   90-100: Multiple tier-1 sources, on-chain proof
-   70-90:  Verified source + supporting evidence
-   40-70:  Single reliable source
-   0-40:   Unverified/unclear sources
+   IMPORTANT: Auto-zero if:
+   - Spam detected
+   - Promotional content
+   - Unverified claims
+
+   90-100:
+   - Multiple tier-1 sources
+   - On-chain verification
+   - Official statements
+
+   70-90:
+   - Single tier-1 source
+   - Supporting evidence
+   - Partial verification
+
+   40-70:
+   - Reliable source
+   - Limited verification
+   - Some uncertainty
+
+   0-40:
+   - Unverified source
+   - No supporting evidence
+   - High uncertainty
+
+   0:
+   - Spam detected
+   - Known false info
+   - Manipulation attempt
 
 7. Sentiment Analysis:
-   Separate from impact/confidence, measures market mood:
-
    MARKET SENTIMENT (0-100):
-   - BULLISH (>70):
-     • Price increases
-     • Institutional inflows
-     • Positive developments
-   
-   - NEUTRAL (40-70):
-     • Balanced news
-     • Unclear direction
-     • Mixed signals
-   
-   - BEARISH (<40):
-     • Price decreases
-     • Negative news
-     • Market concerns
+
+   BULLISH (70-100):
+   - Price increase >10%
+   - Volume spike >3x
+   - Major adoption news
+   - Institutional interest
+   - Positive development
+
+   NEUTRAL (40-70):
+   - Price change <5%
+   - Normal volume
+   - Mixed signals
+   - Unclear impact
+   - General updates
+
+   BEARISH (0-40):
+   - Price decrease >10%
+   - Volume decline
+   - Negative news
+   - Security issues
+   - Market concerns
 
    SOCIAL SENTIMENT (0-100):
-   - HIGH (>70): Strong community support
-   - MID (40-70): Mixed reactions
-   - LOW (<40): Negative community response
+
+   POSITIVE (70-100):
+   - Community growth
+   - Developer activity
+   - Partnership support
+   - Feature requests
+   - Positive engagement
+
+   NEUTRAL (40-70):
+   - Normal activity
+   - Mixed reactions
+   - General discussion
+   - Feature questions
+   - Standard engagement
+
+   NEGATIVE (0-40):
+   - Community concerns
+   - Development issues
+   - Partnership problems
+   - Bug reports
+   - Negative feedback
 
 Output format:
 {
     "headline": {
-        "text": "{{message}}",
+        "text": "exact original message",
+        "cleaned": "removed spam/links"
     },
     "tokens": {
-        "primary": "main token symbol",
-        "related": ["token1", "token2"]
+        "primary": "SYMBOL",
+        "related": ["TOKEN1", "TOKEN2"]
     },
     "entities": {
         "projects": [{
-            "name": "project/org name",
+            "name": "exact name",
             "type": "EXCHANGE|PROTOCOL|COMPANY|REGULATOR",
-            "role": "primary|related"
+            "role": "primary|related",
+            "verified": boolean,
+            "source": "official|reliable|unverified"
         }],
         "persons": [{
-            "name": "person name",
-            "title": "role/position",
-            "org": "affiliated org"
+            "name": "full name",
+            "title": "exact role",
+            "org": "organization",
+            "verified": boolean,
+            "source": "official|reliable|unverified"
         }],
         "locations": [{
             "name": "location name",
-            "type": "COUNTRY|REGION|CITY"
+            "type": "COUNTRY|REGION|CITY",
+            "context": "primary|related"
         }]
     },
     "event": {
-        "type": "MUST BE ONE OF THE TYPES LISTED ABOVE",
-        "description": "brief event description",
+        "type": "EXACT_TYPE_FROM_LIST",
+        "description": "brief factual summary",
+        "verification": {
+            "source": "official|reliable|unverified",
+            "evidence": ["link1", "link2"],
+            "spam_signals": ["signal1", "signal2"]
+        }
     },
     "metrics": {
-        "impact": 50,
-        "confidence": 50
+        "impact": 0-100,
+        "confidence": 0-100,
+        "factors": {
+            "reductions": ["reason1", "reason2"],
+            "boosts": ["reason1", "reason2"]
+        }
     },
     "sentiment": {
         "market": {
@@ -205,7 +500,8 @@ Output format:
         }
     },
     "market_data": {
-        "price": null,
-        "volume": null,
+        "price": number|null,
+        "volume": number|null,
+        "verified": boolean
     }
 }`;
