@@ -138,7 +138,33 @@ Required Information:
     - Use "NONE" as event type
     - Set impact/confidence to 0
 
-    Platform Events:
+    Government/Regulatory Events:
+    GOV_ADOPTION:        // Government crypto adoption
+    - Official legislation
+    - Government body verified
+    - Clear implementation plan
+
+    POLICY:              // Government policy
+    - Official source
+    - Policy details
+    - Implementation timeline
+
+     REGULATION:          // Regulatory updates
+    - Official source
+    - Jurisdiction clear
+    - Impact assessment
+
+    Market Infrastructure:
+    LAUNCH:              // New product launch
+    - Official announcement
+    - Product details
+    - Launch timeline
+
+    ETF_FILING:          // ETF related
+    - Filing details
+    - Regulatory body
+    - Timeline/status
+
     LISTING:             // New exchange listings
     - Official announcement
     - Specific timeline
@@ -154,22 +180,7 @@ Required Information:
     - Both parties verified
     - Clear benefits
 
-    DEX:                 // DEX updates
-    - Protocol changes
-    - Volume/TVL data
-    - Technical details
-
-    DEX_POOL:           // Pool updates
-    - Liquidity amounts
-    - Token pairs
-    - APY/rewards
-
-    LIQUIDITY_POOL:     // LP events
-    - Pool size
-    - Token ratios
-    - Staking details
-
-    Protocol Events:
+    Protocol/Technical:
     DEVELOPMENT:        // Code updates
     - GitHub activity
     - Technical specs
@@ -180,22 +191,28 @@ Required Information:
     - Change summary
     - Timeline
 
-    FORK:               // Chain splits
-    - Technical reason
-    - Node requirements
-    - Timeline
-
-    BRIDGE:             // Cross-chain
-    - Connected chains
+    DeFi Events:
+    DEX:                 // DEX specific
+    - Protocol changes
+    - Volume/TVL data
     - Technical details
-    - Security measures
+
+    DEX_POOL:            // Pool updates
+    - Pool metrics
+    - Token pairs
+    - APY/rewards
+
+    LIQUIDITY_POOL:      // LP events
+    - Pool size
+    - Token ratios
+    - Staking details
 
     DEFI:               // DeFi updates
     - Protocol metrics
     - TVL changes
     - Yield data
 
-    Market Events:
+    Market Activity:
     MARKET_MOVE:        // Price movement
     - Clear price data
     - Volume confirmation
@@ -230,6 +247,22 @@ Required Information:
     - Wallet analysis
     - Time period
     - Amount range
+
+    Market Analysis:
+    MARKET_DATA:         // Data/metrics
+    - TVL changes
+    - Volume analysis
+    - Verified metrics
+
+    MARKET_ANALYSIS:     // Analysis/research
+    - Data sources
+    - Methodology
+    - Time period
+
+    TREND_REPORT:        // Market trends
+    - Pattern identification
+    - Supporting data
+    - Time frame
 
     Security Events:
     HACK:               // Confirmed breach
@@ -277,21 +310,6 @@ Required Information:
     TOKENOMICS:         // Supply changes
     - Exact numbers
     - Mechanism
-    - Timeline
-
-    DELEGATE:           // Staking
-    - Amount/ratio
-    - Terms
-    - Duration
-
-    REBASE:             // Price adjust
-    - Mechanism
-    - Change size
-    - Timeline
-
-    UPDATE:             // General news
-    - Verified info
-    - Clear impact
     - Timeline
 
 6. Impact & Confidence Assessment (REQUIRED):

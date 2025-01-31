@@ -264,47 +264,55 @@ export async function processMessage({ message, db, channelMapping }) {
             // Validate event type
             const validEventTypes = {
                 crypto: [
-                    // Platform Events
-                    'LISTING',        // New exchange/platform listings
-                    'DELISTING',      // Removals
-                    'INTEGRATION',    // Platform integrations
-                    'DEX',           // Decentralized exchanges
-                    'DEX_POOL',      // DEX pools
-                    'LIQUIDITY_POOL', // Liquidity pools
+                    // Government/Regulatory Events
+                    'GOV_ADOPTION',    // Government adoption
+                    'POLICY',          // Government policy
+                    'REGULATION',      // Regulatory updates
                     
-                    // Protocol Events
-                    'DEVELOPMENT',    // Code updates
-                    'UPGRADE',        // Protocol changes
-                    'FORK',          // Chain splits
-                    'BRIDGE',        // Cross-chain
-                    'DEFI',          // Decentralized finance
+                    // Market Infrastructure
+                    'LAUNCH',          // New product launch
+                    'ETF_FILING',      // ETF related
+                    'LISTING',         // Exchange listings
+                    'DELISTING',       // Removals
+                    'INTEGRATION',     // Platform integrations
                     
-                    // Market Events
-                    'MARKET_MOVE',    // General market movement
-                    'WHALE_MOVE',     // Large transactions
-                    'FUND_FLOW',      // Institutional money
-                    'VOLUME_SPIKE',   // Trading volume spikes
-                    'PRICE_ALERT',    // Price movements
-                    'ACCUMULATION',   // Buying zones
-                    'DISTRIBUTION',   // Selling zones
+                    // Protocol/Technical
+                    'DEVELOPMENT',     // Code updates
+                    'UPGRADE',         // Protocol changes
+                    
+                    // DeFi Events
+                    'DEX',             // DEX specific
+                    'DEX_POOL',        // Pool updates
+                    'LIQUIDITY_POOL',  // LP events
+                    'DEFI',           // DeFi updates
+                    
+                    // Market Activity
+                    'MARKET_MOVE',     // Price movement
+                    'WHALE_MOVE',      // Large transfers
+                    'FUND_FLOW',       // Institution activity
+                    'VOLUME_SPIKE',    // Volume increase
+                    'PRICE_ALERT',     // Price updates
+                    'ACCUMULATION',    // Buying activity
+                    'DISTRIBUTION',    // Selling activity
+                    
+                    // Market Analysis
+                    'MARKET_DATA',     // Data/metrics
+                    'MARKET_ANALYSIS', // Analysis/research
+                    'TREND_REPORT',    // Market trends
                     
                     // Security Events
-                    'HACK',          // Breaches
-                    'EXPLOIT',       // Vulnerabilities
-                    'RUGPULL',       // Scams
+                    'HACK',           // Confirmed breach
+                    'EXPLOIT',        // Vulnerability
+                    'RUGPULL',        // Scam confirmed
                     
                     // Business Events
-                    'PARTNERSHIP',    // Deals
-                    'ACQUISITION',    // Mergers
-                    'REGULATION',     // Legal updates
-                    'FUNDING',       // Investment rounds, raises
+                    'PARTNERSHIP',     // Collaboration
+                    'ACQUISITION',     // Buyout/merger
+                    'FUNDING',         // Investment
                     
                     // Token Events
-                    'AIRDROP',       // Token distributions
-                    'TOKENOMICS',    // Supply changes
-                    'DELEGATE',      // Staking
-                    'REBASE',        // Price rebalancing
-                    'UPDATE'         // General updates
+                    'AIRDROP',        // Distribution
+                    'TOKENOMICS',     // Supply changes
                 ],
                 trades: [
                     // Trade Entry Events
