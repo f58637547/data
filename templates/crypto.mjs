@@ -268,8 +268,8 @@ Event Extraction Flow:
    {
      "verification": {
        "source": "OFFICIAL|RELIABLE|UNVERIFIED",
-       "evidence": ["url1", "url2"],
-       "confidence": "0-100"
+       "evidence": [],
+       "confidence": 0
      }
    }
 
@@ -370,8 +370,8 @@ Example Flows:
         },
         "verification": {
             "source": "OFFICIAL|RELIABLE|UNVERIFIED",
-            "evidence": ["url1", "url2"],
-            "confidence": "0-100"
+            "evidence": [],
+            "confidence": 0
         }
     },
     "entities": {
@@ -628,8 +628,8 @@ Output format:
         },
         "verification": {
             "source": "OFFICIAL|RELIABLE|UNVERIFIED",
-            "evidence": ["url1", "url2"],
-            "confidence": "0-100"
+            "evidence": [],
+            "confidence": 0
         }
     },
     "metrics": {

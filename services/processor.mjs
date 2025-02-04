@@ -277,113 +277,172 @@ export async function processMessage({ message, db, channelMapping }) {
                 NEWS: {
                     TECHNICAL: [
                         'UPDATE',
-                        'RELEASE', 
+                        'DEVELOPMENT',
+                        'ANALYSIS',
+                        'RELEASE',
                         'PATCH',
-                        'FORK',
-                        'DEVELOPMENT',  // Added for development updates
-                        'ANALYSIS'      // Added for technical analysis
+                        'FORK'
                     ],
                     FUNDAMENTAL: [
                         'LAUNCH',
                         'MILESTONE',
                         'ROADMAP',
                         'TOKENOMICS',
-                        'RESEARCH',     // Added for research reports
-                        'ANALYSIS'      // Added for fundamental analysis
+                        'RESEARCH',
+                        'ANALYSIS'
                     ],
                     REGULATORY: [
                         'COMPLIANCE',
                         'POLICY',
                         'LEGAL',
                         'JURISDICTION',
-                        'ANNOUNCEMENT'  // Added for regulatory announcements
+                        'ANNOUNCEMENT'
                     ],
                     SECURITY: [
                         'THREAT',
                         'INCIDENT',
                         'RECOVERY',
                         'PREVENTION',
-                        'UPDATE'        // Added for security updates
+                        'UPDATE'
                     ]
                 },
                 MARKET: {
                     PRICE: [
-                        'BREAKOUT',
-                        'REVERSAL',
-                        'SUPPORT',
-                        'RESISTANCE',
+                        'BREAKOUT_UP',
+                        'BREAKOUT_DOWN',
+                        'BREAKOUT_RANGE',
+                        'REVERSAL_BULLISH',
+                        'REVERSAL_BEARISH',
+                        'REVERSAL_NEUTRAL',
+                        'SUPPORT_HOLD',
+                        'SUPPORT_BREAK',
+                        'SUPPORT_TEST',
+                        'RESISTANCE_HOLD',
+                        'RESISTANCE_BREAK',
+                        'RESISTANCE_TEST',
                         'CONSOLIDATION',
-                        'BREAKDOWN',     // Added for price drops
-                        'PUMP',          // Added for price pumps
-                        'DUMP'           // Added for price dumps
+                        'BREAKDOWN',
+                        'PUMP',
+                        'DUMP'
                     ],
                     VOLUME: [
-                        'SPIKE',
-                        'DECLINE',
-                        'ACCUMULATION',
-                        'DISTRIBUTION'
+                        'SPIKE_BUYING',
+                        'SPIKE_SELLING',
+                        'SPIKE_MIXED',
+                        'DECLINE_EXHAUSTION',
+                        'DECLINE_DISINTEREST',
+                        'ACCUMULATION_SMART_MONEY',
+                        'ACCUMULATION_RETAIL',
+                        'ACCUMULATION_WHALE',
+                        'DISTRIBUTION_PROFIT_TAKING',
+                        'DISTRIBUTION_EXIT',
+                        'DISTRIBUTION_ROTATION'
                     ],
                     LIQUIDITY: [
-                        'POOL_CHANGE',
-                        'DEPTH_CHANGE',
-                        'IMBALANCE'
+                        'POOL_CHANGE_INCREASE',
+                        'POOL_CHANGE_DECREASE',
+                        'DEPTH_CHANGE_IMPROVE',
+                        'DEPTH_CHANGE_WORSEN',
+                        'IMBALANCE_BUY_SIDE',
+                        'IMBALANCE_SELL_SIDE'
                     ],
                     VOLATILITY: [
-                        'INCREASE',
-                        'DECREASE',
-                        'SQUEEZE'
+                        'INCREASE_SUDDEN',
+                        'INCREASE_GRADUAL',
+                        'DECREASE_COOLING',
+                        'DECREASE_STABILIZING',
+                        'SQUEEZE_BUILDUP',
+                        'SQUEEZE_RELEASE'
                     ]
                 },
                 DATA: {
                     WHALE_MOVE: [
-                        'LARGE_TRANSFER',
-                        'ACCUMULATION',
-                        'DISTRIBUTION',
-                        'WALLET_UPDATE'  // Added for wallet updates
+                        'LARGE_TRANSFER_IN',
+                        'LARGE_TRANSFER_OUT',
+                        'LARGE_TRANSFER_INTERNAL',
+                        'ACCUMULATION_BUYING',
+                        'ACCUMULATION_STAKING',
+                        'ACCUMULATION_HOLDING',
+                        'DISTRIBUTION_SELLING',
+                        'DISTRIBUTION_UNSTAKING',
+                        'WALLET_UPDATE_NEW',
+                        'WALLET_UPDATE_ACTIVE',
+                        'WALLET_UPDATE_DORMANT'
                     ],
                     FUND_FLOW: [
-                        'INSTITUTIONAL',
-                        'RETAIL',
-                        'SMART_MONEY',
-                        'EXCHANGE'       // Added for exchange flows
+                        'INSTITUTIONAL_INFLOW',
+                        'INSTITUTIONAL_OUTFLOW',
+                        'RETAIL_BUYING',
+                        'RETAIL_SELLING',
+                        'SMART_MONEY_ACCUMULATION',
+                        'SMART_MONEY_DISTRIBUTION',
+                        'EXCHANGE_DEPOSIT',
+                        'EXCHANGE_WITHDRAW'
                     ],
                     METRICS: [
-                        'PRICE_MOVE',
-                        'VOLUME_SPIKE',
-                        'MOMENTUM',
-                        'MARKET_CAP'     // Added for market cap updates
+                        'PRICE_MOVE_UP',
+                        'PRICE_MOVE_DOWN',
+                        'PRICE_MOVE_SIDEWAYS',
+                        'VOLUME_SPIKE_BUY',
+                        'VOLUME_SPIKE_SELL',
+                        'VOLUME_SPIKE_NEUTRAL',
+                        'MOMENTUM_BUILDING',
+                        'MOMENTUM_FADING',
+                        'MARKET_CAP_GROWTH',
+                        'MARKET_CAP_DECLINE'
                     ],
                     ONCHAIN: [
-                        'ADDRESSES',
-                        'TRANSACTIONS',
-                        'GAS',
-                        'WALLET'         // Added for wallet analysis
+                        'ADDRESSES_ACTIVE',
+                        'ADDRESSES_NEW',
+                        'ADDRESSES_DORMANT',
+                        'TRANSACTIONS_COUNT',
+                        'TRANSACTIONS_VALUE',
+                        'TRANSACTIONS_TYPE',
+                        'GAS_HIGH',
+                        'GAS_LOW',
+                        'GAS_NORMAL',
+                        'WALLET_ANALYSIS',
+                        'WALLET_PATTERN',
+                        'WALLET_BEHAVIOR'
                     ]
                 },
                 SOCIAL: {
                     COMMUNITY: [
-                        'GROWTH',
-                        'ENGAGEMENT',
-                        'SENTIMENT',
-                        'DISCUSSION'     // Added for community discussions
+                        'GROWTH_ORGANIC',
+                        'GROWTH_VIRAL',
+                        'ENGAGEMENT_HIGH',
+                        'ENGAGEMENT_LOW',
+                        'SENTIMENT_POSITIVE',
+                        'SENTIMENT_NEGATIVE',
+                        'DISCUSSION_ACTIVE',
+                        'DISCUSSION_QUIET'
                     ],
                     ADOPTION: [
-                        'USER_GROWTH',
-                        'USAGE_METRICS',
-                        'RETENTION',
-                        'TREND'          // Added for adoption trends
+                        'USER_GROWTH_NEW',
+                        'USER_GROWTH_RETURNING',
+                        'USAGE_METRICS_ACTIVITY',
+                        'USAGE_METRICS_RETENTION',
+                        'RETENTION_IMPROVING',
+                        'RETENTION_DECLINING',
+                        'TREND_UP',
+                        'TREND_DOWN',
+                        'TREND_STABLE'
                     ],
                     INFLUENCE: [
-                        'ENDORSEMENT',
-                        'CRITICISM',
-                        'TREND',
-                        'ANALYSIS'       // Added for influence analysis
+                        'ENDORSEMENT_POSITIVE',
+                        'ENDORSEMENT_NEGATIVE',
+                        'CRITICISM_VALID',
+                        'CRITICISM_FUD',
+                        'TREND_GROWING',
+                        'TREND_FADING',
+                        'ANALYSIS_IMPACT',
+                        'ANALYSIS_REACH'
                     ],
                     REPUTATION: [
                         'TRUST',
                         'CONTROVERSY',
                         'CREDIBILITY',
-                        'UPDATE'         // Added for reputation updates
+                        'UPDATE'
                     ]
                 }
             };
@@ -544,8 +603,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     METRICS: 40       // Lower for regular metrics
                 },
                 SOCIAL: {
-                    SENTIMENT: 30,     // Lower for sentiment
-                    COMMUNITY: 40      // Medium for community
+                    DEFAULT: 20     // Social signals can be lower confidence
                 },
                 default: 40           // Base threshold
             };
