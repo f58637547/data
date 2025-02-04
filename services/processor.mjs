@@ -272,135 +272,216 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'invalid_event_structure' };
             }
 
-            // Additional categories from template
-            const additionalEventTypes = {
-                INFLUENCE: ['ENDORSEMENT', 'CRITICISM', 'TREND'],
-                REPUTATION: ['TRUST', 'CONTROVERSY', 'CREDIBILITY'],
-                SENTIMENT: ['BULLISH', 'BEARISH', 'NEUTRAL'],
-                METRICS: ['MENTIONS', 'ENGAGEMENT', 'REACH']
-            };
-
-            // Add to validEventTypes
+            // Valid event types and their allowed combinations
             const validEventTypes = {
                 NEWS: {
+                    TECHNICAL: [
+                        'UPDATE',
+                        'RELEASE', 
+                        'PATCH',
+                        'FORK',
+                        'DEVELOPMENT',  // Added for development updates
+                        'ANALYSIS'      // Added for technical analysis
+                    ],
+                    FUNDAMENTAL: [
+                        'LAUNCH',
+                        'MILESTONE',
+                        'ROADMAP',
+                        'TOKENOMICS',
+                        'RESEARCH',     // Added for research reports
+                        'ANALYSIS'      // Added for fundamental analysis
+                    ],
                     REGULATORY: [
-                        'GOV_ADOPTION',    // Government adoption/acceptance
-                        'POLICY_UPDATE',   // Policy changes
-                        'REGULATION',      // New regulations
-                        'COMPLIANCE'       // Compliance updates
+                        'COMPLIANCE',
+                        'POLICY',
+                        'LEGAL',
+                        'JURISDICTION',
+                        'ANNOUNCEMENT'  // Added for regulatory announcements
                     ],
-                    BUSINESS: [
-                        'PARTNERSHIP',     // New partnerships
-                        'ACQUISITION',     // Company acquisitions
-                        'FUNDING',         // Funding rounds
-                        'EXPANSION',       // Business expansion
-                        'LAUNCH',          // New product/service
-                        'INTEGRATION'      // Platform integrations
-                    ],
-                    TECHNOLOGY: [
-                        'DEVELOPMENT',     // Development updates
-                        'UPGRADE',         // Protocol upgrades
-                        'SECURITY',        // Security updates
-                        'INNOVATION'       // New tech features
+                    SECURITY: [
+                        'THREAT',
+                        'INCIDENT',
+                        'RECOVERY',
+                        'PREVENTION',
+                        'UPDATE'        // Added for security updates
                     ]
                 },
-                
-                // MARKET Category
                 MARKET: {
                     PRICE: [
-                        'BREAKOUT',        // Price breakouts
-                        'REVERSAL',        // Trend reversals
-                        'SUPPORT',         // Support levels
-                        'RESISTANCE',      // Resistance levels
-                        'PRICE_DISCOVERY'  // New price levels
+                        'BREAKOUT',
+                        'REVERSAL',
+                        'SUPPORT',
+                        'RESISTANCE',
+                        'CONSOLIDATION',
+                        'BREAKDOWN',     // Added for price drops
+                        'PUMP',          // Added for price pumps
+                        'DUMP'           // Added for price dumps
                     ],
-                    TRADING: [
-                        'VOLUME_SPIKE',    // Volume increases
-                        'LIQUIDATION',     // Large liquidations
-                        'ACCUMULATION',    // Buying pressure
-                        'DISTRIBUTION',    // Selling pressure
-                        'MOMENTUM'         // Trend strength
+                    VOLUME: [
+                        'SPIKE',
+                        'DECLINE',
+                        'ACCUMULATION',
+                        'DISTRIBUTION'
                     ],
-                    DERIVATIVES: [
-                        'FUTURES_BASIS',   // Futures premiums
-                        'OPTIONS_FLOW',    // Options activity
-                        'LEVERAGE_RATIO',  // Leverage levels
-                        'OPEN_INTEREST'    // Contract interest
+                    LIQUIDITY: [
+                        'POOL_CHANGE',
+                        'DEPTH_CHANGE',
+                        'IMBALANCE'
+                    ],
+                    VOLATILITY: [
+                        'INCREASE',
+                        'DECREASE',
+                        'SQUEEZE'
                     ]
                 },
-                
-                // DATA Category
                 DATA: {
-                    ONCHAIN: [
-                        'WHALE_MOVE',      // Large transfers
-                        'FUND_FLOW',       // Exchange flows
-                        'WALLET_ANALYSIS', // Wallet activity
-                        'NETWORK_USAGE'    // Chain metrics
+                    WHALE_MOVE: [
+                        'LARGE_TRANSFER',
+                        'ACCUMULATION',
+                        'DISTRIBUTION',
+                        'WALLET_UPDATE'  // Added for wallet updates
                     ],
-                    DEFI: [
-                        'TVL_CHANGE',      // TVL updates
-                        'YIELD_UPDATE',    // Yield changes
-                        'PROTOCOL_METRIC', // Protocol stats
-                        'DEX_VOLUME'       // DEX activity
+                    FUND_FLOW: [
+                        'INSTITUTIONAL',
+                        'RETAIL',
+                        'SMART_MONEY',
+                        'EXCHANGE'       // Added for exchange flows
                     ],
                     METRICS: [
-                        'MARKET_CAP',      // Cap changes
-                        'SUPPLY_CHANGE',   // Supply metrics
-                        'CORRELATION',     // Asset correlations
-                        'DOMINANCE'        // BTC dominance
-                    ]
-                },
-                
-                // SOCIAL Category
-                SOCIAL: {
-                    SENTIMENT: [
-                        'FEAR_GREED',      // Market sentiment
-                        'SOCIAL_VOLUME',    // Discussion volume
-                        'TREND_GAUGE',      // Trend sentiment
-                        'HYPE_INDEX'        // Social hype
+                        'PRICE_MOVE',
+                        'VOLUME_SPIKE',
+                        'MOMENTUM',
+                        'MARKET_CAP'     // Added for market cap updates
                     ],
-                    COMMUNITY: [
-                        'GITHUB_ACTIVITY',  // Dev activity
-                        'SOCIAL_GROWTH',    // Community growth
-                        'INFLUENCER_TAKE',  // Key opinions
-                        'ADOPTION_METRIC'   // Usage growth
+                    ONCHAIN: [
+                        'ADDRESSES',
+                        'TRANSACTIONS',
+                        'GAS',
+                        'WALLET'         // Added for wallet analysis
                     ]
                 },
-                INFLUENCE: {
-                    SOCIAL: additionalEventTypes.INFLUENCE
-                },
-                REPUTATION: {
-                    SOCIAL: additionalEventTypes.REPUTATION
-                },
-                SENTIMENT: {
-                    MARKET: additionalEventTypes.SENTIMENT
-                },
-                METRICS: {
-                    SOCIAL: additionalEventTypes.METRICS
+                SOCIAL: {
+                    COMMUNITY: [
+                        'GROWTH',
+                        'ENGAGEMENT',
+                        'SENTIMENT',
+                        'DISCUSSION'     // Added for community discussions
+                    ],
+                    ADOPTION: [
+                        'USER_GROWTH',
+                        'USAGE_METRICS',
+                        'RETENTION',
+                        'TREND'          // Added for adoption trends
+                    ],
+                    INFLUENCE: [
+                        'ENDORSEMENT',
+                        'CRITICISM',
+                        'TREND',
+                        'ANALYSIS'       // Added for influence analysis
+                    ],
+                    REPUTATION: [
+                        'TRUST',
+                        'CONTROVERSY',
+                        'CREDIBILITY',
+                        'UPDATE'         // Added for reputation updates
+                    ]
                 }
             };
 
-            // Check if category and subcategory exist
-            if (!validEventTypes[parsedContent.event.category]?.[parsedContent.event.subcategory]) {
+            // Normalize event types
+            if (parsedContent.event?.type) {
+                // Convert common variations to standard types
+                const typeMapping = {
+                    'DUMP': 'BREAKDOWN',
+                    'DROP': 'BREAKDOWN',
+                    'CRASH': 'BREAKDOWN',
+                    'SURGE': 'BREAKOUT',
+                    'MOON': 'BREAKOUT',
+                    'ANALYSIS': 'UPDATE',
+                    'NEWS': 'UPDATE',
+                    'DEVELOPMENT': 'UPDATE'
+                };
+
+                parsedContent.event.type = typeMapping[parsedContent.event.type] || parsedContent.event.type;
+            }
+
+            // Default subcategories based on content
+            if (!parsedContent.event?.subcategory) {
+                const defaultSubcategories = {
+                    NEWS: 'FUNDAMENTAL',
+                    MARKET: 'PRICE',
+                    DATA: 'METRICS',
+                    SOCIAL: 'SENTIMENT'
+                };
+                parsedContent.event.subcategory = defaultSubcategories[parsedContent.event.category];
+            }
+
+            // Default types based on subcategory
+            if (!parsedContent.event?.type) {
+                const defaultTypes = {
+                    FUNDAMENTAL: 'UPDATE',
+                    PRICE: 'PRICE_MOVE',
+                    METRICS: 'MOMENTUM',
+                    SENTIMENT: 'TREND'
+                };
+                parsedContent.event.type = defaultTypes[parsedContent.event.subcategory];
+            }
+
+            // Check if category exists
+            if (!validEventTypes[parsedContent.event.category]) {
+                console.log('Invalid category:', parsedContent.event.category);
+                return { skip: true, reason: 'invalid_category' };
+            }
+
+            // Check if subcategory exists for category
+            if (!validEventTypes[parsedContent.event.category][parsedContent.event.subcategory]) {
                 console.log('Invalid category/subcategory combination');
                 return { skip: true, reason: 'invalid_category' };
             }
 
-            // Validate source and confidence
-            if (!parsedContent.verification?.source || !parsedContent.verification?.confidence) {
-                console.log('Missing source verification');
-                return { skip: true, reason: 'missing_verification' };
+            // Check if type exists for subcategory
+            if (!validEventTypes[parsedContent.event.category][parsedContent.event.subcategory].includes(parsedContent.event.type)) {
+                console.log('Invalid event type for category/subcategory');
+                return { skip: true, reason: 'invalid_type' };
             }
 
-            // Source confidence thresholds
+            // Source confidence thresholds based on category
             const confidenceThresholds = {
-                OFFICIAL: 80,
-                RELIABLE: 60,
-                UNVERIFIED: 20
+                NEWS: {
+                    TECHNICAL: 40,   // Technical updates need medium confidence
+                    REGULATORY: 80,  // Regulatory news needs high confidence
+                    FUNDAMENTAL: 60, // Business updates need good confidence
+                    SECURITY: 70,    // Security issues need high confidence
+                    DEFAULT: 40
+                },
+                MARKET: {
+                    PRICE: 20,      // Price moves can be lower confidence
+                    VOLUME: 30,      // Volume needs bit more confidence
+                    LIQUIDITY: 40,  // Liquidity needs medium confidence
+                    VOLATILITY: 30, // Volatility can be lower
+                    DEFAULT: 30
+                },
+                DATA: {
+                    WHALE_MOVE: 50, // Whale moves need good confidence
+                    FUND_FLOW: 60,  // Fund flows need high confidence
+                    METRICS: 40,    // Metrics need medium confidence
+                    ONCHAIN: 70,    // On-chain data needs high confidence
+                    DEFAULT: 50
+                },
+                SOCIAL: {
+                    DEFAULT: 20     // Social signals can be lower confidence
+                },
+                DEFAULT: 40
             };
 
-            const minConfidence = confidenceThresholds[parsedContent.verification.source] || confidenceThresholds.UNVERIFIED;
-            if (parsedContent.verification.confidence < minConfidence) {
+            // Get confidence threshold based on category and subcategory
+            const minConfidence = 
+                confidenceThresholds[parsedContent.event.category]?.[parsedContent.event.subcategory] ||
+                confidenceThresholds[parsedContent.event.category]?.DEFAULT ||
+                confidenceThresholds.DEFAULT;
+
+            // Validate source and confidence
+            if (!parsedContent.verification?.source || parsedContent.verification.confidence < minConfidence) {
                 console.log(`Confidence ${parsedContent.verification.confidence} below threshold ${minConfidence}`);
                 return { skip: true, reason: 'low_confidence' };
             }
@@ -412,9 +493,20 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             // Validate metrics based on category
-            if (parsedContent.event.category === 'MARKET' && (!parsedContent.metrics?.market?.price || !parsedContent.metrics?.market?.volume)) {
-                console.log('Missing required market metrics');
-                return { skip: true, reason: 'missing_market_metrics' };
+            if (parsedContent.event.category === 'NEWS' && 
+                parsedContent.event.subcategory === 'ANNOUNCEMENT' && 
+                parsedContent.event.type === 'MINT') {
+                // For NFT mints, we care about different metrics
+                if (!parsedContent.market_data?.price) {
+                    console.log('Missing NFT mint price');
+                    return { skip: true, reason: 'missing_nft_price' };
+                }
+            } else if (parsedContent.event.category === 'MARKET') {
+                // Regular market event validation
+                if (!parsedContent.metrics?.market?.price || !parsedContent.metrics?.market?.volume) {
+                    console.log('Missing required market metrics');
+                    return { skip: true, reason: 'missing_market_metrics' };
+                }
             }
 
             if (parsedContent.event.category === 'DATA' && (!parsedContent.metrics?.onchain?.transactions || !parsedContent.metrics?.onchain?.addresses)) {
@@ -438,7 +530,8 @@ export async function processMessage({ message, db, channelMapping }) {
                 NEWS: {
                     REGULATORY: 70,    // High impact for regulatory news
                     BUSINESS: 60,      // Significant for business updates
-                    TECHNOLOGY: 50     // Medium for tech updates
+                    TECHNOLOGY: 50,    // Medium for tech updates
+                    ANNOUNCEMENT: 40   // Lower threshold for announcements
                 },
                 MARKET: {
                     PRICE: 40,         // Lower for price movements
