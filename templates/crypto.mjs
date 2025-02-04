@@ -73,7 +73,7 @@ Required Information:
    - Only include directly mentioned
    - Verify each symbol
    - Remove duplicates
-   - Max 5 related tokens
+   - Max 2 related tokens
 
 3. Market Data:
    PRICE:
@@ -89,230 +89,289 @@ Required Information:
    - Use whole numbers only
 
 4. Entities:
-   PROJECTS/ORGS:
    Required fields:
    {
-     "name": "exact official name",
-     "type": "EXCHANGE|PROTOCOL|COMPANY|REGULATOR",
+     "name": "exact official name or wallet address",
+     "type": "PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET",
      "role": "primary|related",
      "verified": boolean,
-     "source": "official|reliable|unverified"
+     "source": "official|reliable|unverified",
+     "address": "wallet or contract address if applicable"
    }
 
-   Types:
-   - EXCHANGE: Trading platforms
-   - PROTOCOL: DeFi/blockchain protocols
-   - COMPANY: Traditional businesses
-   - REGULATOR: Government bodies
+5. Event Classification:
+   Category (REQUIRED):
+   
+   NEWS: Information and announcements
+   - TECHNICAL: Protocol and development updates
+     - DEVELOPMENT: [UPDATE, RELEASE, PATCH, FORK]
+     - INFRASTRUCTURE: [UPGRADE, SCALING, OPTIMIZATION]
+     - INTEGRATION: [PARTNERSHIP, MERGER, COLLABORATION]
+     - PROTOCOL: [GOVERNANCE, PARAMETER, MECHANISM]
+   
+   - FUNDAMENTAL: Business and project updates
+     - PROJECT: [LAUNCH, MILESTONE, ROADMAP, TOKENOMICS]
+     - BUSINESS: [REVENUE, USERS, GROWTH, METRICS]
+     - ECOSYSTEM: [EXPANSION, COMPETITION, SYNERGY]
+     - VALUATION: [FUNDING, INVESTMENT, ACQUISITION]
+   
+   - REGULATORY: Legal and compliance
+     - COMPLIANCE: [APPROVAL, REJECTION, INVESTIGATION]
+     - POLICY: [REGULATION, GUIDANCE, FRAMEWORK]
+     - LEGAL: [LAWSUIT, SETTLEMENT, RULING]
+     - JURISDICTION: [RESTRICTION, PERMISSION, BAN]
+   
+   - SECURITY: Security events and issues
+     - THREAT: [VULNERABILITY, EXPLOIT, ATTACK]
+     - INCIDENT: [HACK, BREACH, THEFT]
+     - RECOVERY: [MITIGATION, COMPENSATION, RESOLUTION]
+     - PREVENTION: [AUDIT, UPGRADE, PATCH]
 
-   PERSONS:
-   Required fields:
+   MARKET: Trading patterns and setups
+   - PRICE: [BREAKOUT, REVERSAL, SUPPORT, RESISTANCE, CONSOLIDATION]
+   - VOLUME: [SPIKE, DECLINE, ACCUMULATION, DISTRIBUTION]
+   - LIQUIDITY: [POOL_CHANGE, DEPTH_CHANGE, IMBALANCE]
+   - VOLATILITY: [INCREASE, DECREASE, SQUEEZE]
+   - TRADE: [BUY, SELL, HOLD, LEVERAGE, HEDGE]
+   - POSITION: [OPEN, CLOSE, MODIFY, LIQUIDATE]
+   - ARBITRAGE: [SPOT_FUTURES, CROSS_EXCHANGE, CROSS_CHAIN]
+
+   DATA: On-chain and market metrics
+   - WHALE_MOVE: [LARGE_TRANSFER, ACCUMULATION, DISTRIBUTION]
+   - FUND_FLOW: [INSTITUTIONAL, RETAIL, SMART_MONEY]
+   - METRICS: [PRICE_MOVE, VOLUME_SPIKE, MOMENTUM]
+   - FLOW: [DEPOSIT, WITHDRAW, TRANSFER, STAKE]
+   - ONCHAIN: [ADDRESSES, TRANSACTIONS, GAS]
+   - DEFI: [TVL, YIELDS, POOLS]
+   - DERIVATIVES: [FUNDING_RATE, OPEN_INTEREST, LIQUIDATIONS]
+
+   SOCIAL: Community and sentiment
+   - COMMUNITY: [GROWTH, ENGAGEMENT, SENTIMENT]
+   - ADOPTION: [USER_GROWTH, USAGE_METRICS, RETENTION]
+   - INFLUENCE: [ENDORSEMENT, CRITICISM, TREND]
+   - REPUTATION: [TRUST, CONTROVERSY, CREDIBILITY]
+   - SENTIMENT: [BULLISH, BEARISH, NEUTRAL]
+   - METRICS: [MENTIONS, ENGAGEMENT, REACH]
+
+Event Extraction Flow:
+
+1. Primary Classification:
+   First, categorize the event into one of the main categories:
    {
-     "name": "full official name",
-     "title": "exact position/role",
-     "org": "affiliated organization",
-     "verified": boolean,
-     "source": "official|reliable|unverified"
+     "category": "NEWS|MARKET|DATA|SOCIAL",
+     "subcategory": "SUBCATEGORY_FROM_LIST",
+     "type": "TYPE_FROM_LIST"
    }
 
-   Categories:
-   - Executives: C-level, founders
-   - Officials: Government, regulatory
-   - Influencers: Community leaders
+   Example flows:
+   NEWS > TECHNICAL > DEVELOPMENT > UPDATE
+   MARKET > PRICE > BREAKOUT > UP
+   DATA > WHALE_MOVE > LARGE_TRANSFER
+   SOCIAL > SENTIMENT > BULLISH
 
-   LOCATIONS:
-   Required fields:
+2. Action Analysis:
+   Then determine the specific action and its characteristics:
    {
-     "name": "official location name",
-     "type": "COUNTRY|REGION|CITY",
-     "context": "primary|related"
+     "action": {
+       "type": "ACTION_TYPE_FROM_LIST",
+       "direction": "UP|DOWN|NEUTRAL",
+       "magnitude": "SMALL|MEDIUM|LARGE",
+       "impact": "0-100"
+     }
    }
 
-5. Event Type (REQUIRED):
-    IMPORTANT: Before assigning type, verify:
-    1. Source credibility
-    2. Information authenticity
-    3. No spam signals present
+   Impact Calculation:
+   - Base Impact (0-40): Initial category weight
+   - Magnitude Boost (0-30): Based on size/significance
+   - Verification Boost (0-30): Based on source reliability
 
-    If ANY verification fails:
-    - Use "NONE" as event type
-    - Set impact/confidence to 0
+3. Context Extraction:
+   Gather supporting information and metrics:
+   {
+     "context": {
+       "impact": "0-100",  // Calculated from action impact
+       "confidence": "0-100",  // Based on verification
+       "sentiment": {
+         "market": "0-100",  // Market reaction
+         "social": "0-100"   // Community response
+       }
+     }
+   }
 
-    Government/Regulatory Events:
-    GOV_ADOPTION:        // Government crypto adoption
-    - Official legislation
-    - Government body verified
-    - Clear implementation plan
+4. Sentiment Analysis:
+   Market Sentiment:
+   - Analyze price action
+   - Volume patterns
+   - Market metrics
+   - Trading activity
 
-    POLICY:              // Government policy
-    - Official source
-    - Policy details
-    - Implementation timeline
+   Social Sentiment:
+   - Community reaction
+   - Social metrics
+   - Engagement levels
+   - Influence factors
 
-     REGULATION:          // Regulatory updates
-    - Official source
-    - Jurisdiction clear
-    - Impact assessment
+5. Evidence Collection:
+   {
+     "verification": {
+       "source": "OFFICIAL|RELIABLE|UNVERIFIED",
+       "evidence": ["url1", "url2"],
+       "confidence": "0-100"
+     }
+   }
 
-    Market Infrastructure:
-    LAUNCH:              // New product launch
-    - Official announcement
-    - Product details
-    - Launch timeline
+   Confidence Scoring:
+   - Official Source: 80-100
+   - Reliable Source: 60-80
+   - Unverified Source: 20-60
+   - Multiple Sources: +10 each
+   - Conflicting Info: -20 each
 
-    ETF_FILING:          // ETF related
-    - Filing details
-    - Regulatory body
-    - Timeline/status
+6. Metrics Aggregation:
+   Collect relevant metrics based on category:
+   {
+     "metrics": {
+       "market": {
+         "price": number,
+         "volume": number,
+         "liquidity": number,
+         "volatility": number
+       },
+       "onchain": {
+         "transactions": number,
+         "addresses": number
+       },
+       "social": {
+         "mentions": number,
+         "engagement": number,
+         "sentiment": number
+       }
+     }
+   }
 
-    LISTING:             // New exchange listings
-    - Official announcement
-    - Specific timeline
-    - Clear token/pair info
+7. Final Event Structure:
+   {
+     "event": {
+       "category": "Category",
+       "subcategory": "Subcategory",
+       "type": "EventType",
+       "action": {
+         "type": "ActionType",
+         "direction": "Direction",
+         "magnitude": "Magnitude",
+         "impact": "ImpactScore"
+       }
+     },
+     "context": {
+       "impact": "FinalImpact",
+       "confidence": "ConfidenceScore",
+       "sentiment": {
+         "market": "MarketSentiment",
+         "social": "SocialSentiment"
+       }
+     },
+     "verification": {
+       "source": "SourceType",
+       "evidence": ["Evidence"],
+       "confidence": "VerificationScore"
+     }
+   }
 
-    DELISTING:           // Removed from exchanges
-    - Official notice
-    - Clear reasoning
-    - Timeline provided
+Example Flows:
 
-    INTEGRATION:         // Platform integrations
-    - Technical details
-    - Both parties verified
-    - Clear benefits
+1. Market Event:
+   Input: "BTC breaks above $50k with heavy volume"
+   Flow: MARKET > PRICE > BREAKOUT > UP
+   Action: {type: "BREAKOUT", direction: "UP", magnitude: "LARGE"}
+   Impact: 80 (40 base + 20 magnitude + 20 verification)
 
-    Protocol/Technical:
-    DEVELOPMENT:        // Code updates
-    - GitHub activity
-    - Technical specs
-    - Team verification
+2. Data Event:
+   Input: "Whale moves 10k BTC to exchange"
+   Flow: DATA > WHALE_MOVE > LARGE_TRANSFER
+   Action: {type: "TRANSFER", direction: "NEUTRAL", magnitude: "LARGE"}
+   Impact: 70 (30 base + 25 magnitude + 15 verification)
 
-    UPGRADE:            // Protocol changes
-    - Version details
-    - Change summary
-    - Timeline
+3. News Event:
+   Input: "Ethereum completes major upgrade"
+   Flow: NEWS > TECHNICAL > DEVELOPMENT > UPDATE
+   Action: {type: "UPDATE", direction: "UP", magnitude: "LARGE"}
+   Impact: 85 (35 base + 25 magnitude + 25 verification)
 
-    DeFi Events:
-    DEX:                 // DEX specific
-    - Protocol changes
-    - Volume/TVL data
-    - Technical details
+4. Social Event:
+   Input: "Major influencer predicts bull run"
+   Flow: SOCIAL > INFLUENCE > ENDORSEMENT
+   Action: {type: "ENDORSE", direction: "UP", magnitude: "MEDIUM"}
+   Impact: 60 (25 base + 20 magnitude + 15 verification)
 
-    DEX_POOL:            // Pool updates
-    - Pool metrics
-    - Token pairs
-    - APY/rewards
+6. JSON Structure:
+{
+    "event": {
+        "category": "NEWS|MARKET|DATA|SOCIAL",
+        "subcategory": "SUBCATEGORY_FROM_LIST",
+        "type": "TYPE_FROM_LIST",
+        "action": {
+            "type": "ACTION_TYPE_FROM_LIST",
+            "direction": "UP|DOWN|NEUTRAL",
+            "magnitude": "SMALL|MEDIUM|LARGE",
+            "impact": "0-100"
+        },
+        "verification": {
+            "source": "OFFICIAL|RELIABLE|UNVERIFIED",
+            "evidence": ["url1", "url2"],
+            "confidence": "0-100"
+        }
+    },
+    "entities": {
+        "projects": [{
+            "name": "exact official name or wallet address",
+            "type": "PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET",
+            "role": "primary|related",
+            "verified": boolean,
+            "source": "official|reliable|unverified",
+            "address": "wallet or contract address if applicable"
+        }],
+        "tokens": {
+            "primary": {
+                "symbol": "TOKEN_SYMBOL",
+                "type": "TOKEN|NFT|TRADING_PAIR",
+                "address": "contract_address_or_pair"
+            },
+            "related": [{
+                "symbol": "TOKEN_SYMBOL",
+                "type": "TOKEN|NFT|TRADING_PAIR",
+                "address": "contract_address_or_pair"
+            }]
+        }
+    },
+    "metrics": {
+        "market": {
+            "price": number,
+            "volume": number,
+            "liquidity": number,
+            "volatility": number
+        },
+        "onchain": {
+            "transactions": number,
+            "addresses": number,
+            "gas": number
+        },
+        "social": {
+            "mentions": number,
+            "engagement": number,
+            "sentiment": number
+        }
+    },
+    "context": {
+        "impact": "0-100",
+        "confidence": "0-100",
+        "sentiment": {
+            "market": "0-100",
+            "social": "0-100"
+        }
+    }
+}
 
-    LIQUIDITY_POOL:      // LP events
-    - Pool size
-    - Token ratios
-    - Staking details
-
-    DEFI:               // DeFi updates
-    - Protocol metrics
-    - TVL changes
-    - Yield data
-
-    Market Activity:
-    MARKET_MOVE:        // Price movement
-    - Clear price data
-    - Volume confirmation
-    - Multiple sources
-
-    WHALE_MOVE:         // Large transfers
-    - Transaction hash
-    - Amount verified
-    - Wallet analysis
-
-    FUND_FLOW:         // Institution activity
-    - Amount verified
-    - Source confirmed
-    - Direction clear
-
-    VOLUME_SPIKE:       // Volume increase
-    - Multiple exchanges
-    - Percentage change
-    - Time period
-
-    PRICE_ALERT:        // Price updates
-    - Exact numbers
-    - Time period
-    - Multiple sources
-
-    ACCUMULATION:       // Buying activity
-    - Wallet analysis
-    - Time period
-    - Amount range
-
-    DISTRIBUTION:       // Selling activity
-    - Wallet analysis
-    - Time period
-    - Amount range
-
-    Market Analysis:
-    MARKET_DATA:         // Data/metrics
-    - TVL changes
-    - Volume analysis
-    - Verified metrics
-
-    MARKET_ANALYSIS:     // Analysis/research
-    - Data sources
-    - Methodology
-    - Time period
-
-    TREND_REPORT:        // Market trends
-    - Pattern identification
-    - Supporting data
-    - Time frame
-
-    Security Events:
-    HACK:               // Confirmed breach
-    - Amount lost
-    - Attack vector
-    - Timeline
-
-    EXPLOIT:            // Vulnerability
-    - Technical details
-    - Risk assessment
-    - Timeline
-
-    RUGPULL:            // Scam confirmed
-    - Evidence
-    - Amount lost
-    - Timeline
-
-    Business Events:
-    PARTNERSHIP:        // Collaboration
-    - Both parties verified
-    - Clear benefits
-    - Timeline
-
-    ACQUISITION:        // Buyout/merger
-    - Deal terms
-    - Amount if public
-    - Timeline
-
-    REGULATION:         // Legal updates
-    - Official source
-    - Jurisdiction
-    - Timeline
-
-    FUNDING:            // Investment
-    - Amount verified
-    - Investors listed
-    - Terms if public
-
-    Token Events:
-    AIRDROP:            // Distribution
-    - Amount/value
-    - Criteria
-    - Timeline
-
-    TOKENOMICS:         // Supply changes
-    - Exact numbers
-    - Mechanism
-    - Timeline
-
-6. Impact & Confidence Assessment (REQUIRED):
+7. Impact & Confidence Assessment (REQUIRED):
    IMPORTANT: Before scoring, verify:
    1. No spam signals present
    2. Source is credible
@@ -331,42 +390,42 @@ Required Information:
 
    HIGH IMPACT (70-100):
    MARKET EVENTS:
-   - WHALE_MOVE: >$10M verified
-   - FUND_FLOW: Institutional >$50M
-   - VOLUME_SPIKE: >5x average
-   - PRICE_ALERT: >20% with volume
+   - WHALE_MOVE: Large verified transfer
+   - FUND_FLOW: Institutional investment
+   - VOLUME_SPIKE: Unusual volume increase
+   - PRICE_ALERT: Notable price movement
 
    SECURITY:
-   - HACK: >$5M confirmed
-   - EXPLOIT: Critical protocol risk
-   - RUGPULL: >$1M verified
+   - HACK: Confirmed security breach
+   - EXPLOIT: Identified vulnerability
+   - RUGPULL: Verified exit scam
 
    BUSINESS:
-   - ACQUISITION: >$100M deal
-   - FUNDING: >$50M round
+   - ACQUISITION: Company merger/buyout
+   - FUNDING: Investment round
    - REGULATION: Major policy
 
    PROTOCOL:
-   - UPGRADE: Core protocol
+   - UPGRADE: Core protocol improvement
    - DEVELOPMENT: Major release
-   - INTEGRATION: Top platform
+   - INTEGRATION: Top platform integration
 
    MEDIUM IMPACT (40-70):
    MARKET EVENTS:
-   - WHALE_MOVE: $1M-$10M
-   - FUND_FLOW: $10M-$50M
-   - VOLUME_SPIKE: 2x-5x
-   - PRICE_ALERT: 5%-20%
+   - WHALE_MOVE: Large transfer
+   - FUND_FLOW: Investment activity
+   - VOLUME_SPIKE: Volume increase
+   - PRICE_ALERT: Price movement
 
    SECURITY:
-   - HACK: $1M-$5M
-   - EXPLOIT: Moderate risk
-   - RUGPULL: <$1M
+   - HACK: Security breach
+   - EXPLOIT: Vulnerability
+   - RUGPULL: Exit scam
 
    BUSINESS:
-   - ACQUISITION: $10M-$100M
-   - FUNDING: $10M-$50M
-   - PARTNERSHIP: Major names
+   - ACQUISITION: Company merger
+   - FUNDING: Investment
+   - PARTNERSHIP: Strategic collaboration
 
    LOW IMPACT (0-40):
    - Small market moves
@@ -412,32 +471,37 @@ Required Information:
    - Known false info
    - Manipulation attempt
 
-7. Sentiment Analysis:
+8. Sentiment Analysis:
    MARKET SENTIMENT (0-100):
-
+   
    BULLISH (70-100):
-   - Price increase >10%
-   - Volume spike >3x
-   - Major adoption news
-   - Institutional interest
-   - Positive development
+   - Strong positive momentum
+   - Increasing volume
+   - Positive fundamental news
+   - Institutional participation
+   - Technical breakout
+   - Development milestone
+   - Strategic partnership
 
    NEUTRAL (40-70):
-   - Price change <5%
-   - Normal volume
-   - Mixed signals
-   - Unclear impact
-   - General updates
+   - Sideways price action
+   - Normal trading volume
+   - Mixed market signals
+   - Routine updates
+   - Unclear market direction
+   - Early stage developments
 
    BEARISH (0-40):
-   - Price decrease >10%
-   - Volume decline
-   - Negative news
-   - Security issues
-   - Market concerns
+   - Strong negative momentum
+   - Decreasing volume
+   - Negative fundamental news
+   - Security concerns
+   - Technical breakdown
+   - Regulatory challenges
+   - Market uncertainty
 
    SOCIAL SENTIMENT (0-100):
-
+   
    POSITIVE (70-100):
    - Community growth
    - Developer activity
@@ -466,16 +530,26 @@ Output format:
         "cleaned": "removed spam/links"
     },
     "tokens": {
-        "primary": "SYMBOL",
-        "related": ["TOKEN1", "TOKEN2"]
+        "primary": {
+            "symbol": "TOKEN_SYMBOL",
+            "type": "TOKEN|NFT|TRADING_PAIR",
+            "name": "contract_address_or_pair_name",
+            "event_type": "ONCHAIN|EXCHANGE_DATA|SMART_CONTRACT"
+        },
+        "related": [{
+            "symbol": "TOKEN_SYMBOL",
+            "type": "TOKEN|NFT|TRADING_PAIR",
+            "name": "contract_address_or_pair_name"
+        }]
     },
     "entities": {
         "projects": [{
-            "name": "exact name",
-            "type": "EXCHANGE|PROTOCOL|COMPANY|REGULATOR",
+            "name": "exact official name or wallet address",
+            "type": "PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET",
             "role": "primary|related",
             "verified": boolean,
-            "source": "official|reliable|unverified"
+            "source": "official|reliable|unverified",
+            "address": "wallet or contract address if applicable"
         }],
         "persons": [{
             "name": "full name",
@@ -491,35 +565,56 @@ Output format:
         }]
     },
     "event": {
-        "type": "EXACT_TYPE_FROM_LIST",
-        "description": "brief factual summary",
+        "category": "NEWS|MARKET|DATA|SOCIAL",
+        "subcategory": "SUBCATEGORY_FROM_LIST",
+        "type": "TYPE_FROM_LIST",
+        "action": {
+            "type": "ACTION_TYPE_FROM_LIST",
+            "direction": "UP|DOWN|NEUTRAL",
+            "magnitude": "SMALL|MEDIUM|LARGE",
+            "impact": "0-100"
+        },
         "verification": {
-            "source": "official|reliable|unverified",
-            "evidence": ["link1", "link2"],
-            "spam_signals": ["signal1", "signal2"]
+            "source": "OFFICIAL|RELIABLE|UNVERIFIED",
+            "evidence": ["url1", "url2"],
+            "confidence": "0-100"
         }
     },
     "metrics": {
-        "impact": 0-100,
-        "confidence": 0-100,
-        "factors": {
-            "reductions": ["reason1", "reason2"],
-            "boosts": ["reason1", "reason2"]
-        }
-    },
-    "sentiment": {
         "market": {
-            "score": 0-100,
-            "signals": ["reason1", "reason2"]
+            "price": number,
+            "volume": number,
+            "liquidity": number,
+            "volatility": number
+        },
+        "onchain": {
+            "transactions": number,
+            "addresses": number,
         },
         "social": {
-            "score": 0-100,
-            "signals": ["trend1", "trend2"]
+            "mentions": number,
+            "engagement": number,
+            "sentiment": number
+        }
+    },
+    "context": {
+        "impact": "0-100",
+        "confidence": "0-100",
+        "sentiment": {
+            "market": "0-100",
+            "social": "0-100"
         }
     },
     "market_data": {
         "price": number|null,
         "volume": number|null,
         "verified": boolean
+    },
+    "transaction": {
+        "balance": "amount_transferred_or_traded",
+        "buy_price": "number",
+        "sell_price": "number",
+        "profit_percent": "number"
     }
-}`;
+}
+`;

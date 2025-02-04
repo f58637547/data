@@ -1,18 +1,16 @@
-import { getLLMResponse, generateEmbedding } from '../services/openai.mjs';
+import { getLLMResponse} from '../services/openai.mjs';
 import { cryptoTemplate } from './crypto.mjs';
-import { tradesTemplate } from './trades.mjs';
 
 export async function loadTemplates() {
     return {
-        cryptoTemplate,
-        tradesTemplate
+        cryptoTemplate  // Single template for all channels
     };
 }
 
 export async function extractEntities(text, channelType, authorInfo = {}) {
     try {
-        // Select template based on table name
-        const template = channelType === 'trades' ? tradesTemplate : cryptoTemplate;
+        // Use crypto template for all channels
+        const template = cryptoTemplate;
         
         // Get LLM to parse content
         const response = await getLLMResponse(template, { 

@@ -18,7 +18,7 @@ function extractTwitterUsername(text) {
     return null;
 }
 
-// 1. Improve Discord message text extraction
+// Discord message text extraction
 function extractDiscordText(message) {
     let rawText = '';
     let lastValidText = '';
@@ -112,68 +112,73 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Channel:', channelMapping.table);
             console.log('Message ID:', message.id);
             
-            // 1. Get plain text from Discord - combine text from related messages
-            let rawText = '';
-            let lastValidText = '';  // Store last valid text
+            // 1. First try extractDiscordText
+            const extractedText = extractDiscordText(message);
+            let rawText = extractedText.text;
+            let author = extractedText.author;
+            let rtAuthor = extractedText.rtAuthor;
 
-            // Get text from main message content
-            if (message.content) {
-                rawText = message.content;
-            }
+            // 2. If that fails, try direct processing
+            if (!rawText) {
+                rawText = '';
+                let lastValidText = '';  // Store last valid text
 
-            // Get text from embeds
-            if (message.embeds?.length > 0) {
-                const embedText = message.embeds
-                    .map(embed => {
-                        // Get text from rich embeds (tweets)
-                        if (embed.data?.type === 'rich' && embed.data?.description) {
-                            lastValidText = embed.data.description;  // Store valid text
-                            return embed.data.description;
-                        }
-                        // Get text from image embeds if they have alt text
-                        if (embed.data?.type === 'image' && embed.data?.description) {
-                            return embed.data.description;
-                        }
-                        return null;
-                    })
-                    .filter(Boolean)
-                    .join(' ');
-
-                // Combine with existing text
-                if (embedText) {
-                    rawText = rawText ? `${rawText} ${embedText}` : embedText;
+                // Get text from main message content
+                if (message.content) {
+                    rawText = message.content;
                 }
-            }
 
-            // If current message is just media, use last valid text
-            if (!rawText && message.embeds?.length > 0 && 
-                message.embeds[0].data?.type === 'image' && lastValidText) {
-                rawText = lastValidText;
+                // Get text from embeds
+                if (message.embeds?.length > 0) {
+                    const embedText = message.embeds
+                        .map(embed => {
+                            // Get text from rich embeds (tweets)
+                            if (embed.data?.type === 'rich' && embed.data?.description) {
+                                lastValidText = embed.data.description;  // Store valid text
+                                return embed.data.description;
+                            }
+                            // Get text from image embeds if they have alt text
+                            if (embed.data?.type === 'image' && embed.data?.description) {
+                                return embed.data.description;
+                            }
+                            return null;
+                        })
+                        .filter(Boolean)
+                        .join(' ');
+
+                    // Combine with existing text
+                    if (embedText) {
+                        rawText = rawText ? `${rawText} ${embedText}` : embedText;
+                    }
+                }
+
+                // If current message is just media, use last valid text
+                if (!rawText && message.embeds?.length > 0 && 
+                    message.embeds[0].data?.type === 'image' && lastValidText) {
+                    rawText = lastValidText;
+                }
+
+                // Extract usernames from URLs if not already found
+                if (!author && message.content) {
+                    const urls = message.content.match(/https:\/\/twitter.com\/[^\s]+/g) || [];
+                    if (urls.length > 0) {
+                        author = extractTwitterUsername(urls[0]);   
+                        if (urls.length > 1) {
+                            rtAuthor = extractTwitterUsername(urls[1]);
+                        }
+                    }
+                } else if (!author && message.embeds?.length > 0) {
+                    // If no direct URLs, try to get from embed
+                    const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
+                    if (twitterEmbed) {
+                        author = extractTwitterUsername(twitterEmbed.data.url);
+                    }
+                }
             }
 
             rawText = rawText.trim();
             if (!rawText) {
                 return { skip: true, reason: 'no_content' };
-            }
-
-            let author = null;
-            let rtAuthor = null;
-
-            // Extract usernames from URLs
-            if (message.content) {
-                const urls = message.content.match(/https:\/\/twitter.com\/[^\s]+/g) || [];
-                if (urls.length > 0) {
-                    author = extractTwitterUsername(urls[0]);   
-                    if (urls.length > 1) {
-                        rtAuthor = extractTwitterUsername(urls[1]);
-                    }
-                }
-            } else if (message.embeds?.length > 0) {
-                // If no direct URLs, try to get from embed
-                const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
-                if (twitterEmbed) {
-                    author = extractTwitterUsername(twitterEmbed.data.url);  // Will get 'WatcherGuru'
-                }
             }
 
             // Never default to 'Twitter'
@@ -209,7 +214,7 @@ export async function processMessage({ message, db, channelMapping }) {
             // Parse content with author info
             const parsedContent = await extractEntities(
                 originalText,  // Use original text with tickers
-                channelMapping.table,
+                null,
                 {
                     message: originalText,
                     author: author || 'none',
@@ -228,7 +233,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     // Try parsing again with cleaned text
                     return extractEntities(
                         cleanText,
-                        channelMapping.table,
+                        null,
                         {
                             message: cleanText,
                             author: author || 'none',
@@ -261,189 +266,211 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('\n=== Channel Mapping ===');
             console.log('Mapping:', channelMapping);
 
-            // Validate event type
+            // Validate event structure
+            if (!parsedContent.event?.category || !parsedContent.event?.subcategory || !parsedContent.event?.type) {
+                console.log('Missing event category structure');
+                return { skip: true, reason: 'invalid_event_structure' };
+            }
+
+            // Additional categories from template
+            const additionalEventTypes = {
+                INFLUENCE: ['ENDORSEMENT', 'CRITICISM', 'TREND'],
+                REPUTATION: ['TRUST', 'CONTROVERSY', 'CREDIBILITY'],
+                SENTIMENT: ['BULLISH', 'BEARISH', 'NEUTRAL'],
+                METRICS: ['MENTIONS', 'ENGAGEMENT', 'REACH']
+            };
+
+            // Add to validEventTypes
             const validEventTypes = {
-                crypto: [
-                    // Government/Regulatory Events
-                    'GOV_ADOPTION',    // Government adoption
-                    'POLICY',          // Government policy
-                    'REGULATION',      // Regulatory updates
-                    
-                    // Market Infrastructure
-                    'LAUNCH',          // New product launch
-                    'ETF_FILING',      // ETF related
-                    'LISTING',         // Exchange listings
-                    'DELISTING',       // Removals
-                    'INTEGRATION',     // Platform integrations
-                    
-                    // Protocol/Technical
-                    'DEVELOPMENT',     // Code updates
-                    'UPGRADE',         // Protocol changes
-                    
-                    // DeFi Events
-                    'DEX',             // DEX specific
-                    'DEX_POOL',        // Pool updates
-                    'LIQUIDITY_POOL',  // LP events
-                    'DEFI',           // DeFi updates
-                    
-                    // Market Activity
-                    'MARKET_MOVE',     // Price movement
-                    'WHALE_MOVE',      // Large transfers
-                    'FUND_FLOW',       // Institution activity
-                    'VOLUME_SPIKE',    // Volume increase
-                    'PRICE_ALERT',     // Price updates
-                    'ACCUMULATION',    // Buying activity
-                    'DISTRIBUTION',    // Selling activity
-                    
-                    // Market Analysis
-                    'MARKET_DATA',     // Data/metrics
-                    'MARKET_ANALYSIS', // Analysis/research
-                    'TREND_REPORT',    // Market trends
-                    
-                    // Security Events
-                    'HACK',           // Confirmed breach
-                    'EXPLOIT',        // Vulnerability
-                    'RUGPULL',        // Scam confirmed
-                    
-                    // Business Events
-                    'PARTNERSHIP',     // Collaboration
-                    'ACQUISITION',     // Buyout/merger
-                    'FUNDING',         // Investment
-                    
-                    // Token Events
-                    'AIRDROP',        // Distribution
-                    'TOKENOMICS',     // Supply changes
-                ],
-                trades: [
-                    // Trade Entry Events
-                    'SPOT_ENTRY',     // Spot buys
-                    'FUTURES_ENTRY',  // Futures positions
-                    'LEVERAGE_ENTRY', // Margin trades
-                    
-                    // Trade Exit Events
-                    'TAKE_PROFIT',    // Profit targets
-                    'STOP_LOSS',      // Stop hits
-                    'POSITION_EXIT',  // General exits
-                    
-                    // Technical Analysis Events
-                    'BREAKOUT',       // Pattern breaks (triangles, ranges)
-                    'REVERSAL',       // Trend changes
-                    'ACCUMULATION',   // Buying zone identified
-                    'DISTRIBUTION',   // Selling zone identified
-                    
-                    // Market Analysis Events
-                    'MARKET_MOVE',    // General price movement
-                    'WHALE_MOVE',     // Large wallet transactions
-                    'FUND_FLOW',      // Institutional money flow
-                    'VOLUME_SPIKE',   // Unusual trading volume
-                    'PRICE_ALERT'     // Significant price levels
-                ]
-            };
-
-            // Log validation
-            console.log('\n=== Event Type Validation ===');
-            console.log('Type:', parsedContent.event?.type);
-            console.log('Channel Type:', channelMapping.table);
-            console.log('Valid Types:', validEventTypes[channelMapping.table]);
-
-            // Add type validation
-            if (!validEventTypes[channelMapping.table]) {
-                console.error('Invalid channel type for event validation:', channelMapping.table);
-                return { skip: true, reason: 'invalid_channel_type' };
-            }
-
-            // Then check if event type is valid
-            if (parsedContent.event?.type === 'NONE') {
-                console.log('Skipping: Content marked as NONE type');
-                return { skip: true, reason: 'none_type' };
-            }
-
-            if (!validEventTypes[channelMapping.table].includes(parsedContent.event?.type)) {
-                console.log('Skipping: Invalid event type:', parsedContent.event?.type);
-                return { skip: true, reason: 'invalid_event_type' };
-            }
-
-            // After event type validation, add impact check
-            if (parsedContent.metrics.impact < 40) {  // 40 is our LOW IMPACT threshold
-                console.log('Skipping: Low impact score:', parsedContent.metrics.impact);
-                return { skip: true, reason: 'low_impact' };
-            }
-
-            // Or more detailed version:
-            const impactThresholds = {
-                crypto: {
-                    // Platform Events
-                    LISTING: 70,      // Major listings need high impact
-                    DEX: 60,         // DEX launches are significant
-                    
-                    // Protocol Events
-                    DEVELOPMENT: 50,  // Code updates
-                    UPGRADE: 60,     // Major upgrades
-                    INTEGRATION: 40,  // Allow integrations
-                    
-                    // Market Events
-                    MARKET_MOVE: 40,  // Allow market opinions
-                    FUND_FLOW: 50,   // Institutional flows
-                    WHALE_MOVE: 50,  // Large transactions
-                    
-                    // Security Events
-                    HACK: 80,        // Critical security
-                    EXPLOIT: 70,     // Vulnerabilities
-                    RUGPULL: 70,     // Scams
-                    
-                    // Business Events
-                    PARTNERSHIP: 40,  // Allow partnerships/collaborations
-                    ACQUISITION: 60,  // Major deals
-                    REGULATION: 60,   // Regulatory impact
-                    FUNDING: 60,      // Investment rounds
-                    
-                    default: 40      // Lower base threshold
+                NEWS: {
+                    REGULATORY: [
+                        'GOV_ADOPTION',    // Government adoption/acceptance
+                        'POLICY_UPDATE',   // Policy changes
+                        'REGULATION',      // New regulations
+                        'COMPLIANCE'       // Compliance updates
+                    ],
+                    BUSINESS: [
+                        'PARTNERSHIP',     // New partnerships
+                        'ACQUISITION',     // Company acquisitions
+                        'FUNDING',         // Funding rounds
+                        'EXPANSION',       // Business expansion
+                        'LAUNCH',          // New product/service
+                        'INTEGRATION'      // Platform integrations
+                    ],
+                    TECHNOLOGY: [
+                        'DEVELOPMENT',     // Development updates
+                        'UPGRADE',         // Protocol upgrades
+                        'SECURITY',        // Security updates
+                        'INNOVATION'       // New tech features
+                    ]
                 },
-                trades: {
-                    // Market Analysis
-                    MARKET_MOVE: 40,    // Allow general market commentary
-                    PRICE_ALERT: 50,    // Price targets/levels
-                    WHALE_MOVE: 60,     // Large wallet activity
-                    FUND_FLOW: 60,      // Institutional activity
-                    VOLUME_SPIKE: 50,   // Volume analysis
-                    
-                    // Trade Entry/Exit (existing)
-                    SPOT_ENTRY: 50,
-                    FUTURES_ENTRY: 60,
-                    LEVERAGE_ENTRY: 70,
-                    TAKE_PROFIT: 60,
-                    STOP_LOSS: 60,
-                    
-                    // Technical Analysis
-                    BREAKOUT: 60,
-                    REVERSAL: 60,
-                    
-                    default: 40
+                
+                // MARKET Category
+                MARKET: {
+                    PRICE: [
+                        'BREAKOUT',        // Price breakouts
+                        'REVERSAL',        // Trend reversals
+                        'SUPPORT',         // Support levels
+                        'RESISTANCE',      // Resistance levels
+                        'PRICE_DISCOVERY'  // New price levels
+                    ],
+                    TRADING: [
+                        'VOLUME_SPIKE',    // Volume increases
+                        'LIQUIDATION',     // Large liquidations
+                        'ACCUMULATION',    // Buying pressure
+                        'DISTRIBUTION',    // Selling pressure
+                        'MOMENTUM'         // Trend strength
+                    ],
+                    DERIVATIVES: [
+                        'FUTURES_BASIS',   // Futures premiums
+                        'OPTIONS_FLOW',    // Options activity
+                        'LEVERAGE_RATIO',  // Leverage levels
+                        'OPEN_INTEREST'    // Contract interest
+                    ]
+                },
+                
+                // DATA Category
+                DATA: {
+                    ONCHAIN: [
+                        'WHALE_MOVE',      // Large transfers
+                        'FUND_FLOW',       // Exchange flows
+                        'WALLET_ANALYSIS', // Wallet activity
+                        'NETWORK_USAGE'    // Chain metrics
+                    ],
+                    DEFI: [
+                        'TVL_CHANGE',      // TVL updates
+                        'YIELD_UPDATE',    // Yield changes
+                        'PROTOCOL_METRIC', // Protocol stats
+                        'DEX_VOLUME'       // DEX activity
+                    ],
+                    METRICS: [
+                        'MARKET_CAP',      // Cap changes
+                        'SUPPLY_CHANGE',   // Supply metrics
+                        'CORRELATION',     // Asset correlations
+                        'DOMINANCE'        // BTC dominance
+                    ]
+                },
+                
+                // SOCIAL Category
+                SOCIAL: {
+                    SENTIMENT: [
+                        'FEAR_GREED',      // Market sentiment
+                        'SOCIAL_VOLUME',    // Discussion volume
+                        'TREND_GAUGE',      // Trend sentiment
+                        'HYPE_INDEX'        // Social hype
+                    ],
+                    COMMUNITY: [
+                        'GITHUB_ACTIVITY',  // Dev activity
+                        'SOCIAL_GROWTH',    // Community growth
+                        'INFLUENCER_TAKE',  // Key opinions
+                        'ADOPTION_METRIC'   // Usage growth
+                    ]
+                },
+                INFLUENCE: {
+                    SOCIAL: additionalEventTypes.INFLUENCE
+                },
+                REPUTATION: {
+                    SOCIAL: additionalEventTypes.REPUTATION
+                },
+                SENTIMENT: {
+                    MARKET: additionalEventTypes.SENTIMENT
+                },
+                METRICS: {
+                    SOCIAL: additionalEventTypes.METRICS
                 }
             };
 
-            // Keep only essential field validation
-            if (parsedContent) {
-                // 1. Must have event type
-                if (!parsedContent.event?.type || parsedContent.event.type === 'NONE') {
-                    console.log('Missing or NONE event type');
-                    return { skip: true, reason: 'invalid_event_type' };
-                }
+            // Check if category and subcategory exist
+            if (!validEventTypes[parsedContent.event.category]?.[parsedContent.event.subcategory]) {
+                console.log('Invalid category/subcategory combination');
+                return { skip: true, reason: 'invalid_category' };
+            }
 
-                // 2. Must have impact score
-                if (!parsedContent.metrics?.impact) {
-                    console.log('Missing impact score');
-                    return { skip: true, reason: 'missing_impact' };
-                }
+            // Validate source and confidence
+            if (!parsedContent.verification?.source || !parsedContent.verification?.confidence) {
+                console.log('Missing source verification');
+                return { skip: true, reason: 'missing_verification' };
+            }
 
-                // Check impact thresholds
-                const minImpact = impactThresholds[channelMapping.table][parsedContent.event.type] || 
-                                 impactThresholds[channelMapping.table].default;
+            // Source confidence thresholds
+            const confidenceThresholds = {
+                OFFICIAL: 80,
+                RELIABLE: 60,
+                UNVERIFIED: 20
+            };
 
-                if (parsedContent.metrics.impact < minImpact) {
-                    console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact} for ${parsedContent.event.type}`);
-                    return { skip: true, reason: 'low_impact' };
-                }
+            const minConfidence = confidenceThresholds[parsedContent.verification.source] || confidenceThresholds.UNVERIFIED;
+            if (parsedContent.verification.confidence < minConfidence) {
+                console.log(`Confidence ${parsedContent.verification.confidence} below threshold ${minConfidence}`);
+                return { skip: true, reason: 'low_confidence' };
+            }
+
+            // Validate action analysis
+            if (!parsedContent.action?.type || !parsedContent.action?.direction || !parsedContent.action?.magnitude) {
+                console.log('Missing action analysis');
+                return { skip: true, reason: 'missing_action' };
+            }
+
+            // Validate metrics based on category
+            if (parsedContent.event.category === 'MARKET' && (!parsedContent.metrics?.market?.price || !parsedContent.metrics?.market?.volume)) {
+                console.log('Missing required market metrics');
+                return { skip: true, reason: 'missing_market_metrics' };
+            }
+
+            if (parsedContent.event.category === 'DATA' && (!parsedContent.metrics?.onchain?.transactions || !parsedContent.metrics?.onchain?.addresses)) {
+                console.log('Missing required onchain metrics');
+                return { skip: true, reason: 'missing_onchain_metrics' };
+            }
+
+            if (parsedContent.event.category === 'SOCIAL' && (!parsedContent.metrics?.social?.mentions || !parsedContent.metrics?.social?.engagement)) {
+                console.log('Missing required social metrics');
+                return { skip: true, reason: 'missing_social_metrics' };
+            }
+
+            // Check for spam signals
+            if (parsedContent.spam_signals && parsedContent.spam_signals.length > 0) {
+                console.log('Spam signals detected:', parsedContent.spam_signals);
+                return { skip: true, reason: 'spam_detected' };
+            }
+
+            // Impact thresholds based on category and type
+            const impactThresholds = {
+                NEWS: {
+                    REGULATORY: 70,    // High impact for regulatory news
+                    BUSINESS: 60,      // Significant for business updates
+                    TECHNOLOGY: 50     // Medium for tech updates
+                },
+                MARKET: {
+                    PRICE: 40,         // Lower for price movements
+                    TRADING: 50,       // Medium for trading activity
+                    DERIVATIVES: 60    // Higher for derivative impacts
+                },
+                DATA: {
+                    ONCHAIN: 60,       // Important on-chain movements
+                    DEFI: 50,         // Medium for DeFi updates
+                    METRICS: 40       // Lower for regular metrics
+                },
+                SOCIAL: {
+                    SENTIMENT: 30,     // Lower for sentiment
+                    COMMUNITY: 40      // Medium for community
+                },
+                default: 40           // Base threshold
+            };
+
+            // Get threshold based on category/subcategory
+            const minImpact = impactThresholds[parsedContent.event.category]?.[parsedContent.event.subcategory] || 
+                            impactThresholds[parsedContent.event.category] || 
+                            impactThresholds.default;
+
+            // Check impact score
+            if (!parsedContent.metrics?.impact) {
+                console.log('Missing impact score');
+                return { skip: true, reason: 'missing_impact' };
+            }
+
+            if (parsedContent.metrics.impact < minImpact) {
+                console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact}`);
+                return { skip: true, reason: 'low_impact' };
             }
 
             // Add before embedding generation
