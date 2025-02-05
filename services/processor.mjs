@@ -209,11 +209,26 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // Log cleaned text
             console.log('\n=== Cleaned Text ===');
-            console.log(cleanText);
+            console.log(originalText);
+
+            // Check for truncated messages
+            const truncatedMarkers = ['...', '…', '[', '(', '{'];
+            if (truncatedMarkers.some(marker => originalText.trim().endsWith(marker))) {
+                console.log('Message appears to be truncated');
+                return { skip: true, reason: 'truncated_message' };
+            }
 
             // Parse content with author info
+            const contentData = {
+                type: 'raw',
+                author: author || 'none',
+                rt_author: rtAuthor,
+                original: originalText,
+                entities: null
+            };
+
             const parsedContent = await extractEntities(
-                originalText,  // Use original text with tickers
+                contentData,
                 null,
                 {
                     message: originalText,
@@ -221,36 +236,11 @@ export async function processMessage({ message, db, channelMapping }) {
                     rtAuthor: rtAuthor || ''
                 }
             ).catch(error => {
-                // Log the full error for debugging
                 console.log('Entity extraction error:', {
                     error: error.message,
                     type: error.type || 'unknown',
                     text: originalText.substring(0, 100)
                 });
-
-                // Handle specific error types
-                if (error.message.includes('Failed to parse LLM response')) {
-                    // Try parsing again with cleaned text
-                    return extractEntities(
-                        cleanText,
-                        null,
-                        {
-                            message: cleanText,
-                            author: author || 'none',
-                            rtAuthor: rtAuthor || ''
-                        }
-                    ).catch(retryError => {
-                        console.log('Retry failed:', retryError.message);
-                        return null;
-                    });
-                }
-
-                // Only throw if it's not a known error type
-                if (!error.message.includes('Not a trade message') && 
-                    !error.message.includes('Not a crypto update')) {
-                    throw error;
-                }
-                
                 return null;
             });
 
@@ -259,21 +249,24 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'parse_failed' };
             }
 
+            // Update content data with parsed entities
+            contentData.entities = parsedContent;
+
             console.log('\n=== Parsed Content ===');
-            console.log(JSON.stringify(parsedContent, null, 2));
+            console.log(JSON.stringify(contentData, null, 2));
 
             // Add logging for channelMapping
             console.log('\n=== Channel Mapping ===');
             console.log('Mapping:', channelMapping);
 
             // 1. Check if we have valid event structure
-            if (!parsedContent.event?.category || !parsedContent.event?.subcategory || !parsedContent.event?.type) {
+            if (!contentData.entities.event?.category || !contentData.entities.event?.subcategory || !contentData.entities.event?.type) {
                 console.log('Missing event category structure');
                 return { skip: true, reason: 'invalid_event_structure' };
             }
 
             // 2. Check if we have impact score and if it's high enough
-            if (!parsedContent.context?.impact) {
+            if (!contentData.entities.context?.impact) {
                 console.log('Missing impact score');
                 return { skip: true, reason: 'missing_impact' };
             }
@@ -284,10 +277,10 @@ export async function processMessage({ message, db, channelMapping }) {
                 MARKET: 70,    // Significant market moves
                 DATA: 75,      // Strong on-chain signals
                 SOCIAL: 80     // Very strong social signals
-            }[parsedContent.event.category] || 70; // Default to 70 if category not found
+            }[contentData.entities.event.category] || 70; // Default to 70 if category not found
 
-            if (parsedContent.context.impact < minImpact) {
-                console.log(`Skipping: Impact ${parsedContent.context.impact} below threshold ${minImpact}`);
+            if (contentData.entities.context.impact < minImpact) {
+                console.log(`Skipping: Impact ${contentData.entities.context.impact} below threshold ${minImpact}`);
                 return { skip: true, reason: 'low_impact' };
             }
 
@@ -296,19 +289,19 @@ export async function processMessage({ message, db, channelMapping }) {
                 id: uuidv4(),
                 channel: channelMapping.table,
                 message_id: message.id,
-                text: parsedContent.headline.text,  // Only keep original text
+                text: contentData.entities.headline.text,  // Only keep original text
                 author,
                 rt_author: rtAuthor,
-                tokens: parsedContent.tokens || {},
-                entities: parsedContent.entities || {},
-                event: parsedContent.event,
-                metrics: parsedContent.metrics || {},
+                tokens: contentData.entities.tokens || {},
+                entities: contentData.entities.entities || {},
+                event: contentData.entities.event,
+                metrics: contentData.entities.metrics || {},
                 context: {
-                    impact: parsedContent.context?.impact || 50,
-                    confidence: parsedContent.context?.confidence || 50,
+                    impact: contentData.entities.context?.impact || 50,
+                    confidence: contentData.entities.context?.confidence || 50,
                     sentiment: {
-                        market: parsedContent.context?.sentiment?.market || 50,
-                        social: parsedContent.context?.sentiment?.social || 50
+                        market: contentData.entities.context?.sentiment?.market || 50,
+                        social: contentData.entities.context?.sentiment?.social || 50
                     }
                 },
                 embedding: null,
@@ -319,15 +312,6 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('\n=== Starting Embedding Generation ===');
 
             // Generate embedding from full content data
-            const contentData = {
-                original: originalText,
-                entities: parsedContent,
-                type: 'raw',
-                author: author || 'none',
-                rt_author: rtAuthor || null
-            };
-
-            // Generate embedding from full JSON content
             const newEmbedding = await generateEmbedding(JSON.stringify(contentData));
 
             // Add before similarity check
@@ -387,8 +371,8 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('\n=== Operation Complete ===');
             console.log('Status: Success');
             console.log('Channel:', channelMapping.table);
-            console.log('Event Type:', parsedContent.event?.type);
-            console.log('Impact Score:', parsedContent.context.impact);
+            console.log('Event Type:', contentData.entities.event?.type);
+            console.log('Impact Score:', contentData.entities.context.impact);
 
             return { success: true };
 
