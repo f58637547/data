@@ -224,7 +224,11 @@ export async function processMessage({ message, db, channelMapping }) {
                 author: author || 'none',
                 rt_author: rtAuthor,
                 original: originalText,
-                entities: null
+                entities: {
+                    headline: {
+                        text: originalText
+                    }
+                }
             };
 
             const parsedContent = await extractEntities(
@@ -249,8 +253,11 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'parse_failed' };
             }
 
-            // Update content data with parsed entities
-            contentData.entities = parsedContent;
+            // Update content data with parsed entities but preserve headline
+            contentData.entities = {
+                ...parsedContent,
+                headline: contentData.entities.headline
+            };
 
             console.log('\n=== Parsed Content ===');
             console.log(JSON.stringify(contentData, null, 2));
@@ -265,19 +272,26 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'invalid_event_structure' };
             }
 
+            // 1.5 Validate event category
+            const validCategories = ['NEWS', 'MARKET', 'DATA', 'SOCIAL'];
+            if (!validCategories.includes(contentData.entities.event.category)) {
+                console.log('Invalid event category:', contentData.entities.event.category);
+                return { skip: true, reason: 'invalid_category' };
+            }
+
             // 2. Check if we have impact score and if it's high enough
             if (!contentData.entities.context?.impact) {
                 console.log('Missing impact score');
                 return { skip: true, reason: 'missing_impact' };
             }
 
-            // Base impact thresholds
+            // Get minimum impact threshold based on category
             const minImpact = {
-                NEWS: 60,      // Important news only
-                MARKET: 70,    // Significant market moves
-                DATA: 75,      // Strong on-chain signals
-                SOCIAL: 80     // Very strong social signals
-            }[contentData.entities.event.category] || 70; // Default to 70 if category not found
+                NEWS: 60,     // Important news/announcements
+                MARKET: 70,   // Significant market moves
+                DATA: 75,     // Strong on-chain signals
+                SOCIAL: 80    // Very strong social signals
+            }[contentData.entities.event.category];
 
             if (contentData.entities.context.impact < minImpact) {
                 console.log(`Skipping: Impact ${contentData.entities.context.impact} below threshold ${minImpact}`);
