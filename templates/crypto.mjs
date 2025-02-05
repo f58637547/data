@@ -263,21 +263,28 @@ MARKET: Trading patterns and setups (Base Impact: 30-70)
 
 DATA: On-chain and market metrics (Base Impact: 50-90)
    WHALE_MOVE:
-   - LARGE_TRANSFER: [
-       IN: "incoming/receiving",
-       OUT: "outgoing/sending",
-       BETWEEN: "internal/moving"
+   - TRANSFER: [
+       MOVE: "token transfer between wallets",
+       MINT: "new tokens created",
+       BURN: "tokens destroyed/removed"
    ]
    - ACCUMULATION: [
-       BUYING: "accumulating/adding",
-       HOLDING: "holding/storing",
-       STAKING: "staking/locking"
+       BUY: "whale buying/accumulating",
+       SELL: "whale selling/distributing",
+       HOLD: "whale holding/no movement"
    ]
-   - DISTRIBUTION: [
-       SELLING: "distributing/selling",
-       MOVING: "transferring/shifting",
-       UNSTAKING: "unstaking/unlocking"
-   ]
+
+Special handling for whale transfers:
+1. If message contains token transfers:
+   - category MUST be "DATA"
+   - subcategory MUST be "WHALE_MOVE"
+   - type MUST be "TRANSFER"
+   - Include BOTH wallet addresses in projects
+   - Record transfer amount in onchain.transactions
+   - Set magnitude based on amount:
+     * SMALL: < 100k USD
+     * MEDIUM: 100k-1M USD
+     * LARGE: > 1M USD
 
    FUND_FLOW:
    - EXCHANGE: [
@@ -375,7 +382,7 @@ Event Classification Examples:
 
 2. Data Event:
    Input: "Whale moves 10k BTC to exchange"
-   Flow: DATA > WHALE_MOVE > LARGE_TRANSFER
+   Flow: DATA > WHALE_MOVE > TRANSFER
    Action: {type: "TRANSFER", direction: "NEUTRAL", magnitude: "LARGE"}
    Impact: 70 (30 base + 25 magnitude + 15 verification)
 

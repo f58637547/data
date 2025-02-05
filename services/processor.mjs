@@ -267,8 +267,8 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Mapping:', channelMapping);
 
             // 1. Check if we have valid event structure
-            if (!contentData.entities.event?.category || !contentData.entities.event?.subcategory || !contentData.entities.event?.type) {
-                console.log('Missing event category structure');
+            if (!contentData.entities.event?.category) {
+                console.log('Missing event category');
                 return { skip: true, reason: 'invalid_event_structure' };
             }
 
