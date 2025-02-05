@@ -287,10 +287,10 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // Get minimum impact threshold based on category
             const minImpact = {
-                NEWS: 60,     // Important news/announcements
-                MARKET: 70,   // Significant market moves
-                DATA: 75,     // Strong on-chain signals
-                SOCIAL: 80    // Very strong social signals
+                NEWS: 50,     // Base(40) + some positive modifiers
+                MARKET: 60,   // Base(30) + technical analysis/levels
+                DATA: 75,     // Base(50) + significant amount/movement
+                SOCIAL: 65    // Base(20) + verified + quality
             }[contentData.entities.event.category];
 
             if (contentData.entities.context.impact < minImpact) {

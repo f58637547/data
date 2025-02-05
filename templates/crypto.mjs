@@ -129,6 +129,50 @@ REQUIRED FIELDS AND MAPPING:
 IMPORTANT: Always use exact values from these lists in the output JSON.
 Do not make up new categories or types.
 
+IMPACT SCORING RULES:
+
+1. Base Impact by Category:
+   NEWS: 40-60
+   - TECHNICAL: +10 for code/development updates
+   - FUNDAMENTAL: +15 for major exchange listings
+   - REGULATORY: +20 for significant regulatory news
+
+   MARKET: 30-70  
+   - PRICE: +20 for technical analysis with clear levels
+   - VOLUME: +15 for significant volume changes
+   
+   DATA: 50-90
+   - WHALE_MOVE: Based on USD value
+     * < 100k: +0
+     * 100k-1M: +10
+     * 1M-10M: +20
+     * > 10M: +30
+   - FUND_FLOW: +20 for significant fund movements
+   - ONCHAIN: +15 for notable metrics
+
+   SOCIAL: 20-60
+   - Reduce by 30-50 for promotional content
+   - Add 10-20 for verified sources
+
+2. Additional Modifiers:
+   - Magnitude: SMALL(+0), MEDIUM(+10), LARGE(+20)
+   - Market Sentiment: BEARISH(-10), NEUTRAL(+0), BULLISH(+10)
+   - Source Quality: UNVERIFIED(+0), RELIABLE(+10), OFFICIAL(+20)
+   - Content Quality:
+     * Clear data/numbers: +10
+     * Multiple indicators: +10
+     * Price levels/targets: +15
+     * Code/technical details: +15
+
+3. Spam Penalties (apply ALL that match):
+   - Promotional/shill content: -40
+   - Exchange/platform ads: -30
+   - Excessive emojis/caps: -20
+   - Referral/affiliate links: -40
+   - Price predictions without data: -30
+   - Generic announcements: -20
+   - Hype without substance: -25
+
 NEWS: Information and announcements (Base Impact: 40-80)
    TECHNICAL:
    - UPDATE: [
