@@ -4,6 +4,7 @@ Never include instructions or template text in the output.
 
 VALIDATION RULES (MUST FOLLOW):
 1. NEVER return empty strings or null values
+
 2. ALWAYS set ALL fields in event structure:
    {
      "category": MUST be one of ["NEWS", "MARKET", "DATA", "SOCIAL"]
@@ -20,16 +21,13 @@ VALIDATION RULES (MUST FOLLOW):
      }
    }
 
-3. If message cannot be categorized:
-   - Set category="SOCIAL"
-   - Set subcategory="COMMUNITY"
-   - Set type="DISCUSSION"
-   - Set action.type="GENERAL"
-   - Set impact=30 (will be filtered by threshold)
+3. If message cannot be properly categorized into a valid event type:
+   - Set impact=0 (message will be filtered out)
+   - Still populate all required fields with valid values
 
 4. ALWAYS set these fields:
    - headline.text = original message
-   - context.impact = valid number 0-100
+   - context.impact = valid number 0-100 (use 0 for uncategorized)
    - context.confidence = valid number 0-100
    - context.sentiment.market = valid number 0-100
    - context.sentiment.social = valid number 0-100
@@ -189,30 +187,31 @@ Do not make up new categories or types.
 
 IMPACT SCORING RULES:
 
-1. Base Impact by Category:
+1. Base Impact by Category (only if properly categorized):
    NEWS: 40-60
-   - TECHNICAL: +10 for code/development updates
-   - FUNDAMENTAL: +15 for major exchange listings
-   - REGULATORY: +20 for significant regulatory news
+   - TECHNICAL: +10 for code/development updates with clear technical details
+   - FUNDAMENTAL: +15 for major exchange listings, partnerships with details
+   - REGULATORY: +20 for significant regulatory news with clear impact
 
    MARKET: 30-70  
-   - PRICE: +20 for technical analysis with clear levels
-   - VOLUME: +15 for significant volume changes
+   - PRICE: +20 for technical analysis with specific price levels
+   - VOLUME: +15 for significant volume changes with numbers
    
    DATA: 50-90
-   - WHALE_MOVE: Based on USD value
+   - WHALE_MOVE: Based on exact USD/token value
      * < 100k: +0
      * 100k-1M: +10
      * 1M-10M: +20
      * > 10M: +30
-   - FUND_FLOW: +20 for significant fund movements
-   - ONCHAIN: +15 for notable metrics
+   - FUND_FLOW: +20 for significant fund movements with clear direction
+   - ONCHAIN: +15 for notable metrics with specific numbers
 
    SOCIAL: 20-60
+   - Only if from verified/known sources with clear crypto relevance
    - Reduce by 30-50 for promotional content
    - Add 10-20 for verified sources
 
-2. Additional Modifiers:
+2. Quality Modifiers (only apply if base category is valid):
    - Magnitude: SMALL(+0), MEDIUM(+10), LARGE(+20)
    - Market Sentiment: BEARISH(-10), NEUTRAL(+0), BULLISH(+10)
    - Source Quality: UNVERIFIED(+0), RELIABLE(+10), OFFICIAL(+20)
@@ -222,7 +221,7 @@ IMPACT SCORING RULES:
      * Price levels/targets: +15
      * Code/technical details: +15
 
-3. Spam Penalties (apply ALL that match):
+3. Spam/Low Quality Penalties (apply ALL that match):
    - Promotional/shill content: -40
    - Exchange/platform ads: -30
    - Excessive emojis/caps: -20
@@ -231,6 +230,12 @@ IMPACT SCORING RULES:
    - Generic announcements: -20
    - Hype without substance: -25
    - Copy/paste content: -35
+
+4. Final Impact Score:
+   - If message doesn't fit any valid category: impact = 0
+   - If valid category but spam/low quality: apply all penalties
+   - Never set impact below 0 (minimum is 0)
+   - Maximum impact is 100
 
 NEWS: Information and announcements (Base Impact: 40-80)
    TECHNICAL: Must be code/development related
@@ -407,12 +412,18 @@ SCORING GUIDELINES:
 
 EXAMPLE OUTPUTS:
 
-1. Market Event:
-Input: "BTC breaks above $50k with heavy volume"
-Output:
+1. Valid Market Event with Clear Data:
+Input: "BTC breaks above $50k resistance with 2.5x daily volume spike, multiple technical indicators confirming breakout"
 {
   "headline": {
-    "text": "BTC breaks above $50k with heavy volume"
+    "text": "BTC breaks above $50k resistance with 2.5x daily volume spike, multiple technical indicators confirming breakout"
+  },
+  "tokens": {
+    "primary": {
+      "symbol": "BTC",
+      "type": "TOKEN",
+      "event_type": "EXCHANGE_DATA"
+    }
   },
   "event": {
     "category": "MARKET",
@@ -424,76 +435,27 @@ Output:
       "magnitude": "LARGE"
     }
   },
+  "metrics": {
+    "market": {
+      "price": 50000,
+      "volume": 2.5
+    }
+  },
   "context": {
-    "impact": 80,
-    "confidence": 90,
+    "impact": 85,         // Base(50) + Price(20) + Large(20) + Quality(10) - Modifiers(15)
+    "confidence": 90,     // Clear data with multiple indicators
     "sentiment": {
-      "market": 80,
-      "social": 70
+      "market": 80,       // Strong breakout with volume
+      "social": 70        // Technical confirmation
     }
   }
 }
 
-2. Social Event:
-Input: "You either 1) were a BTC maxi 2) got good at memes early on 3) traded a lot on Hyperliquid"
-Output:
+2. Uncategorized/Low Quality Message:
+Input: "gm wagmi fam 🚀🚀🚀 check out my new NFT project"
 {
   "headline": {
-    "text": "You either 1) were a BTC maxi 2) got good at memes early on 3) traded a lot on Hyperliquid"
-  },
-  "event": {
-    "category": "SOCIAL",
-    "subcategory": "COMMUNITY",
-    "type": "DISCUSSION",
-    "action": {
-      "type": "PLATFORM",
-      "direction": "NEUTRAL",
-      "magnitude": "MEDIUM"
-    }
-  },
-  "context": {
-    "impact": 40,
-    "confidence": 70,
-    "sentiment": {
-      "market": 50,
-      "social": 60
-    }
-  }
-}
-
-3. Data Event:
-Input: "Whale moves 10k BTC to exchange"
-Output:
-{
-  "headline": {
-    "text": "Whale moves 10k BTC to exchange"
-  },
-  "event": {
-    "category": "DATA",
-    "subcategory": "WHALE_MOVE",
-    "type": "TRANSFER",
-    "action": {
-      "type": "MOVE",
-      "direction": "NEUTRAL",
-      "magnitude": "LARGE"
-    }
-  },
-  "context": {
-    "impact": 85,
-    "confidence": 80,
-    "sentiment": {
-      "market": 40,
-      "social": 50
-    }
-  }
-}
-
-4. Unclear Message:
-Input: "gm crypto fam"
-Output:
-{
-  "headline": {
-    "text": "gm crypto fam"
+    "text": "gm wagmi fam 🚀🚀🚀 check out my new NFT project"
   },
   "event": {
     "category": "SOCIAL",
@@ -506,11 +468,59 @@ Output:
     }
   },
   "context": {
-    "impact": 30,
-    "confidence": 60,
+    "impact": 0,          // Promotional + excessive emojis + no substance
+    "confidence": 50,
     "sentiment": {
       "market": 50,
-      "social": 60
+      "social": 50
+    }
+  }
+}
+
+3. Valid Data Event with Clear Metrics:
+Input: "Whale wallet 0x1234...5678 moves 12,500 BTC ($625M) from Binance to cold storage"
+{
+  "headline": {
+    "text": "Whale wallet 0x1234...5678 moves 12,500 BTC ($625M) from Binance to cold storage"
+  },
+  "tokens": {
+    "primary": {
+      "symbol": "BTC",
+      "type": "TOKEN",
+      "event_type": "ONCHAIN"
+    }
+  },
+  "entities": {
+    "projects": [{
+      "name": "Binance",
+      "type": "EXCHANGE",
+      "role": "primary"
+    }]
+  },
+  "event": {
+    "category": "DATA",
+    "subcategory": "WHALE_MOVE",
+    "type": "TRANSFER",
+    "action": {
+      "type": "MOVE",
+      "direction": "NEUTRAL",
+      "magnitude": "LARGE"
+    }
+  },
+  "metrics": {
+    "market": {
+      "price": 50000
+    },
+    "onchain": {
+      "transactions": 1
+    }
+  },
+  "context": {
+    "impact": 90,         // Base(50) + WhaleMove(30) + Large(20) + Quality(10) - Modifiers(20)
+    "confidence": 95,     // Clear wallet address and amount
+    "sentiment": {
+      "market": 60,       // Moving to cold storage (bullish)
+      "social": 50        // Neutral
     }
   }
 }
