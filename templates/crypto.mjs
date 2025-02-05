@@ -97,7 +97,23 @@ VALIDATION RULES (MUST FOLLOW):
 
 8. Event Classification Examples:
 
-   1. Price Movement:
+   1. Market Impact News:
+      Input: "How Trump's Trade War Is Affecting Bitcoin and Gold"
+      Category: NEWS
+      Subcategory: FUNDAMENTAL
+      Type: MARKET_IMPACT
+      Action: {type: "IMPACT", direction: "NEUTRAL", magnitude: "LARGE"}
+      Impact: 75 (40 base + 15 fundamental + 20 global impact)
+
+   2. Policy Proposal:
+      Input: "Elon Musk proposes putting U.S. Treasury on blockchain"
+      Category: NEWS
+      Subcategory: FUNDAMENTAL
+      Type: PROPOSAL
+      Action: {type: "PROPOSAL", direction: "UP", magnitude: "LARGE"}
+      Impact: 70 (40 base + 15 fundamental + 15 influence)
+
+   3. Price Movement:
       Input: "BTC Price Falls 5% Below $40k Support"
       Category: MARKET
       Subcategory: PRICE
@@ -105,31 +121,15 @@ VALIDATION RULES (MUST FOLLOW):
       Action: {type: "DECLINE", direction: "DOWN", magnitude: "MEDIUM"}
       Impact: 65 (30 base + 20 price + 15 verification)
 
-   2. Volume Alert:
-      Input: "XRP Trading Volume Spikes 200% After News"
-      Category: MARKET
-      Subcategory: VOLUME
-      Type: VOLUME_SPIKE
-      Action: {type: "VOLUME_SPIKE", direction: "UP", magnitude: "LARGE"}
-      Impact: 60 (30 base + 15 volume + 15 verification)
-
-   3. Whale Movement:
-      Input: "10,000 BTC moved from unknown wallet to Binance"
-      Category: DATA
-      Subcategory: WHALE_MOVE
-      Type: TRANSFER
-      Action: {type: "TRANSFER", direction: "NEUTRAL", magnitude: "LARGE"}
-      Impact: 80 (50 base + 30 whale)
-
-   4. Network Update:
-      Input: "Ethereum completes major upgrade"
+   4. Technical Update:
+      Input: "Ethereum Completes Major Network Upgrade"
       Category: NEWS
       Subcategory: TECHNICAL
       Type: DEVELOPMENT
       Action: {type: "UPDATE", direction: "UP", magnitude: "LARGE"}
       Impact: 70 (40 base + 10 technical + 20 verification)
 
-   5. Regulation News:
+   5. Regulatory News:
       Input: "SEC Approves Spot Bitcoin ETF"
       Category: NEWS
       Subcategory: REGULATORY
@@ -137,7 +137,7 @@ VALIDATION RULES (MUST FOLLOW):
       Action: {type: "APPROVE", direction: "UP", magnitude: "LARGE"}
       Impact: 90 (40 base + 20 regulatory + 30 significance)
 
-   6. Adoption News:
+   6. Social Adoption:
       Input: "Major retailer accepts Bitcoin payments"
       Category: SOCIAL
       Subcategory: ADOPTION
@@ -183,6 +183,16 @@ FIELD POPULATION RULES:
    - No concrete data/analysis -> impact: 0
    - Price levels with analysis -> impact: 50+
    - Major moves/news -> impact: 70+
+
+Token Detection Rules:
+1. Only set tokens.primary when token is explicitly mentioned
+2. For general blockchain/crypto news without specific token, leave tokens empty
+3. When multiple tokens mentioned, set primary as the main subject token
+4. Token examples:
+   - "BTC falls 5%" -> primary: BTC
+   - "ETH and BTC rise" -> primary: ETH, secondary: BTC
+   - "Crypto market recovers" -> no tokens (general market)
+   - "Treasury on blockchain" -> no tokens (general blockchain)
 
 SCORING GUIDELINES:
 

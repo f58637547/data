@@ -108,10 +108,14 @@ export async function processMessage({ message, db, channelMapping }) {
     return messageQueue.add(async () => {
         try {
             // Log original message
-            console.log('\n=== Processing New Message ===');
-            console.log('Channel:', channelMapping.table);
-            console.log('Message ID:', message.id);
-            
+            console.log('\n' + '='.repeat(80));
+            console.log('🔄 PROCESSING MESSAGE START');
+            console.log('='.repeat(80));
+            console.log('📝 Message Details:');
+            console.log('  Channel:', channelMapping.table);
+            console.log('  Message ID:', message.id);
+            console.log('-'.repeat(80));
+
             // 1. First try extractDiscordText
             const extractedText = extractDiscordText(message);
             let rawText = extractedText.text;
@@ -178,6 +182,9 @@ export async function processMessage({ message, db, channelMapping }) {
 
             rawText = rawText.trim();
             if (!rawText) {
+                console.log('❌ Skipping: No content');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'no_content' };
             }
 
@@ -197,24 +204,31 @@ export async function processMessage({ message, db, channelMapping }) {
             const originalText = cleanText;  // Save before further cleaning
 
             if (!cleanText || cleanText.length < 10) {
-                console.log('Skipping: Content too short or empty');
+                console.log('❌ Skipping: Content too short or empty');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'invalid_content' };
             }
+
+            console.log('📄 Original Text:');
+            console.log(originalText);
+            console.log('-'.repeat(80));
 
             // Only keep the basic channel mapping validation
             if (!channelMapping || !channelMapping.table) {
                 console.error('Invalid channel mapping:', channelMapping);
+                console.log('❌ Skipping: Invalid channel mapping');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'invalid_channel_mapping' };
             }
-
-            // Log cleaned text
-            console.log('\n=== Cleaned Text ===');
-            console.log(originalText);
 
             // Check for truncated messages
             const truncatedMarkers = ['...', '…', '[', '(', '{'];
             if (truncatedMarkers.some(marker => originalText.trim().endsWith(marker))) {
-                console.log('Message appears to be truncated');
+                console.log('❌ Skipping: Message appears to be truncated');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'truncated_message' };
             }
 
@@ -240,38 +254,47 @@ export async function processMessage({ message, db, channelMapping }) {
                     rtAuthor: rtAuthor || ''
                 }
             ).catch(error => {
-                console.log('Entity extraction error:', {
+                console.log('❌ Entity extraction error:', {
                     error: error.message,
                     type: error.type || 'unknown',
                     text: originalText.substring(0, 100)
                 });
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return null;
             });
 
             if (!parsedContent) {
-                console.log('Skipping: Could not parse content');
+                console.log('❌ Parse Failed:');
+                console.log('  Could not parse content');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'parse_failed' };
             }
 
             // Update content data with parsed entities
             contentData.entities = parsedContent;
 
-            console.log('\n=== Parsed Content ===');
+            console.log('✅ Parsed Content:');
             console.log(JSON.stringify(contentData, null, 2));
+            console.log('-'.repeat(80));
 
             // Add logging for channelMapping
-            console.log('\n=== Channel Mapping ===');
-            console.log('Mapping:', channelMapping);
+            console.log('📊 Channel Info:');
+            console.log('  Mapping:', channelMapping);
+            console.log('-'.repeat(80));
 
             // 1. Check if we have valid event structure
             const event = contentData.entities.event;
             if (!event?.category || !event?.subcategory || !event?.type || !event?.action?.type) {
-                console.log('Missing event fields:', {
+                console.log('❌ Missing event fields:', {
                     category: event?.category,
                     subcategory: event?.subcategory,
                     type: event?.type,
                     action: event?.action?.type
                 });
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'invalid_event_structure' };
             }
 
@@ -284,17 +307,21 @@ export async function processMessage({ message, db, channelMapping }) {
             };
 
             if (!validStructure[event.category]?.includes(event.subcategory)) {
-                console.log('Invalid category/subcategory:', {
-                    category: event.category,
-                    subcategory: event.subcategory,
-                    validSubcategories: validStructure[event.category]
-                });
+                console.log('❌ Invalid Category:');
+                console.log('  Category:', event.category);
+                console.log('  Subcategory:', event.subcategory);
+                console.log('  Valid subcategories:', validStructure[event.category]);
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'invalid_category_structure' };
             }
 
-            // 2. Check if we have impact score and if it's high enough
+            // 2. Check if we have impact score
             if (!contentData.entities.context?.impact) {
-                console.log('Missing impact score');
+                console.log('❌ Missing Impact:');
+                console.log('  No impact score found');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'missing_impact' };
             }
 
@@ -332,7 +359,9 @@ export async function processMessage({ message, db, channelMapping }) {
             const requiredImpact = minImpact + (impactModifiers[event.category]?.[event.subcategory] || 0);
 
             if (contentData.entities.context.impact < requiredImpact) {
-                console.log(`Skipping: Impact ${contentData.entities.context.impact} below threshold ${requiredImpact}`);
+                console.log(`❌ Skipping: Impact ${contentData.entities.context.impact} below threshold ${requiredImpact}`);
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'low_impact' };
             }
 
@@ -395,6 +424,8 @@ export async function processMessage({ message, db, channelMapping }) {
                         vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
                     }))
                 });
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'similar_content' };
             }
 
@@ -414,27 +445,21 @@ export async function processMessage({ message, db, channelMapping }) {
                 `[${newEmbedding.join(',')}]`
             ]);
 
-            console.log('Saved new content:', {
-                type: channelMapping.table,
-                preview: originalText.substring(0, 100) + '...'
-            });
+            console.log('✅ Operation Complete:');
+            console.log('  Status: Success');
+            console.log('  Channel:', channelMapping.table);
+            console.log('  Event Type:', contentData.entities.event?.type);
+            console.log('  Impact Score:', contentData.entities.context.impact);
+            console.log('='.repeat(80));
+            console.log('🔄 PROCESSING MESSAGE END\n');
 
-            // Add after successful save
-            console.log('\n=== Operation Complete ===');
-            console.log('Status: Success');
-            console.log('Channel:', channelMapping.table);
-            console.log('Event Type:', contentData.entities.event?.type);
-            console.log('Impact Score:', contentData.entities.context.impact);
-
-            return { success: true };
+            return { status: 'success' };
 
         } catch (error) {
-            console.error('Processing error:', {
-                error: error.message,
-                preview: message.content?.substring(0, 100) || 
-                        message.embeds?.[0]?.description?.substring(0, 100) || 
-                        'No preview available'
-            });
+            console.log('❌ Error Processing:');
+            console.log('  Error:', error.message);
+            console.log('='.repeat(80));
+            console.log('🔄 PROCESSING MESSAGE END\n');
             return { skip: true, reason: 'processing_error' };
         }
     });
