@@ -273,7 +273,7 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             // 2. Check if we have impact score and if it's high enough
-            if (!parsedContent.metrics?.impact) {
+            if (!parsedContent.context?.impact) {
                 console.log('Missing impact score');
                 return { skip: true, reason: 'missing_impact' };
             }
@@ -286,8 +286,8 @@ export async function processMessage({ message, db, channelMapping }) {
                 SOCIAL: 80     // Very strong social signals
             }[parsedContent.event.category] || 70; // Default to 70 if category not found
 
-            if (parsedContent.metrics.impact < minImpact) {
-                console.log(`Skipping: Impact ${parsedContent.metrics.impact} below threshold ${minImpact}`);
+            if (parsedContent.context.impact < minImpact) {
+                console.log(`Skipping: Impact ${parsedContent.context.impact} below threshold ${minImpact}`);
                 return { skip: true, reason: 'low_impact' };
             }
 
@@ -389,7 +389,7 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Status: Success');
             console.log('Channel:', channelMapping.table);
             console.log('Event Type:', parsedContent.event?.type);
-            console.log('Impact Score:', parsedContent.metrics.impact);
+            console.log('Impact Score:', parsedContent.context.impact);
 
             return { success: true };
 
