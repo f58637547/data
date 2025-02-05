@@ -25,6 +25,18 @@ export async function extractEntities(text, channelType, authorInfo = {}) {
             const jsonMatch = content.match(/```(?:json)?\n?(.*?)\n?```/s);
             const jsonString = jsonMatch ? jsonMatch[1] : content;
             const parsed = JSON.parse(jsonString.trim());
+
+            // Set original text as headline
+            if (typeof text === 'object' && text.entities?.headline?.text) {
+                parsed.headline = {
+                    text: text.entities.headline.text
+                };
+            } else if (typeof text === 'string') {
+                parsed.headline = {
+                    text: text
+                };
+            }
+
             console.log('Parsed content:', parsed);
             return parsed;
         } catch (parseError) {

@@ -253,11 +253,8 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'parse_failed' };
             }
 
-            // Update content data with parsed entities but preserve headline
-            contentData.entities = {
-                ...parsedContent,
-                headline: contentData.entities.headline
-            };
+            // Update content data with parsed entities
+            contentData.entities = parsedContent;
 
             console.log('\n=== Parsed Content ===');
             console.log(JSON.stringify(contentData, null, 2));
