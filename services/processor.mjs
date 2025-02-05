@@ -267,16 +267,32 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Mapping:', channelMapping);
 
             // 1. Check if we have valid event structure
-            if (!contentData.entities.event?.category) {
-                console.log('Missing event category');
+            const event = contentData.entities.event;
+            if (!event?.category || !event?.subcategory || !event?.type || !event?.action?.type) {
+                console.log('Missing event fields:', {
+                    category: event?.category,
+                    subcategory: event?.subcategory,
+                    type: event?.type,
+                    action: event?.action?.type
+                });
                 return { skip: true, reason: 'invalid_event_structure' };
             }
 
-            // 1.5 Validate event category
-            const validCategories = ['NEWS', 'MARKET', 'DATA', 'SOCIAL'];
-            if (!validCategories.includes(contentData.entities.event.category)) {
-                console.log('Invalid event category:', contentData.entities.event.category);
-                return { skip: true, reason: 'invalid_category' };
+            // 1.5 Validate event category and subcategory
+            const validStructure = {
+                'NEWS': ['TECHNICAL', 'FUNDAMENTAL', 'REGULATORY'],
+                'MARKET': ['PRICE', 'VOLUME'],
+                'DATA': ['WHALE_MOVE', 'FUND_FLOW', 'ONCHAIN'],
+                'SOCIAL': ['COMMUNITY', 'INFLUENCE', 'ADOPTION']
+            };
+
+            if (!validStructure[event.category]?.includes(event.subcategory)) {
+                console.log('Invalid category/subcategory:', {
+                    category: event.category,
+                    subcategory: event.subcategory,
+                    validSubcategories: validStructure[event.category]
+                });
+                return { skip: true, reason: 'invalid_category_structure' };
             }
 
             // 2. Check if we have impact score and if it's high enough
@@ -287,14 +303,39 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // Get minimum impact threshold based on category
             const minImpact = {
-                NEWS: 50,     // Base(40) + some positive modifiers
-                MARKET: 60,   // Base(30) + technical analysis/levels
-                DATA: 75,     // Base(50) + significant amount/movement
-                SOCIAL: 65    // Base(20) + verified + quality
-            }[contentData.entities.event.category];
+                NEWS: 40,     // Base for news
+                MARKET: 30,   // Base for market
+                DATA: 50,     // Base for data
+                SOCIAL: 20    // Base for social
+            }[event.category];
 
-            if (contentData.entities.context.impact < minImpact) {
-                console.log(`Skipping: Impact ${contentData.entities.context.impact} below threshold ${minImpact}`);
+            // Add category-specific modifiers
+            const impactModifiers = {
+                NEWS: {
+                    TECHNICAL: 10,
+                    FUNDAMENTAL: 15,
+                    REGULATORY: 20
+                },
+                MARKET: {
+                    PRICE: 20,
+                    VOLUME: 15
+                },
+                DATA: {
+                    WHALE_MOVE: 30,
+                    FUND_FLOW: 20,
+                    ONCHAIN: 15
+                },
+                SOCIAL: {
+                    COMMUNITY: 10,
+                    INFLUENCE: 20,
+                    ADOPTION: 15
+                }
+            };
+
+            const requiredImpact = minImpact + (impactModifiers[event.category]?.[event.subcategory] || 0);
+
+            if (contentData.entities.context.impact < requiredImpact) {
+                console.log(`Skipping: Impact ${contentData.entities.context.impact} below threshold ${requiredImpact}`);
                 return { skip: true, reason: 'low_impact' };
             }
 

@@ -7,8 +7,12 @@ VALIDATION RULES (MUST FOLLOW):
 2. ALWAYS set ALL fields in event structure:
    {
      "category": MUST be one of ["NEWS", "MARKET", "DATA", "SOCIAL"]
-     "subcategory": MUST match section headers under category
-     "type": MUST be valid type from subcategory
+     "subcategory": MUST match section headers under category:
+       NEWS: ["TECHNICAL", "FUNDAMENTAL", "REGULATORY"]
+       MARKET: ["PRICE", "VOLUME"]
+       DATA: ["WHALE_MOVE", "FUND_FLOW", "ONCHAIN"]
+       SOCIAL: ["COMMUNITY", "INFLUENCE", "ADOPTION"]
+     "type": MUST be valid type from subcategory list
      "action": {
        "type": MUST be valid action from type list
        "direction": MUST be one of ["UP", "DOWN", "NEUTRAL"]
@@ -30,11 +34,31 @@ VALIDATION RULES (MUST FOLLOW):
    - context.sentiment.market = valid number 0-100
    - context.sentiment.social = valid number 0-100
 
-5. For each category, MUST use these subcategories:
-   NEWS: ["TECHNICAL", "FUNDAMENTAL", "REGULATORY"]
-   MARKET: ["PRICE", "VOLUME"]
-   DATA: ["WHALE_MOVE", "FUND_FLOW", "ONCHAIN"]
-   SOCIAL: ["COMMUNITY", "INFLUENCE", "ADOPTION"]
+5. Impact Scoring:
+   Base Impact by Category:
+   - NEWS: 40 base + subcategory modifier
+     * TECHNICAL: +10
+     * FUNDAMENTAL: +15
+     * REGULATORY: +20
+   
+   - MARKET: 30 base + subcategory modifier
+     * PRICE: +20 (with levels)
+     * VOLUME: +15 (significant)
+
+   - DATA: 50 base + subcategory modifier
+     * WHALE_MOVE: +30 (>1M USD)
+     * FUND_FLOW: +20 (significant)
+     * ONCHAIN: +15 (notable)
+
+   - SOCIAL: 20 base + subcategory modifier
+     * COMMUNITY: +10 (quality)
+     * INFLUENCE: +20 (verified)
+     * ADOPTION: +15 (metrics)
+
+   Additional Modifiers:
+   - Magnitude: SMALL(+0), MEDIUM(+10), LARGE(+20)
+   - Market Sentiment: BEARISH(-10), NEUTRAL(+0), BULLISH(+10)
+   - Source Quality: UNVERIFIED(+0), RELIABLE(+10), OFFICIAL(+20)
 
 Message to analyze:
 {{message}}
@@ -130,8 +154,8 @@ REQUIRED FIELDS AND MAPPING:
        - Exchange/platform advertisements: -30
        - Excessive symbols/emojis: -20
        - Referral/affiliate links: -40
-       - Generic announcements: -20
        - Price predictions without data: -30
+       - Generic announcements: -20
        - Hype without substance: -25
        - Copy/paste content: -35
 
@@ -206,6 +230,7 @@ IMPACT SCORING RULES:
    - Price predictions without data: -30
    - Generic announcements: -20
    - Hype without substance: -25
+   - Copy/paste content: -35
 
 NEWS: Information and announcements (Base Impact: 40-80)
    TECHNICAL: Must be code/development related
@@ -316,9 +341,9 @@ SCORING GUIDELINES:
    - SOCIAL: 20-60 base
 
    Modifiers:
-   - Magnitude: SMALL (+0), MEDIUM (+10), LARGE (+20)
-   - Market Sentiment: BEARISH (-10), NEUTRAL (+0), BULLISH (+10)
-   - Social Sentiment: NEGATIVE (-10), NEUTRAL (+0), POSITIVE (+10)
+   - Magnitude: SMALL(+0), MEDIUM(+10), LARGE(+20)
+   - Market Sentiment: BEARISH(-10), NEUTRAL(+0), BULLISH(+10)
+   - Social Sentiment: NEGATIVE(-10), NEUTRAL(+0), POSITIVE(+10)
    
    Example:
    "BTC breaks above $50k with heavy volume"
