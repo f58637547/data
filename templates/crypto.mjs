@@ -62,7 +62,7 @@ Message to analyze:
 {{message}}
 
 EVENT TYPE MAPPING:
-When classifying events, follow this hierarchy:
+When classifying events, follow this hieriarchy:
 
 1. First select CATEGORY (main sections):
    - NEWS: Information and announcements (Base: 40-60)
@@ -181,6 +181,35 @@ REQUIRED FIELDS AND MAPPING:
        - Partnerships: ±10
        - User feedback: ±10
        - Engagement levels: ±20
+
+REQUIRED EVENT FIELD RULES:
+
+1. For DATA/WHALE_MOVE events:
+   When message contains transfer keywords ("transferred", "moved", "sent") AND amount:
+   - type: Must be "TRANSFER" or "EXCHANGE_FLOW"
+   - action.type: Must be "MOVE" or "DEPOSIT" or "WITHDRAWAL"
+   - action.direction: Based on "to"/"from" exchange
+   - action.magnitude: Based on amount thresholds:
+     * < 100k: "SMALL"
+     * 100k-1M: "MEDIUM" 
+     * > 1M: "LARGE"
+
+2. For NEWS/REGULATORY events:
+   When message contains regulatory keywords ("fine", "ban", "compliance"):
+   - type: Must be "FINE" or "BAN" or "LICENSE"
+   - action.type: Must match type
+   - action.direction: Based on impact ("UP" for approval, "DOWN" for fine/ban)
+   - action.magnitude: Based on severity:
+     * Warning/Small fine: "SMALL"
+     * Service restriction/Medium fine: "MEDIUM"
+     * Full ban/Large fine: "LARGE"
+
+3. For MARKET/PRICE events:
+   When message contains price/trading keywords:
+   - type: Must be "BREAKOUT" or "SUPPORT" or "RESISTANCE"
+   - action.type: Must match direction
+   - action.direction: "UP" or "DOWN" based on movement
+   - action.magnitude: Based on % change or significance
 
 IMPORTANT: Always use exact values from these lists in the output JSON.
 Do not make up new categories or types.
