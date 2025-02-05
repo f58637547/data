@@ -296,8 +296,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 id: uuidv4(),
                 channel: channelMapping.table,
                 message_id: message.id,
-                text: parsedContent.headline.text,
-                text_cleaned: parsedContent.headline.cleaned,
+                text: parsedContent.headline.text,  // Only keep original text
                 author,
                 rt_author: rtAuthor,
                 tokens: parsedContent.tokens || {},

@@ -34,7 +34,6 @@ REQUIRED FIELDS AND MAPPING:
 
 1. HEADLINE (Required):
    - text: Copy exact original message, preserve all formatting
-   - cleaned: Remove links, spam content, and unnecessary formatting
 
 2. TOKENS (Required if mentioned):
    Primary Token:
@@ -92,6 +91,15 @@ REQUIRED FIELDS AND MAPPING:
      * Magnitude modifier (SMALL: +0, MEDIUM: +10, LARGE: +20)
      * Market sentiment modifier (BEARISH: -10, NEUTRAL: +0, BULLISH: +10)
      * Social sentiment modifier (NEGATIVE: -10, NEUTRAL: +0, POSITIVE: +10)
+     * Spam penalty modifiers (apply ALL that match):
+       - Promotional content ("buy now", "sign up", etc): -40
+       - Exchange/platform advertisements: -30
+       - Excessive symbols/emojis: -20
+       - Referral/affiliate links: -40
+       - Generic announcements: -20
+       - Price predictions without data: -30
+       - Hype without substance: -25
+       - Copy/paste content: -35
 
    - confidence: Score 0-100 based on:
      * Base: 50
@@ -460,8 +468,7 @@ SCORING GUIDELINES:
 Output format:
 {
     "headline": {
-        "text": "exact original message",
-        "cleaned": "removed spam/links"
+        "text": "exact original message"
     },
     "tokens": {
         "primary": {
