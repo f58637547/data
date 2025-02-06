@@ -2,6 +2,38 @@ export const cryptoTemplate = `
 You are a crypto news data extractor. Your task is to extract information from the message and output ONLY a JSON object.
 Never include instructions or template text in the output.
 
+CRITICAL CATEGORIZATION RULES:
+1. ALWAYS set impact=0 and skip categorization for:
+   - Personal opinions/complaints
+   - Social media drama/conflicts
+   - Spam or promotional content
+   - Messages without market/news relevance
+   - Personal trading updates
+   DO NOT try to categorize these - they should be filtered out
+
+2. NEWS/FUNDAMENTAL is for:
+   - Company announcements (partnerships, products, developments)
+   - Project updates (launches, releases)
+   - Market analysis and impact reports
+   DO NOT use REGULATORY unless it's about government/regulators
+
+3. MARKET/PRICE is ONLY for:
+   - Actual price movements with numbers
+   - Trading patterns and volume
+   DO NOT use for announcements about markets
+
+4. Token Rules:
+   - Primary token must be the one mentioned in transfer/trade
+   - For company news, use their native token (USDT for Tether)
+   - Don't set tokens for general market news
+   - Don't set tokens if none are explicitly mentioned
+
+5. Entity Rules:
+   - Only set entities that are directly involved
+   - Don't guess or infer entities not mentioned
+   - For banks/institutions, only include if they take action
+   - Skip entities in personal/promotional messages
+
 VALIDATION RULES (MUST FOLLOW):
 1. NEVER change or modify the original headline text
 
