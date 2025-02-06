@@ -10,34 +10,14 @@ DEFINITIONS:
     "PRICE": {
         types: ["BREAKOUT", "REVERSAL", "SUPPORT", "RESISTANCE", "CONSOLIDATION", "TREND", "DIVERGENCE"],
         actions: ["BREAK_UP", "BREAK_DOWN", "BOUNCE", "RANGE", "RECORD", "DROP", "RISE"],
-        mappings: {
-            "bounce": {type: "SUPPORT", action: "BOUNCE"},
-            "break": {type: "BREAKOUT", action: "BREAK_UP"},
-            "dump": {type: "REVERSAL", action: "BREAK_DOWN"},
-            "pump": {type: "REVERSAL", action: "BREAK_UP"}
-        },
-        "keywords": ["technical", "setup", "resistance", "support", "MACD", "momentum"],
-        "mappings": {
-            "resistance": {type: "BREAKOUT", action: "BREAK_UP"},
-            "support": {type: "REVERSAL", action: "BREAK_DOWN"},
-            "MACD": {type: "TREND", action: "CONTINUE"}
-        }
     },
     "VOLUME": {
         types: ["SPIKE", "DECLINE", "ACCUMULATION", "DISTRIBUTION", "IMBALANCE"],
-        actions: ["INCREASE", "DECREASE", "SURGE", "DUMP"],
-        mappings: {
-            "surge": {type: "SPIKE", action: "SURGE"},
-            "drop": {type: "DECLINE", action: "DECREASE"}
-        }
+        actions: ["INCREASE", "DECREASE", "SURGE", "DUMP"]
     },
     "TRADE": {
         types: ["SPOT_ENTRY", "FUTURES_ENTRY", "LEVERAGE_ENTRY", "HEDGE_POSITION", "ARBITRAGE"],
-        actions: ["BUY", "SELL", "HOLD", "ENTRY", "EXIT", "LIQUIDATE"],
-        mappings: {
-            "long": {type: "FUTURES", action: "BUY"},
-            "short": {type: "FUTURES", action: "SELL"}
-        }
+        actions: ["BUY", "SELL", "HOLD", "ENTRY", "EXIT", "LIQUIDATE"]
     },
     "POSITION": {
         types: ["TAKE_PROFIT", "STOP_LOSS", "POSITION_EXIT", "LIQUIDATION"],
@@ -48,19 +28,11 @@ DEFINITIONS:
 "DATA": {
     "WHALE_MOVE": {
         types: ["LARGE_TRANSFER", "ACCUMULATION", "DISTRIBUTION"],
-        actions: ["DEPOSIT", "WITHDRAW", "TRANSFER"],
-        mappings: {
-            "transfers": {type: "LARGE_TRANSFER", action: "TRANSFER"},
-            "deposit": {type: "ACCUMULATION", action: "DEPOSIT"}
-        }
+        actions: ["DEPOSIT", "WITHDRAW", "TRANSFER"]
     },
     "FUND_FLOW": {
         types: ["EXCHANGE_FLOW", "BRIDGE_FLOW", "PROTOCOL_FLOW"],
-        actions: ["INFLOW", "OUTFLOW", "BRIDGE", "STAKE"],
-        mappings: {
-            "inflow": {type: "EXCHANGE_FLOW", action: "INFLOW"},
-            "outflow": {type: "EXCHANGE_FLOW", action: "OUTFLOW"}
-        }
+        actions: ["INFLOW", "OUTFLOW", "BRIDGE", "STAKE"]
     },
     "ONCHAIN": {
         types: ["DEX_POOL", "LIQUIDITY_POOL", "NETWORK_METRICS", "GAS_METRICS"],
@@ -71,51 +43,19 @@ DEFINITIONS:
 "NEWS": {
     "TECHNICAL": {
         types: ["DEVELOPMENT", "INFRASTRUCTURE", "PROTOCOL", "SECURITY", "SCALING"],
-        actions: ["UPDATE", "UPGRADE", "RELEASE", "FORK", "OPTIMIZE", "SECURE"],
-        mappings: {
-            "upgrade": {type: "DEVELOPMENT", action: "UPGRADE"},
-            "launch": {type: "PROTOCOL", action: "RELEASE"},
-            "mainnet": {type: "PROTOCOL", action: "RELEASE"}
-        }
+        actions: ["UPDATE", "UPGRADE", "RELEASE", "FORK", "OPTIMIZE", "SECURE"]
     },
     "FUNDAMENTAL": {
         types: ["LAUNCH", "ETF_FILING", "LISTING", "DELISTING", "INTEGRATION"],
-        actions: ["LAUNCH", "EXPAND", "ACQUIRE", "INVEST", "COLLABORATE", "INTEGRATE"],
-        mappings: {
-            "launch": {type: "LAUNCH", action: "LAUNCH"},
-            "airdrop": {type: "LAUNCH", action: "LAUNCH"},
-            "mainnet": {type: "LAUNCH", action: "LAUNCH"}
-        },
-        "keywords": ["identity", "satoshi", "founder", "discovery", "investigation"],
-        "mappings": {
-            "identity": {type: "INVESTIGATION", action: "DISCOVER"},
-            "satoshi": {type: "INVESTIGATION", action: "DISCOVER"}
-        }
+        actions: ["LAUNCH", "EXPAND", "ACQUIRE", "INVEST", "COLLABORATE", "INTEGRATE"]
     },
     "REGULATORY": {
         types: ["COMPLIANCE", "POLICY", "LEGAL", "INVESTIGATION", "LICENSE"],
-        actions: ["APPROVE", "REJECT", "INVESTIGATE", "REGULATE", "BAN", "PERMIT"],
-        mappings: {
-            "ban": {type: "POLICY", action: "BAN"},
-            "exit": {type: "COMPLIANCE", action: "BAN"},
-            "sanction": {type: "POLICY", action: "BAN"},
-            "release": {type: "LEGAL", action: "APPROVE"}
-        },
-        "keywords": ["regulation", "bill", "congress", "protection", "election", "government"],
-        "mappings": {
-            "election": {type: "POLICY", action: "REGULATE"},
-            "bill": {type: "POLICY", action: "REGULATE"},
-            "protection": {type: "POLICY", action: "REGULATE"},
-            "congress": {type: "POLICY", action: "REGULATE"}
-        }
+        actions: ["APPROVE", "REJECT", "INVESTIGATE", "REGULATE", "BAN", "PERMIT"]
     },
     "SECURITY": {
         types: ["HACK", "EXPLOIT", "RUGPULL", "SCAM", "VULNERABILITY"],
-        actions: ["HACK", "EXPLOIT", "MITIGATE", "PATCH", "RECOVER", "COMPENSATE"],
-        mappings: {
-            "exploit": {type: "THREAT", action: "EXPLOIT"},
-            "vulnerability": {type: "THREAT", action: "MITIGATE"}
-        }
+        actions: ["HACK", "EXPLOIT", "MITIGATE", "PATCH", "RECOVER", "COMPENSATE"]
     }
 }
 
@@ -148,75 +88,6 @@ RULES:
    - Invitation messages to join groups/channels
    
    DO NOT try to categorize these - they should be filtered out with impact=0
-
-2. Field Validation Rules:
-   - Never use "N/A" as a value - either set valid value or omit field
-   - All numeric scores must be actual numbers not strings
-   - Sentiment scores must be 0-100, never negative
-   - Impact and confidence must be 0-100
-   - Token fields must have valid values from defined types
-
-3. Field Population Rules:
-   Token Rules:
-   - For protocol news: use their native token (SOL for Solana)
-   - For exchange news: use their native token (BNB for Binance)
-   - For network updates: use network token (ETH for Ethereum)
-   - For trading pairs: set primary as base token
-   - For multi-token news: set primary as main subject
-   NEVER use BTC unless news is specifically about Bitcoin
-
-   Entity Rules:
-   - Only set entities that are directly involved
-   - Don't guess or infer entities not mentioned
-   - For protocol news: set protocol as primary entity
-   - For exchange news: set exchange as primary entity
-   - For partnerships: set both partners as entities
-   - Skip entities in personal/promotional messages
-
-   Metrics Rules:
-   - Only set price if actual price number given
-   - Only set volume if actual volume number given
-   - For token issuance: use amount as volume
-   - For partnerships: leave metrics empty
-   - Don't make up numbers that aren't in message
-
-3. Message Type Rules:
-   Project Launch/Airdrop:
-   - Category: NEWS
-   - Subcategory: FUNDAMENTAL
-   - Type: LAUNCH
-   - Action: LAUNCH
-
-   Exchange Exit/Ban:
-   - Category: NEWS
-   - Subcategory: REGULATORY
-   - Type: COMPLIANCE/POLICY
-   - Action: BAN
-
-   Developer/Legal News:
-   - Category: NEWS
-   - Subcategory: REGULATORY
-   - Type: LEGAL
-   - Action: Based on context (APPROVE/REJECT/INVESTIGATE)
-
-   Price Movement:
-   - Category: MARKET
-   - Subcategory: PRICE
-   - Type: Based on pattern (BREAKOUT/REVERSAL/TREND)
-   - Action: Based on direction (BREAK_UP/BREAK_DOWN/RISE/DROP)
-
-4. Validation Rules:
-   - NEVER change or modify the original headline text
-   - NEVER return empty strings or null values
-   - If message cannot be properly categorized:
-     * Set impact=0 (message will be filtered out)
-     * Still populate all required fields with valid values
-   - ALWAYS set these fields:
-     * headline.text = original message
-     * context.impact = valid number 0-100
-     * context.confidence = valid number 0-100
-     * context.sentiment.market = valid number 0-100
-     * context.sentiment.social = valid number 0-100
 
 SCORING GUIDELINES:
 
