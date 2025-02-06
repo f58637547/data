@@ -300,16 +300,60 @@ Input: "BTC breaks above $50k resistance with 2.5x daily volume spike, multiple 
     }
   },
   "context": {
-    "impact": 85,         // Base(50) + Price(20) + Large(20) + Quality(10) - Modifiers(15)
-    "confidence": 90,     // Clear data with multiple indicators
+    "impact": 85,
+    "confidence": 90,
     "sentiment": {
-      "market": 80,       // Strong breakout with volume
-      "social": 70        // Technical confirmation
+      "market": 80,
+      "social": 70
     }
   }
 }
 
-2. Uncategorized/Low Quality Message:
+2. Valid Transfer Event with Multiple Tokens:
+Input: "160,000,000 $USDT transferred from 0x238789 to 0xed0c60 on the $ETH chain"
+{
+  "headline": {
+    "text": "160,000,000 $USDT transferred from 0x238789 to 0xed0c60 on the $ETH chain"
+  },
+  "tokens": {
+    "primary": {
+      "symbol": "USDT",
+      "type": "TOKEN",
+      "event_type": "TRANSFER"
+    },
+    "related": [{
+      "symbol": "ETH",
+      "type": "TOKEN",
+      "event_type": "CHAIN"
+    }]
+  },
+  "event": {
+    "category": "DATA",
+    "subcategory": "WHALE_MOVE",
+    "type": "TRANSFER",
+    "action": {
+      "type": "MOVE",
+      "direction": "NEUTRAL",
+      "magnitude": "LARGE"
+    }
+  },
+  "metrics": {
+    "onchain": {
+      "transactions": 1,
+      "addresses": 2
+    }
+  },
+  "context": {
+    "impact": 85,
+    "confidence": 90,
+    "sentiment": {
+      "market": 60,
+      "social": 50
+    }
+  }
+}
+
+3. Uncategorized/Low Quality Message:
 Input: "gm wagmi fam 🚀🚀🚀 check out my new NFT project"
 {
   "headline": {
@@ -326,59 +370,11 @@ Input: "gm wagmi fam 🚀🚀🚀 check out my new NFT project"
     }
   },
   "context": {
-    "impact": 0,          // Promotional + excessive emojis + no substance
+    "impact": 0,
     "confidence": 50,
     "sentiment": {
       "market": 50,
       "social": 50
-    }
-  }
-}
-
-3. Valid Data Event with Clear Metrics:
-Input: "Whale wallet 0x1234...5678 moves 12,500 BTC ($625M) from Binance to cold storage"
-{
-  "headline": {
-    "text": "Whale wallet 0x1234...5678 moves 12,500 BTC ($625M) from Binance to cold storage"
-  },
-  "tokens": {
-    "primary": {
-      "symbol": "BTC",
-      "type": "TOKEN",
-      "event_type": "ONCHAIN"
-    }
-  },
-  "entities": {
-    "projects": [{
-      "name": "Binance",
-      "type": "EXCHANGE",
-      "role": "primary"
-    }]
-  },
-  "event": {
-    "category": "DATA",
-    "subcategory": "WHALE_MOVE",
-    "type": "TRANSFER",
-    "action": {
-      "type": "MOVE",
-      "direction": "NEUTRAL",
-      "magnitude": "LARGE"
-    }
-  },
-  "metrics": {
-    "market": {
-      "price": 50000
-    },
-    "onchain": {
-      "transactions": 1
-    }
-  },
-  "context": {
-    "impact": 90,         // Base(50) + WhaleMove(30) + Large(20) + Quality(10) - Modifiers(20)
-    "confidence": 95,     // Clear wallet address and amount
-    "sentiment": {
-      "market": 60,       // Moving to cold storage (bullish)
-      "social": 50        // Neutral
     }
   }
 }
