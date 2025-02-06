@@ -27,12 +27,42 @@ CRITICAL CATEGORIZATION RULES:
    - For company news, use their native token (USDT for Tether)
    - Don't set tokens for general market news
    - Don't set tokens if none are explicitly mentioned
+   - For Bitcoin news/data: ALWAYS use BTC as primary
+   - For exchange data: use token being accumulated/distributed
+   - For ETF/product news: use token in product name (e.g. Bitcoin ETF = BTC)
 
 5. Entity Rules:
    - Only set entities that are directly involved
    - Don't guess or infer entities not mentioned
    - For banks/institutions, only include if they take action
    - Skip entities in personal/promotional messages
+   - For exchange data, only include if specific exchange named
+
+6. Specific Event Types:
+   - Government tax laws -> NEWS/REGULATORY
+   - Exchange reserves/flows -> DATA/ONCHAIN
+   - Company trademark filings -> NEWS/FUNDAMENTAL
+   - Price movements only if numbers given -> MARKET/PRICE
+
+7. NEWS/REGULATORY is for:
+   - Government announcements (laws, regulations)
+   - Policy changes (tax, trade)
+   - Official statements (central banks, regulators)
+
+8. MARKET/VOLUME is for:
+   - Trading volume changes
+   - Liquidity changes
+   - Market depth changes
+
+9. DATA/WHALE_MOVE is for:
+   - Large transactions (>1M USD)
+   - Whale wallet movements
+   - Significant on-chain activity
+
+10. SOCIAL/COMMUNITY is for:
+   - Community engagement (tweets, posts)
+   - Influencer activity (endorsements, partnerships)
+   - Adoption milestones (new users, partnerships)
 
 VALIDATION RULES (MUST FOLLOW):
 1. NEVER change or modify the original headline text
