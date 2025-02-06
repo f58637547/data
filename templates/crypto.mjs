@@ -40,17 +40,21 @@ DEFINITIONS:
 },
 
 "DATA": {
-    "FLOW": {
-        types: ["WHALE_MOVE", "FUND_FLOW", "SMART_MONEY", "BRIDGE_FLOW", "EXCHANGE_FLOW"],
-        actions: ["DEPOSIT", "WITHDRAW", "TRANSFER", "BRIDGE", "STAKE", "UNSTAKE"],
+    "WHALE_MOVE": {
+        types: ["LARGE_TRANSFER", "ACCUMULATION", "DISTRIBUTION"],
+        actions: ["DEPOSIT", "WITHDRAW", "TRANSFER"],
         mappings: {
-            "transfers": {type: "WHALE_MOVE", action: "TRANSFER"},
-            "deposit": {type: "EXCHANGE_FLOW", action: "DEPOSIT"}
+            "transfers": {type: "LARGE_TRANSFER", action: "TRANSFER"},
+            "deposit": {type: "ACCUMULATION", action: "DEPOSIT"}
         }
     },
-    "METRICS": {
-        types: ["MARKET_DATA", "MARKET_ANALYSIS", "TREND_REPORT", "VOLUME_ANALYSIS"],
-        actions: ["INCREASE", "DECREASE", "SPIKE", "DROP", "STABLE", "DIVERGE"]
+    "FUND_FLOW": {
+        types: ["EXCHANGE_FLOW", "BRIDGE_FLOW", "PROTOCOL_FLOW"],
+        actions: ["INFLOW", "OUTFLOW", "BRIDGE", "STAKE"],
+        mappings: {
+            "inflow": {type: "EXCHANGE_FLOW", action: "INFLOW"},
+            "outflow": {type: "EXCHANGE_FLOW", action: "OUTFLOW"}
+        }
     },
     "ONCHAIN": {
         types: ["DEX_POOL", "LIQUIDITY_POOL", "NETWORK_METRICS", "GAS_METRICS"],
@@ -64,16 +68,28 @@ DEFINITIONS:
         actions: ["UPDATE", "UPGRADE", "RELEASE", "FORK", "OPTIMIZE", "SECURE"],
         mappings: {
             "upgrade": {type: "DEVELOPMENT", action: "UPGRADE"},
-            "launch": {type: "PROTOCOL", action: "RELEASE"}
+            "launch": {type: "PROTOCOL", action: "RELEASE"},
+            "mainnet": {type: "PROTOCOL", action: "RELEASE"}
         }
     },
     "FUNDAMENTAL": {
         types: ["LAUNCH", "ETF_FILING", "LISTING", "DELISTING", "INTEGRATION"],
-        actions: ["LAUNCH", "EXPAND", "ACQUIRE", "INVEST", "COLLABORATE", "INTEGRATE"]
+        actions: ["LAUNCH", "EXPAND", "ACQUIRE", "INVEST", "COLLABORATE", "INTEGRATE"],
+        mappings: {
+            "launch": {type: "LAUNCH", action: "LAUNCH"},
+            "airdrop": {type: "LAUNCH", action: "LAUNCH"},
+            "mainnet": {type: "LAUNCH", action: "LAUNCH"}
+        }
     },
     "REGULATORY": {
         types: ["COMPLIANCE", "POLICY", "LEGAL", "INVESTIGATION", "LICENSE"],
-        actions: ["APPROVE", "REJECT", "INVESTIGATE", "REGULATE", "BAN", "PERMIT"]
+        actions: ["APPROVE", "REJECT", "INVESTIGATE", "REGULATE", "BAN", "PERMIT"],
+        mappings: {
+            "ban": {type: "POLICY", action: "BAN"},
+            "exit": {type: "COMPLIANCE", action: "BAN"},
+            "sanction": {type: "POLICY", action: "BAN"},
+            "release": {type: "LEGAL", action: "APPROVE"}
+        }
     },
     "SECURITY": {
         types: ["HACK", "EXPLOIT", "RUGPULL", "SCAM", "VULNERABILITY"],
@@ -88,7 +104,7 @@ DEFINITIONS:
 2. Valid Categories and Subcategories:
    - NEWS: ["TECHNICAL", "FUNDAMENTAL", "REGULATORY", "SECURITY"]
    - MARKET: ["PRICE", "VOLUME", "TRADE", "POSITION"]
-   - DATA: ["FLOW", "METRICS", "ONCHAIN"]
+   - DATA: ["WHALE_MOVE", "FUND_FLOW", "ONCHAIN"]
    Never use invalid subcategories like GENERAL or COMMUNITY
 
 RULES:
@@ -115,7 +131,14 @@ RULES:
    
    DO NOT try to categorize these - they should be filtered out with impact=0
 
-2. Field Population Rules:
+2. Field Validation Rules:
+   - Never use "N/A" as a value - either set valid value or omit field
+   - All numeric scores must be actual numbers not strings
+   - Sentiment scores must be 0-100, never negative
+   - Impact and confidence must be 0-100
+   - Token fields must have valid values from defined types
+
+3. Field Population Rules:
    Token Rules:
    - For protocol news: use their native token (SOL for Solana)
    - For exchange news: use their native token (BNB for Binance)
@@ -139,7 +162,32 @@ RULES:
    - For partnerships: leave metrics empty
    - Don't make up numbers that aren't in message
 
-3. Validation Rules:
+3. Message Type Rules:
+   Project Launch/Airdrop:
+   - Category: NEWS
+   - Subcategory: FUNDAMENTAL
+   - Type: LAUNCH
+   - Action: LAUNCH
+
+   Exchange Exit/Ban:
+   - Category: NEWS
+   - Subcategory: REGULATORY
+   - Type: COMPLIANCE/POLICY
+   - Action: BAN
+
+   Developer/Legal News:
+   - Category: NEWS
+   - Subcategory: REGULATORY
+   - Type: LEGAL
+   - Action: Based on context (APPROVE/REJECT/INVESTIGATE)
+
+   Price Movement:
+   - Category: MARKET
+   - Subcategory: PRICE
+   - Type: Based on pattern (BREAKOUT/REVERSAL/TREND)
+   - Action: Based on direction (BREAK_UP/BREAK_DOWN/RISE/DROP)
+
+4. Validation Rules:
    - NEVER change or modify the original headline text
    - NEVER return empty strings or null values
    - If message cannot be properly categorized:
