@@ -15,6 +15,12 @@ DEFINITIONS:
             "break": {type: "BREAKOUT", action: "BREAK_UP"},
             "dump": {type: "REVERSAL", action: "BREAK_DOWN"},
             "pump": {type: "REVERSAL", action: "BREAK_UP"}
+        },
+        "keywords": ["technical", "setup", "resistance", "support", "MACD", "momentum"],
+        "mappings": {
+            "resistance": {type: "BREAKOUT", action: "BREAK_UP"},
+            "support": {type: "REVERSAL", action: "BREAK_DOWN"},
+            "MACD": {type: "TREND", action: "CONTINUE"}
         }
     },
     "VOLUME": {
@@ -79,6 +85,11 @@ DEFINITIONS:
             "launch": {type: "LAUNCH", action: "LAUNCH"},
             "airdrop": {type: "LAUNCH", action: "LAUNCH"},
             "mainnet": {type: "LAUNCH", action: "LAUNCH"}
+        },
+        "keywords": ["identity", "satoshi", "founder", "discovery", "investigation"],
+        "mappings": {
+            "identity": {type: "INVESTIGATION", action: "DISCOVER"},
+            "satoshi": {type: "INVESTIGATION", action: "DISCOVER"}
         }
     },
     "REGULATORY": {
@@ -89,6 +100,13 @@ DEFINITIONS:
             "exit": {type: "COMPLIANCE", action: "BAN"},
             "sanction": {type: "POLICY", action: "BAN"},
             "release": {type: "LEGAL", action: "APPROVE"}
+        },
+        "keywords": ["regulation", "bill", "congress", "protection", "election", "government"],
+        "mappings": {
+            "election": {type: "POLICY", action: "REGULATE"},
+            "bill": {type: "POLICY", action: "REGULATE"},
+            "protection": {type: "POLICY", action: "REGULATE"},
+            "congress": {type: "POLICY", action: "REGULATE"}
         }
     },
     "SECURITY": {
