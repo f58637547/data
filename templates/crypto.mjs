@@ -4,25 +4,29 @@ Never include instructions or template text in the output.
 
 CRITICAL CATEGORIZATION RULES:
 1. ALWAYS set impact=0 and skip categorization for:
-   - Personal opinions/complaints
-   - Social media drama/conflicts
    - Spam or promotional content
    - Messages without market/news relevance
    - Personal trading updates
    DO NOT try to categorize these - they should be filtered out
 
-2. NEWS/FUNDAMENTAL is for:
+2. SOCIAL category is ONLY for:
+   - Market opinions and price predictions
+   - Trading sentiment discussions
+   - Community market discussions
+   DO NOT use SOCIAL for news, announcements, or data - these should use their proper categories
+
+3. NEWS/FUNDAMENTAL is for:
    - Company announcements (partnerships, products, developments)
    - Project updates (launches, releases)
    - Market analysis and impact reports
    DO NOT use REGULATORY unless it's about government/regulators
 
-3. MARKET/PRICE is ONLY for:
+4. MARKET/PRICE is ONLY for:
    - Actual price movements with numbers
    - Trading patterns and volume
    DO NOT use for announcements about markets
 
-4. Token Rules:
+5. Token Rules:
    - Primary token must be the one mentioned in transfer/trade
    - For company news, use their native token (USDT for Tether)
    - Don't set tokens for general market news
@@ -31,38 +35,92 @@ CRITICAL CATEGORIZATION RULES:
    - For exchange data: use token being accumulated/distributed
    - For ETF/product news: use token in product name (e.g. Bitcoin ETF = BTC)
 
-5. Entity Rules:
+6. Entity Rules:
    - Only set entities that are directly involved
    - Don't guess or infer entities not mentioned
    - For banks/institutions, only include if they take action
    - Skip entities in personal/promotional messages
    - For exchange data, only include if specific exchange named
 
-6. Specific Event Types:
+7. Specific Event Types:
    - Government tax laws -> NEWS/REGULATORY
    - Exchange reserves/flows -> DATA/ONCHAIN
    - Company trademark filings -> NEWS/FUNDAMENTAL
    - Price movements only if numbers given -> MARKET/PRICE
+   - Token issuance/redemption -> DATA/ONCHAIN
+   - Partnership announcements -> NEWS/FUNDAMENTAL/PARTNERSHIP
+   - Product launches -> NEWS/FUNDAMENTAL/LAUNCH
+   - Trading metrics -> MARKET/VOLUME
+   - Wallet movements -> DATA/WHALE_MOVE
+   - Market opinions -> SOCIAL/SENTIMENT
+   - Price predictions -> SOCIAL/PREDICTION
 
-7. NEWS/REGULATORY is for:
-   - Government announcements (laws, regulations)
-   - Policy changes (tax, trade)
-   - Official statements (central banks, regulators)
+8. Message Type Examples:
 
-8. MARKET/VOLUME is for:
-   - Trading volume changes
-   - Liquidity changes
-   - Market depth changes
+   a) Token Issuance (DATA category):
+   Input: "$usdt just rolled out $531M issued, $410M redeemed today"
+   {
+     "tokens": {
+       "primary": {"symbol": "USDT", "type": "TOKEN", "event_type": "ISSUANCE"}
+     },
+     "event": {
+       "category": "DATA",
+       "subcategory": "ONCHAIN",
+       "type": "ISSUANCE",
+       "action": {"type": "ISSUE", "direction": "UP", "magnitude": "MEDIUM"}
+     },
+     "metrics": {
+       "market": {"volume": 531000000}
+     }
+   }
 
-9. DATA/WHALE_MOVE is for:
-   - Large transactions (>1M USD)
-   - Whale wallet movements
-   - Significant on-chain activity
+   b) Partnership Announcement (NEWS category):
+   Input: "TETHER AND REELLY TECH ANNOUNCE STRATEGIC PARTNERSHIP"
+   {
+     "tokens": {
+       "primary": {"symbol": "USDT", "type": "TOKEN", "event_type": "PARTNERSHIP"}
+     },
+     "entities": {
+       "projects": [
+         {"name": "Tether", "type": "PROJECT", "role": "primary"},
+         {"name": "Reelly Tech", "type": "PROJECT", "role": "partner"}
+       ]
+     },
+     "event": {
+       "category": "NEWS",
+       "subcategory": "FUNDAMENTAL",
+       "type": "PARTNERSHIP",
+       "action": {"type": "PARTNER", "direction": "UP", "magnitude": "LARGE"}
+     }
+   }
 
-10. SOCIAL/COMMUNITY is for:
-   - Community engagement (tweets, posts)
-   - Influencer activity (endorsements, partnerships)
-   - Adoption milestones (new users, partnerships)
+   c) Market Opinion (SOCIAL category):
+   Input: "BTC looking bullish, expecting 100k by EOY"
+   {
+     "tokens": {
+       "primary": {"symbol": "BTC", "type": "TOKEN"}
+     },
+     "event": {
+       "category": "SOCIAL",
+       "subcategory": "PREDICTION",
+       "type": "PRICE_PREDICTION",
+       "action": {"type": "PREDICT", "direction": "UP", "magnitude": "LARGE"}
+     }
+   }
+
+   d) Spam Message (Skip with impact=0):
+   Input: "Join my trading group for 10x gains!!!"
+   {
+     "event": {"category": "SPAM"},
+     "context": {"impact": 0}
+   }
+
+9. Metrics Rules:
+   - Only set price if actual price number given
+   - Only set volume if actual volume number given
+   - For token issuance: use amount as volume
+   - For partnerships: leave metrics empty
+   - Don't make up numbers that aren't in message
 
 VALIDATION RULES (MUST FOLLOW):
 1. NEVER change or modify the original headline text
@@ -76,7 +134,7 @@ VALIDATION RULES (MUST FOLLOW):
        NEWS: ["TECHNICAL", "FUNDAMENTAL", "REGULATORY"]
        MARKET: ["PRICE", "VOLUME"]
        DATA: ["WHALE_MOVE", "FUND_FLOW", "ONCHAIN"]
-       SOCIAL: ["COMMUNITY", "INFLUENCE", "ADOPTION"]
+       SOCIAL: ["COMMUNITY", "INFLUENCE", "ADOPTION", "SENTIMENT", "PREDICTION"]
      "type": MUST be valid type from subcategory list
      "action": {
        "type": MUST be valid action from type list
@@ -116,6 +174,8 @@ VALIDATION RULES (MUST FOLLOW):
      * COMMUNITY: +10 (community engagement)
      * INFLUENCE: +15 (influencer activity)
      * ADOPTION: +20 (adoption milestones)
+     * SENTIMENT: +10 (market opinions)
+     * PREDICTION: +15 (price predictions)
 
    Additional Impact Modifiers (REQUIRED):
    - Magnitude: SMALL +0, MEDIUM +10, LARGE +20
