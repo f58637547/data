@@ -89,6 +89,21 @@ RULES:
    
    DO NOT try to categorize these - they should be filtered out with impact=0
 
+Token and Project Detection Rules:
+1. Only extract tokens explicitly mentioned with $ or mentioned by name/symbol
+2. Don't infer tokens from context or guess based on content
+3. Don't assign random tokens when none are mentioned
+4. For ETF news, use the underlying asset (e.g. XRP for XRP ETF)
+5. For protocol news, use the native token (e.g. ETH for Ethereum)
+6. Don't extract projects unless explicitly mentioned
+7. Filter out casual/social messages with no token relevance
+
+Example Valid Token Mentions:
+- "$BTC showing bullish divergence" -> BTC
+- "Ethereum L2 update" -> ETH
+- "XRP ETF filing" -> XRP
+- "New DEX launch" -> No token (just protocol news)
+
 SCORING GUIDELINES:
 
 1. Base Impact by Category:
