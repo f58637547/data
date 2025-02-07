@@ -200,10 +200,50 @@ export async function processMessage({ message, db, channelMapping }) {
                 .replace(/\n+/g, ' ') // Replace newlines with spaces
                 .trim();
 
-            // Keep the original text with tickers
-            const originalText = cleanText;  // Save before further cleaning
+            // Keep both raw and clean versions
+            const messageText = {
+                raw: rawText,               // Original with all formatting
+                clean: cleanText            // Cleaned for processing
+            };
 
-            if (!cleanText || cleanText.length < 10) {
+            // Comprehensive truncation check
+            const isTruncated = (text) => {
+                // 1. Common truncation markers
+                const truncatedMarkers = ['...', '…', '[', '(', '{', '@', ':', '-', '>', '#'];
+                if (truncatedMarkers.some(marker => text.trim().endsWith(marker))) {
+                    console.log('❌ Truncation detected: Ends with marker:', text.slice(-5));
+                    return true;
+                }
+
+                // 2. Thread markers without completion
+                if (/^(\d+\/\d*|\d+\/)/.test(text)) {
+                    console.log('❌ Truncation detected: Incomplete thread marker');
+                    return true;
+                }
+
+                // 3. Partial URLs or mentions
+                if (/\bhttps?:\/\/[^\s]*$/.test(text) || /@[^\s]*$/.test(text)) {
+                    console.log('❌ Truncation detected: Incomplete URL or mention');
+                    return true;
+                }
+
+                // 4. Too short to be meaningful
+                if (text.split(' ').length < 3) {
+                    console.log('❌ Truncation detected: Message too short');
+                    return true;
+                }
+
+                return false;
+            };
+
+            if (isTruncated(messageText.clean)) {
+                console.log('❌ Skipping: Message appears to be truncated');
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
+                return { skip: true, reason: 'truncated_message' };
+            }
+
+            if (!messageText.clean || messageText.clean.length < 10) {
                 console.log('❌ Skipping: Content too short or empty');
                 console.log('='.repeat(80));
                 console.log('🔄 PROCESSING MESSAGE END\n');
@@ -211,7 +251,7 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             console.log('📄 Original Text:');
-            console.log(originalText);
+            console.log(messageText.raw);  // Show raw text in logs
             console.log('-'.repeat(80));
 
             // Only keep the basic channel mapping validation
@@ -223,33 +263,24 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'invalid_channel_mapping' };
             }
 
-            // Check for truncated messages
-            const truncatedMarkers = ['...', '…', '[', '(', '{'];
-            if (truncatedMarkers.some(marker => originalText.trim().endsWith(marker))) {
-                console.log('❌ Skipping: Message appears to be truncated');
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'truncated_message' };
-            }
-
             // Parse content with author info
             const contentData = {
                 type: 'raw',
                 author: author || 'none',
                 rt_author: rtAuthor,
-                original: originalText,
+                original: messageText.raw,     // Use raw for original
                 entities: {
                     headline: {
-                        text: originalText
+                        text: messageText.raw  // Use raw for headline
                     }
                 }
             };
 
             const parsedContent = await extractEntities(
                 contentData,
-                null,
+                channelMapping,
                 {
-                    message: originalText,
+                    message: messageText.clean,  // Use clean for processing
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }
@@ -257,7 +288,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('❌ Entity extraction error:', {
                     error: error.message,
                     type: error.type || 'unknown',
-                    text: originalText.substring(0, 100)
+                    text: messageText.clean.substring(0, 100)
                 });
                 console.log('='.repeat(80));
                 console.log('🔄 PROCESSING MESSAGE END\n');
@@ -284,93 +315,91 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('  Mapping:', channelMapping);
             console.log('-'.repeat(80));
 
-            // 1. Check if we have valid event structure
+            console.log('\n=== Starting Content Processing ===');
+
+            // 1. Check event structure from LLM
             const event = contentData.entities.event;
             if (!event?.category || !event?.subcategory || !event?.type || !event?.action?.type) {
-                console.log('❌ Missing event fields:', {
+                console.log('❌ REJECTED: Invalid event structure');
+                console.log('Missing fields:', {
                     category: event?.category,
                     subcategory: event?.subcategory,
                     type: event?.type,
                     action: event?.action?.type
                 });
                 console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'invalid_event_structure' };
             }
+            console.log('✅ Event structure valid');
 
-            // 1.5 Validate event category and subcategory
-            const validStructure = {
-                'NEWS': ['TECHNICAL', 'FUNDAMENTAL', 'REGULATORY'],
-                'MARKET': ['PRICE', 'VOLUME'],
-                'DATA': ['WHALE_MOVE', 'FUND_FLOW', 'ONCHAIN'],
-                'SOCIAL': ['COMMUNITY', 'INFLUENCE', 'ADOPTION']
-            };
-
-            if (!validStructure[event.category]?.includes(event.subcategory)) {
-                console.log('❌ Invalid Category:');
-                console.log('  Category:', event.category);
-                console.log('  Subcategory:', event.subcategory);
-                console.log('  Valid subcategories:', validStructure[event.category]);
+            // 2. Check impact score from LLM
+            const MIN_IMPACT_THRESHOLD = 20;  // Minimum impact to consider content valuable
+            const impact = contentData.entities.context?.impact || 0;
+            
+            if (impact === 0) {
+                console.log('❌ REJECTED: Zero impact (spam/personal content)');
                 console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'invalid_category_structure' };
+                return { skip: true, reason: 'zero_impact' };
             }
-
-            // 2. Check if we have impact score
-            if (!contentData.entities.context?.impact) {
-                console.log('❌ Missing Impact:');
-                console.log('  No impact score found');
+            
+            if (impact < MIN_IMPACT_THRESHOLD) {
+                console.log(`❌ REJECTED: Low impact score (${impact} < ${MIN_IMPACT_THRESHOLD})`);
                 console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'missing_impact' };
-            }
-
-            // Get minimum impact threshold based on category
-            const minImpact = {
-                NEWS: 40,     // Base for news
-                MARKET: 30,   // Base for market
-                DATA: 50,     // Base for data
-                SOCIAL: 20    // Base for social
-            }[event.category];
-
-            // Add category-specific modifiers
-            const impactModifiers = {
-                NEWS: {
-                    TECHNICAL: 10,
-                    FUNDAMENTAL: 15,
-                    REGULATORY: 20
-                },
-                MARKET: {
-                    PRICE: 20,
-                    VOLUME: 15
-                },
-                DATA: {
-                    WHALE_MOVE: 30,
-                    FUND_FLOW: 20,
-                    ONCHAIN: 15
-                },
-                SOCIAL: {
-                    COMMUNITY: 10,
-                    INFLUENCE: 20,
-                    ADOPTION: 15
-                }
-            };
-
-            const requiredImpact = minImpact + (impactModifiers[event.category]?.[event.subcategory] || 0);
-
-            if (contentData.entities.context.impact < requiredImpact) {
-                console.log(`❌ Skipping: Impact ${contentData.entities.context.impact} below threshold ${requiredImpact}`);
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'low_impact' };
             }
+            console.log(`✅ Impact score acceptable: ${impact}`);
 
-            // 3. If we got here, prepare the data for saving
+            // 3. Generate embedding for similarity check
+            console.log('\n=== Starting Similarity Check ===');
+            const newEmbedding = await generateEmbedding(JSON.stringify(contentData));
+            console.log('✅ Embedding generated');
+
+            // 4. Check for similar content
+            console.log('Running similarity checks...');
+            const similarityCheck = await db.query(`
+                SELECT 
+                    content,
+                    type,
+                    1 - (embedding <-> $1::vector) as vector_similarity
+                FROM ${channelMapping.table}
+                WHERE type IN ('raw', 'post')
+                AND "createdAt" > NOW() - INTERVAL '48 hours'
+                AND 1 - (embedding <-> $1::vector) > 0.65
+                ORDER BY vector_similarity DESC
+                LIMIT 5
+            `, [
+                `[${newEmbedding.join(',')}]`
+            ]);
+
+            if (similarityCheck.rows.length > 0) {
+                const topMatch = similarityCheck.rows[0];
+                console.log('❌ REJECTED: Similar content found');
+                console.log('Details:', {
+                    similarity_score: (topMatch.vector_similarity * 100).toFixed(1) + '%',
+                    similar_count: similarityCheck.rows.length,
+                    original_impact: impact,
+                    similar_content: JSON.parse(topMatch.content).entities.headline.text.substring(0, 100) + '...'
+                });
+                console.log('='.repeat(80));
+                return { skip: true, reason: 'duplicate_content' };
+            }
+            console.log('✅ Content is unique');
+
+            // 5. If we got here, content passed all checks
+            console.log('\n=== Content Accepted ===');
+            console.log('Summary:', {
+                category: event.category,
+                subcategory: event.subcategory,
+                impact_score: impact,
+                channel: channelMapping.table
+            });
+
+            // 6. Prepare row for saving
             const row = {
                 id: uuidv4(),
                 channel: channelMapping.table,
                 message_id: message.id,
-                text: contentData.entities.headline.text,  // Only keep original text
+                text: contentData.entities.headline.text,
                 author,
                 rt_author: rtAuthor,
                 tokens: contentData.entities.tokens || {},
@@ -385,49 +414,9 @@ export async function processMessage({ message, db, channelMapping }) {
                         social: contentData.entities.context?.sentiment?.social || 50
                     }
                 },
-                embedding: null,
-                created_at: new Date().toISOString()
+                embedding: newEmbedding,  // Use the embedding we already generated
+                createdAt: new Date().toISOString()
             };
-
-            // Add before embedding generation
-            console.log('\n=== Starting Embedding Generation ===');
-
-            // Generate embedding from full content data
-            const newEmbedding = await generateEmbedding(JSON.stringify(contentData));
-
-            // Add before similarity check
-            console.log('\n=== Starting Similarity Check ===');
-
-            // 4. THEN do similarity check with full content embeddings
-            console.log('Running similarity checks...');
-            const similarityCheck = await db.query(`
-                SELECT 
-                    content,
-                    type,
-                    1 - (embedding <-> $1::vector) as vector_similarity
-                FROM ${channelMapping.table}
-                WHERE type IN ('raw', 'post')
-                AND "createdAt" > NOW() - INTERVAL '48 hours'
-                AND 1 - (embedding <-> $1::vector) > 0.65
-                ORDER BY vector_similarity DESC
-            `, [
-                `[${newEmbedding.join(',')}]`  // Format as PostgreSQL array
-            ]);
-
-            if (similarityCheck.rows.length > 0) {
-                console.log('Similar content found:', {
-                    new_content: JSON.stringify(contentData).substring(0, 100) + '...',
-                    similar_count: similarityCheck.rows.length,
-                    matches: similarityCheck.rows.map(row => ({
-                        content: row.content.substring(0, 100) + '...',
-                        type: row.type,
-                        vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
-                    }))
-                });
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'similar_content' };
-            }
 
             // Add before final save
             console.log('\n=== Starting Save Operation ===');
@@ -439,7 +428,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 VALUES ($1, $2, 'raw', $3, $4, $5::vector)
             `, [
                 uuidv4(),
-                new Date(),
+                new Date().toISOString(),
                 process.env.AGENT_ID,
                 JSON.stringify(contentData),  // Use same content data
                 `[${newEmbedding.join(',')}]`
