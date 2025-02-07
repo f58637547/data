@@ -74,13 +74,57 @@ function extractDiscordText(message) {
             rawText = lastValidText;
         }
 
-        // 4. Clean and validate
-        rawText = rawText.trim()
-            .replace(/\s+/g, ' ')  // Normalize whitespace
-            .replace(/[^\S\r\n]+/g, ' '); // Remove multiple spaces
+        // Extract info from URLs before cleaning
+        if (message.content) {
+            const urls = message.content.match(/https:\/\/twitter\.com\/([^\s\/]+)/g) || [];
+            if (urls.length > 0) {
+                author = extractTwitterUsername(urls[0]);
+                if (urls.length > 1) {
+                    rtAuthor = extractTwitterUsername(urls[1]);
+                }
+            }
+        }
+
+        // Clean text but preserve important stuff
+        const cleanText = rawText
+            // Keep important emojis, remove others
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, (match) => {
+                // Keep important signal emojis
+                const keepEmojis = ['🚨', '📈', '📉', '🔥', '⚡', '💥', '🎯', '🔴', '🟢'];
+                return keepEmojis.includes(match) ? match : '';
+            })
+            // Remove Discord emotes (UI decoration)
+            .replace(/<:[^>]+>/g, '')
+            // Extract username from URL then remove it
+            .replace(/https:\/\/twitter\.com\/([^\s\/]+)\/status\/\d+/g, (match, username) => {
+                // Store author if not already found
+                if (!author) author = username;
+                return '';
+            })
+            // Remove other URLs
+            .replace(/https?:\/\/\S+/g, '')
+            // Collapse multiple newlines, keep single ones
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+
+        // Only check if empty or too short AFTER removing noise
+        if (!cleanText || cleanText.length < 10) {
+            console.log('❌ Skipping: Content too short or empty');
+            console.log('Raw text:', rawText);
+            console.log('Clean text:', cleanText);
+            console.log('='.repeat(80));
+            console.log('🔄 PROCESSING MESSAGE END\n');
+            return { skip: true, reason: 'invalid_content' };
+        }
+
+        // Keep both raw and clean versions
+        const messageText = {
+            raw: rawText,               // Original with all formatting
+            clean: cleanText            // Cleaned but keeping important signals
+        };
 
         return {
-            text: rawText || null,
+            text: messageText.clean,
             author,
             rtAuthor,
             error: null
@@ -164,30 +208,51 @@ export async function processMessage({ message, db, channelMapping }) {
             author = author || 'none';
             rtAuthor = rtAuthor || null;
 
-            // Clean text but keep important stuff
+            // Extract info from URLs before cleaning
+            if (message.content) {
+                const urls = message.content.match(/https:\/\/twitter\.com\/([^\s\/]+)/g) || [];
+                if (urls.length > 0) {
+                    author = extractTwitterUsername(urls[0]);
+                    if (urls.length > 1) {
+                        rtAuthor = extractTwitterUsername(urls[1]);
+                    }
+                }
+            }
+
+            // Clean text but preserve important stuff
             const cleanText = rawText
-                .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, '') // Remove emojis
-                .replace(/<:[^>]+>/g, '') // Remove Discord emotes
-                .replace(/https?:\/\/\S+/g, '') // Remove URLs
-                .replace(/\n+/g, ' ') // Replace newlines with spaces
+                // Keep important emojis, remove others
+                .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, (match) => {
+                    // Keep important signal emojis
+                    const keepEmojis = ['🚨', '📈', '📉', '🔥', '⚡', '💥', '🎯', '🔴', '🟢'];
+                    return keepEmojis.includes(match) ? match : '';
+                })
+                // Remove Discord emotes (UI decoration)
+                .replace(/<:[^>]+>/g, '')
+                // Extract username from URL then remove it
+                .replace(/https:\/\/twitter\.com\/([^\s\/]+)\/status\/\d+/g, (match, username) => {
+                    // Store author if not already found
+                    if (!author) author = username;
+                    return '';
+                })
+                // Remove other URLs
+                .replace(/https?:\/\/\S+/g, '')
+                // Collapse multiple newlines, keep single ones
+                .replace(/\n{3,}/g, '\n\n')
                 .trim();
 
-            // Keep both raw and clean versions
-            const messageText = {
-                raw: rawText,               // Original with all formatting
-                clean: cleanText            // Cleaned for processing
-            };
-
-            // Only check if empty or too short
-            if (!messageText.clean || messageText.clean.length < 10) {
+            // Only check if empty or too short AFTER removing noise
+            if (!cleanText || cleanText.length < 10) {
                 console.log('❌ Skipping: Content too short or empty');
+                console.log('Raw text:', rawText);
+                console.log('Clean text:', cleanText);
                 console.log('='.repeat(80));
                 console.log('🔄 PROCESSING MESSAGE END\n');
                 return { skip: true, reason: 'invalid_content' };
             }
 
             console.log('📄 Original Text:');
-            console.log(messageText.raw);  // Show raw text in logs
+            console.log(rawText);  // Show raw text in logs
             console.log('-'.repeat(80));
 
             // Only keep the basic channel mapping validation
@@ -204,10 +269,10 @@ export async function processMessage({ message, db, channelMapping }) {
                 type: 'raw',
                 author: author || 'none',
                 rt_author: rtAuthor,
-                original: messageText.raw,     // Use raw for original
+                original: rawText,     // Use raw for original
                 entities: {
                     headline: {
-                        text: messageText.raw  // Use raw for headline
+                        text: rawText  // Use raw for headline
                     }
                 }
             };
@@ -216,7 +281,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 contentData,
                 channelMapping,
                 {
-                    message: messageText.clean,  // Use clean for processing
+                    message: cleanText,  // Use clean for processing
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }
