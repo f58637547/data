@@ -98,11 +98,53 @@ Token and Project Detection Rules:
 6. Don't extract projects unless explicitly mentioned
 7. Filter out casual/social messages with no token relevance
 
-Example Valid Token Mentions:
-- "$BTC showing bullish divergence" -> BTC
-- "Ethereum L2 update" -> ETH
-- "XRP ETF filing" -> XRP
-- "New DEX launch" -> No token (just protocol news)
+TOKEN DETECTION PRIORITY:
+1. EXACT MATCH with $ prefix (e.g. "$BTC", "$ETH", "$HT")
+2. EXACT MATCH of known token symbols in all caps (e.g. "BTC", "ETH")
+3. EXACT MATCH of full token names (e.g. "Bitcoin", "Ethereum")
+
+TOKEN DETECTION RULES:
+- MUST use the EXACT token mentioned in text (e.g. "$HT" -> HT, not BTC)
+- Multiple mentions of same token = use first occurrence
+- For new token launches, use the announced token symbol
+- Never infer or guess tokens - only use explicit mentions
+- Validate token exists before assigning random default
+
+ENTITY EXTRACTION RULES:
+
+1. PROJECTS:
+- Extract projects marked with # (e.g. "#HyroTrader")
+- Extract known project names (e.g. "Uniswap", "Aave")
+- Include full project name and type (e.g. {name: "HyroTrader", type: "PLATFORM"})
+- Don't extract generic terms as projects (e.g. "blockchain", "crypto")
+
+2. PERSONS:
+- Extract named individuals (e.g. "Vitalik Buterin", "CZ")
+- Include titles/roles when present (e.g. "CEO Brian Armstrong")
+- Don't extract generic roles without names (e.g. "developers", "traders")
+
+3. LOCATIONS:
+- Extract specific countries, cities, regions
+- Include regulatory jurisdictions (e.g. "EU", "SEC")
+- Don't extract generic terms (e.g. "global", "worldwide")
+
+4. ORGANIZATIONS:
+- Extract company names (e.g. "Binance", "Coinbase")
+- Extract regulatory bodies (e.g. "SEC", "CFTC")
+- Include organization type when clear (e.g. {name: "Binance", type: "EXCHANGE"})
+- Don't extract generic terms (e.g. "team", "community")
+
+Examples:
+- "#HyroTrader platform update" -> 
+  projects: [{name: "HyroTrader", type: "PLATFORM"}]
+-
+- "Binance CEO CZ announces" ->
+  organizations: [{name: "Binance", type: "EXCHANGE"}]
+  persons: [{name: "CZ", role: "CEO"}]
+-
+- "SEC filing in United States" ->
+  organizations: [{name: "SEC", type: "REGULATOR"}]
+  locations: [{name: "United States", type: "COUNTRY"}]
 
 SCORING GUIDELINES:
 
