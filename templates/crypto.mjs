@@ -98,11 +98,11 @@ Token and Project Detection Rules:
 6. Don't extract projects unless explicitly mentioned
 7. Filter out casual/social messages with no token relevance
 
-SYMBOL EXTRACTION RULES:
-- ONLY extract if prefixed with $
-- Use EXACT ticker after $
-- No $ prefix = set primary: null
-- Multiple symbols = first is primary
+SYMBOL RULES:
+- NO $ = NO SYMBOL
+- primary: null by default
+- NEVER default to BTC
+- NEVER extract without $
 
 ENTITY EXTRACTION RULES:
 
@@ -123,6 +123,18 @@ ENTITY EXTRACTION RULES:
 - Extract company names
 - Extract regulatory bodies
 - Include organization type when clear
+
+EXTRACT MAIN SYMBOL:
+- Extract the MAIN symbol post is about
+- Can be from: $BTC, BTC, Bitcoin
+- DO NOT default to BTC if post about different token
+- If unclear = primary: null
+
+EXTRACT MAIN ENTITIES:
+- Extract MAIN project/protocol post is about
+- Extract MAIN person post is about
+- Extract MAIN location post is about
+- If unclear = null
 
 SCORING GUIDELINES:
 
@@ -192,66 +204,66 @@ SCORING GUIDELINES:
 OUTPUT FORMAT:
 {
     "headline": {
-        "text": "exact original message"  // REQUIRED: Never modify original
+        "text": "exact original message"
     },
     "tokens": {
-        "primary": {                      // REQUIRED for token-related events
-            "symbol": "TOKEN_SYMBOL",     // REQUIRED: Exact token symbol
+        "primary": {
+            "symbol": "TOKEN_SYMBOL",
             "type": "TOKEN|NFT|TRADING_PAIR",
             "name": "contract_address_or_pair_name",
             "event_type": "ONCHAIN|EXCHANGE_DATA|SMART_CONTRACT"
         },
-        "related": [{                     // Optional: Other involved tokens
+        "related": [{
             "symbol": "TOKEN_SYMBOL",
             "type": "TOKEN|NFT|TRADING_PAIR",
             "name": "contract_address_or_pair_name"
         }]
     },
     "entities": {
-        "projects": [{                    // REQUIRED for project-related events
+        "projects": [{
             "name": "exact official name",
             "type": "PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET",
             "role": "primary|related"
         }],
-        "persons": [{                     // Optional: Relevant persons
+        "persons": [{
             "name": "full name",
             "title": "exact role",
             "org": "organization"
         }],
-        "locations": [{                   // Optional: Relevant locations
+        "locations": [{
             "name": "location name",
             "type": "COUNTRY|REGION|CITY",
             "context": "primary|related"
         }]
     },
-    "event": {                           // REQUIRED for all valid events
-        "category": "NEWS|MARKET|DATA",  // REQUIRED: Must match valid categories
-        "subcategory": "SUBCATEGORY_FROM_LIST", // REQUIRED: Must match valid subcategories
-        "type": "TYPE_FROM_LIST",        // REQUIRED: Must match category types
-        "action": {                      // REQUIRED: Must have all fields
-            "type": "ACTION_FROM_LIST",  // REQUIRED: Must match category actions
-            "direction": "UP|DOWN|NEUTRAL", // REQUIRED
-            "magnitude": "SMALL|MEDIUM|LARGE" // REQUIRED
+    "event": {
+        "category": "MARKET|DATA|NEWS",
+        "subcategory": "PRICE|VOLUME|TRADE|POSITION|WHALE_MOVE|FUND_FLOW|ONCHAIN|TECHNICAL|FUNDAMENTAL|REGULATORY|SECURITY",
+        "type": "Must match types array for category/subcategory",
+        "action": {
+            "type": "Must match actions array for category/subcategory",
+            "direction": "UP|DOWN|NEUTRAL",
+            "magnitude": "SMALL|MEDIUM|LARGE"
         }
     },
-    "metrics": {                         // Optional: Only set if exact numbers given
+    "metrics": {
         "market": {
-            "price": number,             // Only set if price explicitly mentioned
-            "volume": number,            // Only set if volume explicitly mentioned
-            "liquidity": number,         // Only set if liquidity explicitly mentioned
-            "volatility": number         // Only set if volatility explicitly mentioned
+            "price": "number",
+            "volume": "number",
+            "liquidity": "number",
+            "volatility": "number"
         },
         "onchain": {
-            "transactions": number,       // Only set if transaction count given
-            "addresses": number          // Only set if address count given
+            "transactions": "number",
+            "addresses": "number"
         }
     },
-    "context": {                         // REQUIRED for all events
-        "impact": "0-100",              // REQUIRED: Impact score from rules
-        "confidence": "0-100",          // REQUIRED: Based on source reliability
-        "sentiment": {                   // REQUIRED
-            "market": "0-100",          // REQUIRED: Market sentiment score
-            "social": "0-100"           // REQUIRED: Social sentiment score
+    "context": {
+        "impact": "0-100",
+        "confidence": "0-100",
+        "sentiment": {
+            "market": "0-100",
+            "social": "0-100"
         }
     }
 }
