@@ -116,67 +116,39 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('  Message ID:', message.id);
             console.log('-'.repeat(80));
 
-            // 1. First try extractDiscordText
-            const extractedText = extractDiscordText(message);
-            let rawText = extractedText.text;
-            let author = extractedText.author;
-            let rtAuthor = extractedText.rtAuthor;
+            // Get text from main message content
+            let rawText = '';
+            let author = null;
+            let rtAuthor = null;
 
-            // 2. If that fails, try direct processing
-            if (!rawText) {
-                rawText = '';
-                let lastValidText = '';  // Store last valid text
+            if (message.content) {
+                rawText = message.content.trim();
+            }
 
-                // Get text from main message content
-                if (message.content) {
-                    rawText = message.content;
-                }
-
-                // Get text from embeds
-                if (message.embeds?.length > 0) {
-                    const embedText = message.embeds
-                        .map(embed => {
-                            // Get text from rich embeds (tweets)
-                            if (embed.data?.type === 'rich' && embed.data?.description) {
-                                lastValidText = embed.data.description;  // Store valid text
-                                return embed.data.description;
+            // Add embed content - it might have important info
+            if (message.embeds?.length > 0) {
+                const embedTexts = message.embeds
+                    .map(embed => {
+                        // Get text from rich embeds (tweets, etc)
+                        if (embed.data?.type === 'rich' && embed.data?.description) {
+                            // Get author from URL if present
+                            if (embed.data?.url?.includes('twitter.com')) {
+                                author = extractTwitterUsername(embed.data.url);
                             }
-                            // Get text from image embeds if they have alt text
-                            if (embed.data?.type === 'image' && embed.data?.description) {
-                                return embed.data.description;
-                            }
-                            return null;
-                        })
-                        .filter(Boolean)
-                        .join(' ');
-
-                    // Combine with existing text
-                    if (embedText) {
-                        rawText = rawText ? `${rawText} ${embedText}` : embedText;
-                    }
-                }
-
-                // If current message is just media, use last valid text
-                if (!rawText && message.embeds?.length > 0 && 
-                    message.embeds[0].data?.type === 'image' && lastValidText) {
-                    rawText = lastValidText;
-                }
-
-                // Extract usernames from URLs if not already found
-                if (!author && message.content) {
-                    const urls = message.content.match(/https:\/\/twitter.com\/[^\s]+/g) || [];
-                    if (urls.length > 0) {
-                        author = extractTwitterUsername(urls[0]);   
-                        if (urls.length > 1) {
-                            rtAuthor = extractTwitterUsername(urls[1]);
+                            return embed.data.description;
                         }
-                    }
-                } else if (!author && message.embeds?.length > 0) {
-                    // If no direct URLs, try to get from embed
-                    const twitterEmbed = message.embeds.find(e => e.data?.url?.includes('twitter.com'));
-                    if (twitterEmbed) {
-                        author = extractTwitterUsername(twitterEmbed.data.url);
-                    }
+                        // Get text from image embeds if they have alt text
+                        if (embed.data?.type === 'image' && embed.data?.description) {
+                            return embed.data.description;
+                        }
+                        return null;
+                    })
+                    .filter(Boolean)
+                    .join(' ');
+
+                // Combine with message content if we have both
+                if (embedTexts) {
+                    rawText = rawText ? `${rawText}\n${embedTexts}` : embedTexts;
                 }
             }
 
@@ -206,43 +178,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 clean: cleanText            // Cleaned for processing
             };
 
-            // Comprehensive truncation check
-            const isTruncated = (text) => {
-                // 1. Common truncation markers
-                const truncatedMarkers = ['...', '…', '[', '(', '{', '@', ':', '-', '>', '#'];
-                if (truncatedMarkers.some(marker => text.trim().endsWith(marker))) {
-                    console.log('❌ Truncation detected: Ends with marker:', text.slice(-5));
-                    return true;
-                }
-
-                // 2. Thread markers without completion
-                if (/^(\d+\/\d*|\d+\/)/.test(text)) {
-                    console.log('❌ Truncation detected: Incomplete thread marker');
-                    return true;
-                }
-
-                // 3. Partial URLs or mentions
-                if (/\bhttps?:\/\/[^\s]*$/.test(text) || /@[^\s]*$/.test(text)) {
-                    console.log('❌ Truncation detected: Incomplete URL or mention');
-                    return true;
-                }
-
-                // 4. Too short to be meaningful
-                if (text.split(' ').length < 3) {
-                    console.log('❌ Truncation detected: Message too short');
-                    return true;
-                }
-
-                return false;
-            };
-
-            if (isTruncated(messageText.clean)) {
-                console.log('❌ Skipping: Message appears to be truncated');
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'truncated_message' };
-            }
-
+            // Only check if empty or too short
             if (!messageText.clean || messageText.clean.length < 10) {
                 console.log('❌ Skipping: Content too short or empty');
                 console.log('='.repeat(80));
@@ -284,16 +220,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }
-            ).catch(error => {
-                console.log('❌ Entity extraction error:', {
-                    error: error.message,
-                    type: error.type || 'unknown',
-                    text: messageText.clean.substring(0, 100)
-                });
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return null;
-            });
+            );
 
             if (!parsedContent) {
                 console.log('❌ Parse Failed:');
