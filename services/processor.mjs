@@ -18,63 +18,52 @@ function extractTwitterUsername(text) {
     return null;
 }
 
-// Discord message text extraction
-function extractDiscordText(message) {
-    let rawText = '';
-    let lastValidText = '';
-    let author = null;
-    let rtAuthor = null;
+// Get text from message and embeds
+function getMessageText(message) {
+    let textParts = [];
 
-    try {
-        // 1. Handle direct message content
-        if (typeof message.content === 'string' && message.content.trim()) {
-            rawText = message.content.trim();
-        }
+    // Get message content
+    if (message.content) {
+        textParts.push(message.content);
+    }
 
-        // 2. Handle embeds array
-        if (Array.isArray(message.embeds)) {
-            const embedTexts = message.embeds.map(embed => {
-                // Safety check for embed object
-                if (!embed || typeof embed !== 'object') return null;
-
-                // Handle rich embeds (tweets, etc)
-                if (embed.data?.type === 'rich' && embed.data?.description) {
-                    lastValidText = embed.data.description;
-                    
-                    // Extract author from URL if present
-                    if (embed.data?.url?.includes('twitter.com')) {
-                        author = extractTwitterUsername(embed.data.url);
-                    }
-                    
-                    return embed.data.description;
-                }
-
-                // Handle image embeds with alt text
-                if (embed.data?.type === 'image' && embed.data?.description) {
-                    return embed.data.description;
-                }
-
-                // Handle title + description combos
-                if (embed.data?.title && embed.data?.description) {
-                    return `${embed.data.title} ${embed.data.description}`;
-                }
-
-                return null;
-            })
-            .filter(Boolean)  // Remove nulls
-            .join(' ');
-
-            if (embedTexts) {
-                rawText = rawText ? `${rawText} ${embedTexts}` : embedTexts;
+    // Get embed content
+    if (message.embeds?.length > 0) {
+        for (const embed of message.embeds) {
+            if (embed.description) {
+                textParts.push(embed.description);
             }
         }
+    }
 
-        // 3. Fallback to last valid text if current is empty
-        if (!rawText && lastValidText) {
-            rawText = lastValidText;
+    // Clean the text:
+    // 1. Remove all URLs
+    // 2. Remove markdown
+    // 3. Remove extra whitespace
+    return textParts
+        .join('\n')
+        .replace(/https?:\/\/\S+/g, '')  // Remove URLs
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links
+        .replace(/<:[^>]+>/g, '')  // Remove Discord emotes
+        .replace(/\s+/g, ' ')  // Normalize whitespace
+        .trim();
+}
+
+// Discord message text extraction
+function extractDiscordText(message) {
+    try {
+        // Get text from message
+        const rawText = getMessageText(message);
+        if (!rawText) {
+            console.log('❌ Skipping: No text content');
+            console.log('='.repeat(80));
+            console.log('🔄 PROCESSING MESSAGE END\n');
+            return { skip: true, reason: 'no_text_content' };
         }
 
-        // Extract info from URLs before cleaning
+        // Extract author from URLs if present
+        let author = null;
+        let rtAuthor = null;
         if (message.content) {
             const urls = message.content.match(/https:\/\/twitter\.com\/([^\s\/]+)/g) || [];
             if (urls.length > 0) {
@@ -90,20 +79,10 @@ function extractDiscordText(message) {
             // Keep important emojis, remove others
             .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, (match) => {
                 // Keep important signal emojis
-                const keepEmojis = ['🚨', '📈', '📉', '🔥', '⚡', '💥', '🎯', '🔴', '🟢'];
+                const keepEmojis = ['🚨', '📈', '📉', '🔥', '⚡', '💥', '🎯', '🔴', '🟢', '☕️'];
                 return keepEmojis.includes(match) ? match : '';
             })
-            // Remove Discord emotes (UI decoration)
-            .replace(/<:[^>]+>/g, '')
-            // Extract username from URL then remove it
-            .replace(/https:\/\/twitter\.com\/([^\s\/]+)\/status\/\d+/g, (match, username) => {
-                // Store author if not already found
-                if (!author) author = username;
-                return '';
-            })
-            // Remove other URLs
-            .replace(/https?:\/\/\S+/g, '')
-            // Collapse multiple newlines, keep single ones
+            // Collapse multiple newlines
             .replace(/\n{3,}/g, '\n\n')
             .trim();
 
@@ -117,14 +96,28 @@ function extractDiscordText(message) {
             return { skip: true, reason: 'invalid_content' };
         }
 
-        // Keep both raw and clean versions
-        const messageText = {
-            raw: rawText,               // Original with all formatting
-            clean: cleanText            // Cleaned but keeping important signals
+        console.log('📄 Original Text:');
+        console.log(rawText);
+        console.log('-'.repeat(80));
+        console.log('📄 Clean Text:');
+        console.log(cleanText);
+        console.log('-'.repeat(80));
+
+        // Parse content with author info
+        const contentData = {
+            type: 'raw',
+            author: author || 'none',
+            rt_author: rtAuthor,
+            original: cleanText,     // Use clean text
+            entities: {
+                headline: {
+                    text: cleanText  // Use clean text
+                }
+            }
         };
 
         return {
-            text: messageText.clean,
+            text: contentData.entities.headline.text,
             author,
             rtAuthor,
             error: null
@@ -161,99 +154,13 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('-'.repeat(80));
 
             // Get text from main message content
-            let rawText = '';
-            let author = null;
-            let rtAuthor = null;
-
-            if (message.content) {
-                rawText = message.content.trim();
-            }
-
-            // Add embed content - it might have important info
-            if (message.embeds?.length > 0) {
-                const embedTexts = message.embeds
-                    .map(embed => {
-                        // Get text from rich embeds (tweets, etc)
-                        if (embed.data?.type === 'rich' && embed.data?.description) {
-                            // Get author from URL if present
-                            if (embed.data?.url?.includes('twitter.com')) {
-                                author = extractTwitterUsername(embed.data.url);
-                            }
-                            return embed.data.description;
-                        }
-                        // Get text from image embeds if they have alt text
-                        if (embed.data?.type === 'image' && embed.data?.description) {
-                            return embed.data.description;
-                        }
-                        return null;
-                    })
-                    .filter(Boolean)
-                    .join(' ');
-
-                // Combine with message content if we have both
-                if (embedTexts) {
-                    rawText = rawText ? `${rawText}\n${embedTexts}` : embedTexts;
-                }
-            }
-
-            rawText = rawText.trim();
-            if (!rawText) {
-                console.log('❌ Skipping: No content');
+            const { text, author, rtAuthor } = extractDiscordText(message);
+            if (!text) {
+                console.log('❌ Skipping: No valid text content');
                 console.log('='.repeat(80));
                 console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'no_content' };
+                return { skip: true, reason: 'no_valid_text_content' };
             }
-
-            // Never default to 'Twitter'
-            author = author || 'none';
-            rtAuthor = rtAuthor || null;
-
-            // Extract info from URLs before cleaning
-            if (message.content) {
-                const urls = message.content.match(/https:\/\/twitter\.com\/([^\s\/]+)/g) || [];
-                if (urls.length > 0) {
-                    author = extractTwitterUsername(urls[0]);
-                    if (urls.length > 1) {
-                        rtAuthor = extractTwitterUsername(urls[1]);
-                    }
-                }
-            }
-
-            // Clean text but preserve important stuff
-            const cleanText = rawText
-                // Keep important emojis, remove others
-                .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, (match) => {
-                    // Keep important signal emojis
-                    const keepEmojis = ['🚨', '📈', '📉', '🔥', '⚡', '💥', '🎯', '🔴', '🟢'];
-                    return keepEmojis.includes(match) ? match : '';
-                })
-                // Remove Discord emotes (UI decoration)
-                .replace(/<:[^>]+>/g, '')
-                // Extract username from URL then remove it
-                .replace(/https:\/\/twitter\.com\/([^\s\/]+)\/status\/\d+/g, (match, username) => {
-                    // Store author if not already found
-                    if (!author) author = username;
-                    return '';
-                })
-                // Remove other URLs
-                .replace(/https?:\/\/\S+/g, '')
-                // Collapse multiple newlines, keep single ones
-                .replace(/\n{3,}/g, '\n\n')
-                .trim();
-
-            // Only check if empty or too short AFTER removing noise
-            if (!cleanText || cleanText.length < 10) {
-                console.log('❌ Skipping: Content too short or empty');
-                console.log('Raw text:', rawText);
-                console.log('Clean text:', cleanText);
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'invalid_content' };
-            }
-
-            console.log('📄 Original Text:');
-            console.log(rawText);  // Show raw text in logs
-            console.log('-'.repeat(80));
 
             // Only keep the basic channel mapping validation
             if (!channelMapping || !channelMapping.table) {
@@ -269,10 +176,10 @@ export async function processMessage({ message, db, channelMapping }) {
                 type: 'raw',
                 author: author || 'none',
                 rt_author: rtAuthor,
-                original: rawText,     // Use raw for original
+                original: text,     // Use clean text
                 entities: {
                     headline: {
-                        text: rawText  // Use raw for headline
+                        text: text  // Use clean text
                     }
                 }
             };
@@ -281,7 +188,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 contentData,
                 channelMapping,
                 {
-                    message: cleanText,  // Use clean for processing
+                    message: text,  // Use clean for processing
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }
