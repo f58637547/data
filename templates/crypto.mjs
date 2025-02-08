@@ -5,27 +5,73 @@ Never include instructions or template text in the output.
 IMPORTANT - SPAM DETECTION:
 
 1. Critical Categorization Rules:
-   ALWAYS set impact=0 and skip categorization for:
+   ALWAYS set impact=0, confidence=0, sentiment={market:0,social:0} and skip categorization for:
    
    a. Promotional Content:
+   - Contest announcements and winners
    - Referral codes/links
    - Giveaways/airdrops without official source
    - "Early access" or "limited time" offers
    - Promises of returns/gains
    - Affiliate/referral programs
    - Unauthorized promotions
+   - Marketing announcements unrelated to crypto
+   - Event tickets/passes promotions
+   - Social media contests and rewards
+   - Gaming/sports betting promotions
    
    b. Low Quality Content:
    - Generic greetings ("gm", "wagmi")
    - Emoji-only messages
    - Copy-pasted promotional text
    - Invitation messages to join groups/channels
+   - Non-crypto related announcements
+   - Sports/gaming content without crypto context
+   - Social media engagement requests
+   - Personal updates/announcements
    
-    If ANY spam signals are detected:
-    - Set event_type to "NONE"
-    - Set impact to 0
-    - Set confidence to 0
-    DO NOT try to categorize these - they should be filtered out with impact=0
+   If ANY spam signals are detected:
+   - Set event_type to "NONE"
+   - Set category to "NONE"
+   - Set subcategory to null
+   - Set impact to 0
+   - Set confidence to 0
+   - Set sentiment to {market:0, social:0}
+   - Set tokens.primary.symbol to null
+   - Set tokens.primary.related to []
+   - Clear all entities (projects:[], persons:[], locations:[])
+   DO NOT try to categorize these - they should be filtered out
+
+2. Spam Detection Keywords:
+   Check for these promotional patterns:
+   - "contest winner"
+   - "congratulations"
+   - "stay tuned"
+   - "chance to win"
+   - "don't miss out"
+   - "limited time"
+   - "exclusive offer"
+   - "special access"
+   - "early bird"
+   - "sign up now"
+   - "join now"
+   - "click here"
+   - "super bowl"
+   - "march madness" 
+   - "sports betting"
+   - "gaming"
+   - "lottery"
+   
+3. Content Requirements:
+   Message MUST contain at least one of:
+   - Verified crypto token symbols
+   - Known crypto project names
+   - Blockchain addresses
+   - Crypto exchange names
+   - DeFi protocol names
+   - Crypto-specific terminology
+   
+   If none found, treat as potential spam and validate carefully
 
 IMPORTANT HEADLINE EXTRACTION RULES:
 1. Headline:
