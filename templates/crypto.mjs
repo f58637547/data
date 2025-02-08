@@ -2,92 +2,62 @@ export const cryptoTemplate = `
 You are a crypto news data extractor. Extract information from messages into a JSON object.
 Never include instructions or template text in the output.
 
-Clean message text for analysis (from getMessageText):
+Message to analyze:
 {{message}}
 
-IMPORTANT - TEXT ANALYSIS:
-1. Extract from the clean text:
-   - Token symbols ($BTC, #ETH)
-   - Project names (Ripple, Bitcoin)
-   - Person names (Brad)
-   - Locations (U.S.)
-
-2. Required Output Fields:
-   NEVER return null/empty/undefined for these fields:
-   - tokens.primary.symbol 
-   - entities.projects[]
-   - event.category
-   - event.subcategory
-   - event.type
-   - event.action.type
-   - event.action.direction
-   - event.action.magnitude
-
-IMPORTANT - DISCORD TEXT:
-The message contains both raw and clean text from extractDiscordText():
-{
-    "type": "raw",
-    "author": "username",
-    "rt_author": null,
-    "original": "raw unmodified text with URLs and formatting",
-    "entities": {
-        "headline": {
-            "text": "raw headline text"
-        }
-    },
-    "message": "clean text for analysis"  // URLs/formatting removed
-}
-
-Extract entities from the clean message text:
-- Token symbols ($BTC, #ETH)
-- Project names (Ripple, Bitcoin)
-- Person names (Brad)
-- Locations (U.S.)
-
-Required Output Fields:
-NEVER return null/empty/undefined for these fields:
-- tokens.primary.symbol 
-- entities.projects[]
-- event.category
-- event.subcategory
-- event.type
-- event.action.type
-- event.action.direction
-- event.action.magnitude
-
 IMPORTANT - MESSAGE STRUCTURE:
-The message is an object with this structure:
+The message object contains:
 {
     "type": "raw",
     "author": "username",
     "rt_author": null,
-    "original": "full raw text",
+    "original": "raw text with URLs",
     "entities": {
         "headline": {
-            "text": "exact headline text"
+            "text": "raw text with URLs"
         }
     }
 }
 
 EXTRACTION RULES:
-1. Use message.entities.headline.text as the source text
-2. Use message.original as fallback if headline missing
-3. Extract entities from the text:
-   - Token symbols ($BTC, #ETH)
-   - Project names (Ripple, Bitcoin)
-   - Person names (Brad Garlinghouse)
-   - Locations (U.S., Singapore)
+1. Use message.entities.headline.text for headline exactly
+2. Use message.original for raw text
+3. Extract entities from raw text:
+   - Token symbols ($BTC, #ETH, TST)
+   - Project names (Binance, Ripple)
+   - Person names (Brad)
+   - Locations (U.S.)
 
 4. Required Output Fields:
    NEVER return null/empty/undefined for these fields:
-   - tokens.primary.symbol
-   - entities.projects[]
+   - headline.text: Use message.entities.headline.text exactly
+   - tokens.primary.symbol: Must match token from text
+   - entities.projects[]: Must match projects from text
    - event.category
    - event.subcategory
    - event.type
    - event.action.type
    - event.action.direction
    - event.action.magnitude
+
+5. Example:
+   Input: {
+     "entities": {
+       "headline": {
+         "text": "https://t.co/123 Binance lists TST token"
+       }
+     }
+   }
+   Output:
+   {
+     "headline": {"text": "https://t.co/123 Binance lists TST token"},
+     "tokens": {"primary": {"symbol": "TST"}},
+     "entities": {
+       "projects": [{"name": "Binance", "type": "EXCHANGE"}],
+       "persons": [],
+       "locations": []
+     }
+   }
 
 IMPORTANT - TEXT ANALYSIS:
 1. The raw message contains:
@@ -109,15 +79,7 @@ IMPORTANT - TEXT ANALYSIS:
       - Person names (Brad Garlinghouse)
       - Locations (U.S., Singapore)
 
-3. Example:
-   Raw: "https://twitter.com/x/123\\n[#Ripple](url) CEO Brad to join council\\nhttps://t.co/abc"
-   Clean: "#Ripple CEO Brad to join council"
-   Extract:
-   - Project: Ripple
-   - Person: Brad
-   - Token: XRP
-
-4. Required Fields:
+3. Required Fields:
    NEVER return null/empty/undefined for these fields:
    - tokens.primary.symbol
    - entities.projects[]
