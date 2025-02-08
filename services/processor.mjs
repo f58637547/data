@@ -18,16 +18,14 @@ function extractTwitterUsername(text) {
     return null;
 }
 
-// Get text from message and embeds
-function getMessageText(message) {
+// Get raw text from message (for headlines)
+function getRawMessageText(message) {
     let textParts = [];
-
-    // Get message content
+    
     if (message.content) {
         textParts.push(message.content);
     }
 
-    // Get embed content
     if (message.embeds?.length > 0) {
         for (const embed of message.embeds) {
             if (embed.description) {
@@ -36,14 +34,18 @@ function getMessageText(message) {
         }
     }
 
-    // Clean the text:
-    // 1. Remove all URLs
-    // 2. Remove markdown
-    // 3. Remove extra whitespace
-    return textParts
-        .join('\n')
+    return textParts.join('\n').trim();
+}
+
+// Get cleaned text from message (for content processing)
+function getMessageText(message) {
+    let text = getRawMessageText(message);
+    
+    // Clean the text for content processing:
+    return text
         .replace(/https?:\/\/\S+/g, '')  // Remove URLs
-        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links but keep text
+        .replace(/\[\s*[↧⬇️]\s*\]\s*\(\s*\)/g, '')  // Remove empty markdown links with arrows
         .replace(/<:[^>]+>/g, '')  // Remove Discord emotes
         .replace(/\s+/g, ' ')  // Normalize whitespace
         .trim();
@@ -53,7 +55,7 @@ function getMessageText(message) {
 function extractDiscordText(message) {
     try {
         // Get text from message
-        const rawText = getMessageText(message);
+        const rawText = getRawMessageText(message);
         if (!rawText) {
             console.log('❌ Skipping: No text content');
             console.log('='.repeat(80));
@@ -75,7 +77,7 @@ function extractDiscordText(message) {
         }
 
         // Clean text but preserve important stuff
-        const cleanText = rawText
+        const cleanText = getMessageText(message)
             // Keep important emojis, remove others
             .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, (match) => {
                 // Keep important signal emojis
@@ -98,10 +100,10 @@ function extractDiscordText(message) {
 
         console.log('📄 Original Text:');
         console.log(rawText);
-        console.log('-'.repeat(80));
+        console.log('--------------------------------------------------------------------------------');
         console.log('📄 Clean Text:');
         console.log(cleanText);
-        console.log('-'.repeat(80));
+        console.log('--------------------------------------------------------------------------------');
 
         // Parse content with author info
         const contentData = {
@@ -111,7 +113,7 @@ function extractDiscordText(message) {
             original: cleanText,     // Use clean text
             entities: {
                 headline: {
-                    text: cleanText  // Use clean text
+                    text: rawText  // Use raw text for headline
                 }
             }
         };
@@ -179,7 +181,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 original: text,     // Use clean text
                 entities: {
                     headline: {
-                        text: text  // Use clean text
+                        text: text  // Use clean text for headline
                     }
                 }
             };
@@ -188,7 +190,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 contentData,
                 channelMapping,
                 {
-                    message: text,  // Use clean for processing
+                    message: getMessageText(message),  // Use clean for processing
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }

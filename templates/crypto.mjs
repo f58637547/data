@@ -40,6 +40,7 @@ IMPORTANT SYMBOL EXTRACTION RULES:
    - Remove $ prefix if present
    - Convert to uppercase
    - Don't assign random tokens when none are mentioned
+   - If no specific token is mentioned but content is about crypto in general, set symbol to null
 
    Primary Token Extraction by Category:
    a) MARKET events:
@@ -49,50 +50,52 @@ IMPORTANT SYMBOL EXTRACTION RULES:
    
    b) DATA events:
       - For WHALE_MOVE: Token being transferred
-      - For FUND_FLOW: Primary token in the flow
-      - For ONCHAIN: Token/chain native asset (e.g., ETH for Ethereum metrics)
+      - For METRICS: Token being measured
+      - For ONCHAIN: Token network being analyzed
    
    c) NEWS events:
-      - For TECHNICAL: Token/platform being updated
-      - For FUNDAMENTAL: Main token affected
-      - For REGULATORY: Token under regulation
-      - For SECURITY: Token/platform affected
+      - For DEVELOPMENT: Token/project being developed
+      - For PARTNERSHIPS: All involved tokens
+      - For GENERAL: Only if specifically about a token
+      - For REGULATORY: Affected tokens if mentioned
+      - Set to null for industry-wide news
 
 2. RELATED TOKENS:
-   - Only include directly mentioned tokens
-   - Must be verified official symbols
-   - Remove duplicates
-   - Max 5 related tokens
-   
-   Related Token Examples by Category:
-   - MARKET: Trading pairs, correlated tokens
-   - DATA: Secondary tokens in transfers/flows
-   - NEWS: Other affected tokens/platforms
+   - Only include tokens explicitly mentioned
+   - Must be relevant to the main topic
+   - Don't add exchange tokens unless specifically discussed
+   - Include trading pairs for TRADE events
+   - Include affected tokens for ecosystem events
+   - Leave empty if no related tokens mentioned
 
-   EXAMPLE:
-   Market Event:
-   "tokens": {
-        "primary": {
-            "symbol": "BTC",
-            "related": ["ETH", "USDT"]  // Trading pairs or correlated assets
-        }
-    }
-   
-   Data Event:
-   "tokens": {
-        "primary": {
-            "symbol": "ETH",
-            "related": ["USDC", "DAI"]  // Tokens involved in transfers
-        }
-    }
-   
-   News Event:
-   "tokens": {
-        "primary": {
-            "symbol": "SOL",
-            "related": ["RAY", "SRM"]  // Affected ecosystem tokens
-        }
-    }
+IMPORTANT ENTITY EXTRACTION RULES:
+1. Projects:
+   - Extract ALL mentioned crypto projects, protocols, or platforms
+   - Include full project names (e.g., "Bitcoin" not just "BTC")
+   - Mark primary project based on the main topic
+   - Include exchanges only when directly involved
+   - For partnerships/integrations, include all parties
+   - Don't add random projects not mentioned in text
+
+2. Persons:
+   - Extract mentioned individuals with their roles
+   - Include full names where available
+   - Only include relevant titles/organizations
+   - Don't add team members unless specifically mentioned
+   - Extract from quoted statements or announcements
+
+3. Locations:
+   - Only include locations directly relevant to the news
+   - Include countries for regulatory news
+   - Include cities for physical events/conferences
+   - Don't add exchange headquarters unless relevant
+   - Don't add random locations
+
+4. Events:
+   - Extract mentioned conferences, meetups, or launches
+   - Include dates if specified
+   - Include virtual/physical status if known
+   - Don't create events from regular updates
 
 CLASSIFICATION RULES:
 
@@ -210,74 +213,6 @@ VALIDATION RULES:
 6. Magnitude must be: SMALL, MEDIUM, or LARGE
 
 When classifying, always ensure all combinations are valid according to the above rules.
-
-IMPORTANT ENTITY EXTRACTION RULES:
-
-1. PROJECTS/ORGANIZATIONS:
-   Required fields:
-   - name: "exact official name"
-   - type: One of ["PROJECT", "EXCHANGE", "PROTOCOL", "COMPANY", "REGULATOR", "DAO", "DEX", "DEFI", "WALLET"]
-   - role: "primary" or "related"
-
-   Project Extraction by Category:
-   a) MARKET events:
-      - EXCHANGE: Trading venue/exchange
-      - DEX: Decentralized exchange
-      - PROTOCOL: DeFi protocol for trading
-   
-   b) DATA events:
-      - PROTOCOL: Protocol where movement occurred
-      - WALLET: Wallet provider/platform
-      - DEFI: DeFi platform involved
-   
-   c) NEWS events:
-      - PROJECT: Main project being discussed
-      - COMPANY: Company making announcement
-      - REGULATOR: Regulatory body involved
-
-2. PERSONS:
-   Required fields:
-   - name: "full person name"
-   - title: "exact role/position"
-   - org: "organization name"
-
-   Person Extraction by Category:
-   a) MARKET events:
-      - Key traders/analysts
-      - Exchange executives
-      - Market makers
-   
-   b) DATA events:
-      - Protocol developers
-      - Whale wallet owners (if known)
-      - Platform operators
-   
-   c) NEWS events:
-      - Company executives
-      - Government officials
-      - Project leaders
-
-3. LOCATIONS:
-   Required fields:
-   - name: "location name"
-   - type: One of ["COUNTRY", "REGION", "CITY"]
-   - context: "primary" or "related"
-
-   Location Extraction by Category:
-   a) MARKET events:
-      - Trading jurisdiction
-      - Exchange location
-      - Market region affected
-   
-   b) DATA events:
-      - Transaction jurisdiction
-      - Platform jurisdiction
-      - Regulatory jurisdiction
-   
-   c) NEWS events:
-      - Regulatory jurisdiction
-      - Company headquarters
-      - Event location
 
 EXTRACT MAIN ENTITIES:
 1. Primary Project/Protocol:
