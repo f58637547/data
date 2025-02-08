@@ -3,53 +3,25 @@ import { generateEmbedding } from './openai.mjs';
 import { extractEntities } from '../templates/index.mjs';
 import PQueue from 'p-queue';
 
-// Create message queue with concurrency of 1
-const messageQueue = new PQueue({concurrency: 1});
+// Create separate queues for each channel - these can run in parallel
+const messageQueues = {
+    crypto: new PQueue({concurrency: 1}),
+    trades: new PQueue({concurrency: 1})
+};
 
-function extractTwitterUsername(text) {
-    // Extract username from Twitter URL
-    const twitterUrlRegex = /twitter\.com\/([^\/]+)\/status/;
-    const match = text.match(twitterUrlRegex);
-    if (match && match[1]) {
-        // Get just the username part, remove any query params or extra stuff
-        const username = match[1].split('?')[0];  // Remove query params if any
-        return username;   
-    }
-    return null;
-}
+// Create single LLM queue - only one LLM call at a time across ALL channels
+const llmQueue = new PQueue({concurrency: 1});
 
-// Get raw text from message (for headlines)
-function getRawMessageText(message) {
-    let textParts = [];
+// Add queue event listeners
+Object.entries(messageQueues).forEach(([channel, queue]) => {
+    queue.on('active', () => {
+        console.log(`${channel} queue size: ${queue.size}, LLM queue size: ${llmQueue.size}`);
+    });
     
-    if (message.content) {
-        textParts.push(message.content);
-    }
-
-    if (message.embeds?.length > 0) {
-        for (const embed of message.embeds) {
-            if (embed.description) {
-                textParts.push(embed.description);
-            }
-        }
-    }
-
-    return textParts.join('\n').trim();
-}
-
-// Get cleaned text from message (for content processing)
-function getMessageText(message) {
-    let text = getRawMessageText(message);
-    
-    // Clean the text for content processing:
-    return text
-        .replace(/https?:\/\/\S+/g, '')  // Remove URLs
-        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links but keep text
-        .replace(/\[\s*[↧⬇️]\s*\]\s*\(\s*\)/g, '')  // Remove empty markdown links with arrows
-        .replace(/<:[^>]+>/g, '')  // Remove Discord emotes
-        .replace(/\s+/g, ' ')  // Normalize whitespace
-        .trim();
-}
+    queue.on('idle', () => {
+        console.log(`${channel} queue is empty`);
+    });
+});
 
 // Discord message text extraction
 function extractDiscordText(message) {
@@ -142,9 +114,62 @@ function extractDiscordText(message) {
     }
 }
 
+// Get raw text from message (for headlines)
+function getRawMessageText(message) {
+    let textParts = [];
+    
+    if (message.content) {
+        textParts.push(message.content);
+    }
+
+    if (message.embeds?.length > 0) {
+        for (const embed of message.embeds) {
+            if (embed.description) {
+                textParts.push(embed.description);
+            }
+        }
+    }
+
+    return textParts.join('\n').trim();
+}
+
+// Get cleaned text from message (for content processing)
+function getMessageText(message) {
+    let text = getRawMessageText(message);
+    
+    // Clean the text for content processing:
+    return text
+        .replace(/https?:\/\/\S+/g, '')  // Remove URLs
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links but keep text
+        .replace(/\[\s*[↧⬇️]\s*\]\s*\(\s*\)/g, '')  // Remove empty markdown links with arrows
+        .replace(/<:[^>]+>/g, '')  // Remove Discord emotes
+        .replace(/\s+/g, ' ')  // Normalize whitespace
+        .trim();
+}
+
+// Extract Twitter username from text
+function extractTwitterUsername(text) {
+    // Extract username from Twitter URL
+    const twitterUrlRegex = /twitter\.com\/([^\/]+)\/status/;
+    const match = text.match(twitterUrlRegex);
+    if (match && match[1]) {
+        // Get just the username part, remove any query params or extra stuff
+        const username = match[1].split('?')[0];  // Remove query params if any
+        return username;   
+    }
+    return null;
+}
+
 export async function processMessage({ message, db, channelMapping }) {
-    // Add to queue and return promise
-    return messageQueue.add(async () => {
+    // Get queue for this channel
+    const queue = messageQueues[channelMapping.table];
+    if (!queue) {
+        console.error('Invalid channel:', channelMapping.table);
+        return { skip: true, reason: 'invalid_channel' };
+    }
+
+    // Add to channel-specific queue
+    return queue.add(async () => {
         try {
             // Log original message
             console.log('\n' + '='.repeat(80));
@@ -155,13 +180,29 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('  Message ID:', message.id);
             console.log('-'.repeat(80));
 
-            // Get text from main message content
-            const { text, author, rtAuthor } = extractDiscordText(message);
-            if (!text) {
-                console.log('❌ Skipping: No valid text content');
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'no_valid_text_content' };
+            // Extract text content
+            const contentData = extractDiscordText(message);
+            if (!contentData) {
+                return { skip: true, reason: 'no_content' };
+            }
+
+            // Add to LLM queue for entity extraction
+            const entities = await llmQueue.add(async () => {
+                console.log('🤖 Starting LLM processing for message:', message.id);
+                return extractEntities(contentData, channelMapping);
+            });
+
+            if (!entities) {
+                return { skip: true, reason: 'no_entities' };
+            }
+
+            // Generate embedding for similarity check (can run in parallel with LLM)
+            const embedding = await generateEmbedding(contentData.original);
+            
+            // Check similarity with existing messages
+            const similar = await findSimilarMessages(db, embedding);
+            if (similar.length > 0) {
+                return { skip: true, reason: 'duplicate' };
             }
 
             // Only keep the basic channel mapping validation
@@ -174,41 +215,23 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             // Parse content with author info
-            const contentData = {
+            const parsedContent = {
                 type: 'raw',
-                author: author || 'none',
-                rt_author: rtAuthor,
-                original: getRawMessageText(message),     // Use raw text for original
+                author: contentData.author || 'none',
+                rt_author: contentData.rtAuthor,
+                original: contentData.original,     // Use raw text for original
                 entities: {
                     headline: {
-                        text: getRawMessageText(message)  // Use raw text for headline
+                        text: contentData.original  // Use raw text for headline
                     }
                 }
             };
 
-            const parsedContent = await extractEntities(
-                contentData,
-                channelMapping,
-                {
-                    message: getMessageText(message),  // Use cleaned text for processing
-                    author: author || 'none',
-                    rtAuthor: rtAuthor || ''
-                }
-            );
-
-            if (!parsedContent) {
-                console.log('❌ Parse Failed:');
-                console.log('  Could not parse content');
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'parse_failed' };
-            }
-
             // Update content data with parsed entities
-            contentData.entities = parsedContent;
+            parsedContent.entities = entities;
 
             console.log('✅ Parsed Content:');
-            console.log(JSON.stringify(contentData, null, 2));
+            console.log(JSON.stringify(parsedContent, null, 2));
             console.log('-'.repeat(80));
 
             // Add logging for channelMapping
@@ -219,7 +242,7 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('\n=== Starting Content Processing ===');
 
             // 1. Check event structure from LLM
-            const event = contentData.entities.event;
+            const event = parsedContent.entities.event;
             if (!event?.category || !event?.subcategory || !event?.type || !event?.action?.type) {
                 console.log('❌ REJECTED: Invalid event structure');
                 console.log('Missing fields:', {
@@ -235,7 +258,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // 2. Check impact score from LLM
             const MIN_IMPACT_THRESHOLD = 20;  // Minimum impact to consider content valuable
-            const impact = contentData.entities.context?.impact || 0;
+            const impact = parsedContent.entities.context?.impact || 0;
             
             if (impact === 0) {
                 console.log('❌ REJECTED: Zero impact (spam/personal content)');
@@ -252,7 +275,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // 3. Generate embedding for similarity check
             console.log('\n=== Starting Similarity Check ===');
-            const newEmbedding = await generateEmbedding(JSON.stringify(contentData));
+            const newEmbedding = await generateEmbedding(JSON.stringify(parsedContent));
             console.log('✅ Embedding generated');
 
             // 4. Check for similar content
@@ -300,19 +323,19 @@ export async function processMessage({ message, db, channelMapping }) {
                 id: uuidv4(),
                 channel: channelMapping.table,
                 message_id: message.id,
-                text: contentData.entities.headline.text,
-                author,
-                rt_author: rtAuthor,
-                tokens: contentData.entities.tokens || {},
-                entities: contentData.entities.entities || {},
-                event: contentData.entities.event,
-                metrics: contentData.entities.metrics || {},
+                text: parsedContent.entities.headline.text,
+                author: parsedContent.author,
+                rt_author: parsedContent.rt_author,
+                tokens: parsedContent.entities.tokens || {},
+                entities: parsedContent.entities.entities || {},
+                event: parsedContent.entities.event,
+                metrics: parsedContent.entities.metrics || {},
                 context: {
-                    impact: contentData.entities.context?.impact || 50,
-                    confidence: contentData.entities.context?.confidence || 50,
+                    impact: parsedContent.entities.context?.impact || 50,
+                    confidence: parsedContent.entities.context?.confidence || 50,
                     sentiment: {
-                        market: contentData.entities.context?.sentiment?.market || 50,
-                        social: contentData.entities.context?.sentiment?.social || 50
+                        market: parsedContent.entities.context?.sentiment?.market || 50,
+                        social: parsedContent.entities.context?.sentiment?.social || 50
                     }
                 },
                 embedding: newEmbedding,  // Use the embedding we already generated
@@ -331,15 +354,15 @@ export async function processMessage({ message, db, channelMapping }) {
                 uuidv4(),
                 new Date().toISOString(),
                 process.env.AGENT_ID,
-                JSON.stringify(contentData),  // Use same content data
+                JSON.stringify(parsedContent),  // Use same content data
                 `[${newEmbedding.join(',')}]`
             ]);
 
             console.log('✅ Operation Complete:');
             console.log('  Status: Success');
             console.log('  Channel:', channelMapping.table);
-            console.log('  Event Type:', contentData.entities.event?.type);
-            console.log('  Impact Score:', contentData.entities.context.impact);
+            console.log('  Event Type:', parsedContent.entities.event?.type);
+            console.log('  Impact Score:', parsedContent.entities.context.impact);
             console.log('='.repeat(80));
             console.log('🔄 PROCESSING MESSAGE END\n');
 
@@ -354,12 +377,3 @@ export async function processMessage({ message, db, channelMapping }) {
         }
     });
 }
-
-// Add queue event listeners
-messageQueue.on('active', () => {
-    console.log(`Queue size: ${messageQueue.size}`);
-});
-
-messageQueue.on('idle', () => {
-    console.log('Queue is empty');
-});
