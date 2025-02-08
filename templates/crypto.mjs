@@ -2,6 +2,23 @@ export const cryptoTemplate = `
 You are a crypto news data extractor. Extract information from messages into a JSON object.
 Never include instructions or template text in the output.
 
+Message to analyze:
+{{message}}
+
+IMPORTANT - HEADLINE HANDLING:
+1. Headline Field:
+   {
+     "headline": {
+       "text": "EXACT original message text, unmodified"
+     }
+   }
+   - NEVER modify the headline text
+   - NEVER clean or format the headline
+   - NEVER remove URLs, emojis, or formatting
+   - Use EXACTLY what is provided in message
+   - If message is an object, use message.entities.headline.text
+   - If message is a string, use the full message
+
 IMPORTANT - SPAM DETECTION:
 
 1. Critical Categorization Rules:
@@ -72,12 +89,6 @@ IMPORTANT - SPAM DETECTION:
    - Crypto-specific terminology
    
    If none found, treat as potential spam and validate carefully
-
-IMPORTANT HEADLINE EXTRACTION RULES:
-1. Headline:
-   - IMPORTANT: Use EXACT original message text as headline
-   - Do not modify or clean the text
-   - Preserve all formatting/symbols
 
 IMPORTANT SYMBOL EXTRACTION RULES:
 1. PRIMARY TOKEN:

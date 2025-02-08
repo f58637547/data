@@ -110,10 +110,10 @@ function extractDiscordText(message) {
             type: 'raw',
             author: author || 'none',
             rt_author: rtAuthor,
-            original: cleanText,     // Use clean text
+            original: getRawMessageText(message),     // Use raw text for original
             entities: {
                 headline: {
-                    text: rawText  // Use raw text for headline
+                    text: getRawMessageText(message)  // Use raw text for headline
                 }
             }
         };
@@ -178,10 +178,10 @@ export async function processMessage({ message, db, channelMapping }) {
                 type: 'raw',
                 author: author || 'none',
                 rt_author: rtAuthor,
-                original: text,     // Use clean text
+                original: getRawMessageText(message),     // Use raw text for original
                 entities: {
                     headline: {
-                        text: text  // Use clean text for headline
+                        text: getRawMessageText(message)  // Use raw text for headline
                     }
                 }
             };
@@ -190,7 +190,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 contentData,
                 channelMapping,
                 {
-                    message: getMessageText(message),  // Use clean for processing
+                    message: getMessageText(message),  // Use cleaned text for processing
                     author: author || 'none',
                     rtAuthor: rtAuthor || ''
                 }
