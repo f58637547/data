@@ -26,14 +26,27 @@ Object.entries(messageQueues).forEach(([channel, queue]) => {
 // Discord message text extraction
 function extractDiscordText(message) {
     try {
-        // Get text from message
+        // Get raw text (with URLs)
         const rawText = getRawMessageText(message);
-        if (!rawText) {
-            console.log('❌ Skipping: No text content');
-            console.log('='.repeat(80));
-            console.log('🔄 PROCESSING MESSAGE END\n');
-            return { skip: true, reason: 'no_text_content' };
+        
+        // Get clean text (no URLs)
+        const cleanText = getMessageText(message);
+        
+        // Skip if content too short
+        if (!rawText || rawText.length < 10 || cleanText.length < 5) {
+            console.log('❌ Skipping: Content too short or empty');
+            console.log('Raw text:', rawText);
+            console.log('Clean text:', cleanText);
+            return null;
         }
+
+        // Log extracted text
+        console.log('📄 Original Text:');
+        console.log(rawText);
+        console.log('-'.repeat(80));
+        console.log('📄 Clean Text:');
+        console.log(cleanText);
+        console.log('-'.repeat(80));
 
         // Extract author from URLs if present
         let author = null;
@@ -48,55 +61,12 @@ function extractDiscordText(message) {
             }
         }
 
-        // Clean text but preserve important stuff
-        const cleanText = getMessageText(message)
-            // Keep important emojis, remove others
-            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/gu, (match) => {
-                // Keep important signal emojis
-                const keepEmojis = ['🚨', '📈', '📉', '🔥', '⚡', '💥', '🎯', '🔴', '🟢', '☕️'];
-                return keepEmojis.includes(match) ? match : '';
-            })
-            // Collapse multiple newlines
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
-
-        // Only check if empty or too short AFTER removing noise
-        if (!cleanText || cleanText.length < 10) {
-            console.log('❌ Skipping: Content too short or empty');
-            console.log('Raw text:', rawText);
-            console.log('Clean text:', cleanText);
-            console.log('='.repeat(80));
-            console.log('🔄 PROCESSING MESSAGE END\n');
-            return { skip: true, reason: 'invalid_content' };
-        }
-
-        console.log('📄 Original Text:');
-        console.log(rawText);
-        console.log('--------------------------------------------------------------------------------');
-        console.log('📄 Clean Text:');
-        console.log(cleanText);
-        console.log('--------------------------------------------------------------------------------');
-
-        // Parse content with author info
-        const contentData = {
-            type: 'raw',
-            author: author || 'none',
-            rt_author: rtAuthor,
-            original: getRawMessageText(message),     // Use raw text for original
-            entities: {
-                headline: {
-                    text: getRawMessageText(message)  // Use raw text for headline
-                }
-            }
-        };
-
         return {
-            text: contentData.entities.headline.text,
-            author,
-            rtAuthor,
-            error: null
+            original: rawText,
+            clean: cleanText,
+            author: author || message.author?.username || 'unknown',
+            rtAuthor
         };
-
     } catch (error) {
         console.error('Discord text extraction error:', {
             error: error.message,
@@ -171,7 +141,7 @@ export async function processMessage({ message, db, channelMapping }) {
     // Add to channel-specific queue
     return queue.add(async () => {
         try {
-            // Log original message
+            // Log start
             console.log('\n' + '='.repeat(80));
             console.log('🔄 PROCESSING MESSAGE START');
             console.log('='.repeat(80));
@@ -180,29 +150,48 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('  Message ID:', message.id);
             console.log('-'.repeat(80));
 
-            // Extract text content
+            // Extract text content first - if too short, skip before LLM
             const contentData = extractDiscordText(message);
             if (!contentData) {
-                return { skip: true, reason: 'no_content' };
+                console.log('='.repeat(80));
+                console.log('🔄 PROCESSING MESSAGE END\n');
+                return { skip: true, reason: 'content_too_short' };
             }
 
             // Add to LLM queue for entity extraction
-            const entities = await llmQueue.add(async () => {
-                console.log('🤖 Starting LLM processing for message:', message.id);
-                return extractEntities(contentData, channelMapping);
-            });
+            let entities;
+            try {
+                entities = await llmQueue.add(async () => {
+                    console.log('🤖 Starting LLM processing for message:', message.id);
+                    return extractEntities(contentData, channelMapping);
+                });
+            } catch (error) {
+                console.log('❌ LLM Processing Error:', error.message);
+                return { skip: true, reason: 'llm_error' };
+            }
 
             if (!entities) {
                 return { skip: true, reason: 'no_entities' };
             }
 
-            // Generate embedding for similarity check (can run in parallel with LLM)
-            const embedding = await generateEmbedding(contentData.original);
+            // Generate embedding for similarity check
+            let embedding;
+            try {
+                embedding = await generateEmbedding(contentData.original);
+            } catch (error) {
+                console.log('❌ Embedding Error:', error.message);
+                return { skip: true, reason: 'embedding_error' };
+            }
             
             // Check similarity with existing messages
-            const similar = await findSimilarMessages(db, embedding);
-            if (similar.length > 0) {
-                return { skip: true, reason: 'duplicate' };
+            try {
+                const similar = await findSimilarMessages(db, embedding);
+                if (similar && similar.length > 0) {
+                    return { skip: true, reason: 'duplicate' };
+                }
+            } catch (error) {
+                console.log('❌ Similarity Check Error:', error.message);
+                return { skip: true, reason: 'similarity_error' };
             }
 
             // Only keep the basic channel mapping validation
