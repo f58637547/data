@@ -1,22 +1,23 @@
-import { getLLMResponse} from '../services/openai.mjs';
+import { getLLMResponse } from '../services/openai.mjs';
 import { cryptoTemplate } from './crypto.mjs';
 
+// Single template for all messages
 export async function loadTemplates() {
     return {
-        cryptoTemplate  // Single template for all channels
+        cryptoTemplate  // One template to rule them all
     };
 }
 
-export async function extractEntities(text, channelType, authorInfo = {}) {
+export async function extractEntities(contentData) {
     try {
-        // Use crypto template for all channels
+        // Always use crypto template - it handles all content types
         const template = cryptoTemplate;
         
         // Get LLM to parse content
         const response = await getLLMResponse(template, { 
-            message: text,
-            author: authorInfo.author || 'none',
-            rtAuthor: authorInfo.rtAuthor || 'none'
+            message: contentData.clean,    // Clean text for processing
+            author: contentData.author,
+            rtAuthor: contentData.rtAuthor
         });
 
         // Parse JSON from LLM response
@@ -24,26 +25,14 @@ export async function extractEntities(text, channelType, authorInfo = {}) {
             const content = response.choices[0].message.content;
             const jsonMatch = content.match(/```(?:json)?\n?(.*?)\n?```/s);
             const jsonString = jsonMatch ? jsonMatch[1] : content;
-            const parsed = JSON.parse(jsonString.trim());
-
-            // Set original text as headline
-            if (typeof text === 'object' && text.entities?.headline?.text) {
-                parsed.headline = {
-                    text: text.entities.headline.text
-                };
-            } else if (typeof text === 'string') {
-                parsed.headline = {
-                    text: text
-                };
-            }
-
-            console.log('Parsed content:', parsed);
-            return parsed;
+            return JSON.parse(jsonString.trim());
         } catch (parseError) {
+            console.error('Failed to parse LLM response:', parseError.message);
             throw new Error('Failed to parse LLM response');
         }
 
     } catch (error) {
-        throw error; // Pass error up for handling in processMessage
+        console.error('Entity extraction error:', error.message);
+        throw error;
     }
 }
