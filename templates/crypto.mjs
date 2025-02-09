@@ -1,6 +1,24 @@
 export const cryptoTemplate = `
 You are a crypto news data extractor. Extract information from messages into a JSON object.
-Never include instructions or template text in the output.
+CRITICAL FORMAT RULES:
+1. Output ONLY the JSON object - nothing else
+2. NO explanatory text
+3. NO code blocks or markdown
+4. NO "thinking out loud" about the extraction
+5. The output must be EXACTLY like this format (but with your extracted values):
+{
+    "headline": {"text": "..."},
+    "tokens": {"primary": {"symbol": "...", "related": []}},
+    "entities": {"projects": [], "persons": [], "locations": []},
+    "event": {
+        "category": "NEWS",
+        "subcategory": "FUNDAMENTAL",
+        "type": "LAUNCH",
+        "action": {"type": "LAUNCH", "direction": "NEUTRAL", "magnitude": "MEDIUM"}
+    },
+    "metrics": {"market": {}, "onchain": {}},
+    "context": {"impact": 50, "confidence": 85, "sentiment": {"market": 50, "social": 50}}
+}
 
 Message to analyze:
 {{message}}
