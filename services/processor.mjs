@@ -177,6 +177,13 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'content_too_short' };
             }
 
+            // Log what we extracted
+            console.log('\n=== Extracted Text ===');
+            console.log('Original:', contentData.original);
+            console.log('Clean:', contentData.clean);
+            console.log('Author:', contentData.author);
+            console.log('RT Author:', contentData.rtAuthor);
+
             // 2. Generate embedding and check similarity BEFORE LLM
             let embedding;
             try {
@@ -207,7 +214,26 @@ export async function processMessage({ message, db, channelMapping }) {
             let entities;
             try {
                 console.log('🤖 Starting LLM processing for message:', message.id);
-                entities = await extractEntities(contentData, channelMapping);
+                entities = await extractEntities(
+                    contentData.original,  // Original text with tickers
+                    null,
+                    {
+                        message: contentData.original,
+                        author: contentData.author || 'none',
+                        rtAuthor: contentData.rtAuthor || ''
+                    }
+                );
+
+                // Log what template got
+                console.log('\n=== Template Input ===');
+                console.log('Text:', contentData.original);
+                console.log('Author:', contentData.author || 'none');
+                console.log('RT:', contentData.rtAuthor || '');
+
+                // Log what template returned
+                console.log('\n=== Template Output ===');
+                console.log(JSON.stringify(entities, null, 2));
+
             } catch (error) {
                 console.log('❌ LLM Processing Error:', error.message);
                 return { skip: true, reason: 'llm_error' };

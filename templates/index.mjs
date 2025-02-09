@@ -1,7 +1,6 @@
 import { getLLMResponse } from '../services/openai.mjs';
 import { cryptoTemplate } from './crypto.mjs';
 
-// Single template for all content
 export async function loadTemplates() {
     return {
         cryptoTemplate
@@ -10,12 +9,22 @@ export async function loadTemplates() {
 
 export async function extractEntities(text, _, authorInfo = {}) {
     try {
+        // Log what we're sending to template
+        console.log('\n=== Sending to Template ===');
+        console.log('Text:', text);
+        console.log('Author:', authorInfo.author);
+        console.log('RT:', authorInfo.rtAuthor);
+
         // Get LLM to parse content
         const response = await getLLMResponse(cryptoTemplate, {
-            message: text,
+            message: text,  // This replaces {{message}} in template
             author: authorInfo.author || 'none',
             rtAuthor: authorInfo.rtAuthor || ''
         });
+
+        // Log LLM response before parsing
+        console.log('\n=== Raw LLM Response ===');
+        console.log(response.choices[0].message.content);
 
         // Parse JSON from LLM response
         try {
