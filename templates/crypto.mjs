@@ -62,13 +62,13 @@ EXTRACTION RULES:
    Input: {
      "entities": {
        "headline": {
-         "text": "https://t.co/123 Binance lists TST token"
+         "text": "Binance lists TST token"
        }
      }
    }
    Output:
    {
-     "headline": {"text": "https://t.co/123 Binance lists TST token"},
+     "headline": {"text": "Binance lists TST token"},
      "tokens": {"primary": {"symbol": "TST"}},
      "entities": {
        "projects": [{"name": "Binance", "type": "EXCHANGE"}],
@@ -193,76 +193,75 @@ IMPORTANT - HEADLINE HANDLING:
 
 IMPORTANT - SPAM DETECTION:
 
-1. Critical Categorization Rules:
-   ALWAYS set impact=0, confidence=0, sentiment={market:0,social:0} and skip categorization for:
-   
-   a. Promotional Content:
-   - Contest announcements and winners
-   - Referral codes/links
-   - Giveaways/airdrops without official source
-   - "Early access" or "limited time" offers
-   - Promises of returns/gains
-   - Affiliate/referral programs
-   - Unauthorized promotions
-   - Marketing announcements unrelated to crypto
-   - Event tickets/passes promotions
-   - Social media contests and rewards
-   - Gaming/sports betting promotions
-   
-   b. Low Quality Content:
-   - Generic greetings ("gm", "wagmi")
-   - Emoji-only messages
-   - Copy-pasted promotional text
-   - Invitation messages to join groups/channels
-   - Non-crypto related announcements
-   - Sports/gaming content without crypto context
-   - Social media engagement requests
-   - Personal updates/announcements
-   - Trading advice without specific tickers
-   - Market commentary without token symbols
-   - Personal opinions without price/token context
-   - Social media drama/personal posts
-   - Memes/jokes unrelated to specific tokens
-   
-   c. Trading Content Without Context:
-   - General trading advice without tickers
-   - Market commentary without specific tokens
-   - Position discussions without symbols
-   - Technical analysis without token names
-   - Trading psychology posts
-   - Generic market observations
-   
-   If ANY of these conditions are met:
-   - Set event_type to null
-   - Set category to null
-   - Set subcategory to null
-   - Set impact to 0
-   - Set confidence to 0
-   - Set sentiment to {market:0, social:0}
-   - Set tokens.primary.symbol to null
-   - Set tokens.primary.related to []
-   - Clear all entities (projects:[], persons:[], locations:[])
-
-2. Content Requirements (STRICTER):
-   Message MUST contain at least one of:
+1. MUST REJECT Message If NO:
    - Verified crypto token symbols ($BTC, ETH, etc)
-   - Specific price levels with token names
+   - Specific price/volume numbers with token names
+   - Exchange/protocol names (Binance, Uniswap, etc)
    - Trading positions with exact tokens
-   - Exchange actions with token pairs
-   - DeFi protocol interactions with tokens
-   
-   If none found, MUST set impact=0 and nullify all fields
+   - Market events (listings, delistings)
+   - DeFi protocol interactions
+   - Regulatory news about crypto
+   - On-chain metrics or transactions
 
-3. Spam Pattern Detection:
-   Check for these conceptual patterns:
-   - Promotional language (contests, offers, limited time)
-   - Marketing tactics (FOMO, urgency, exclusivity)
-   - Non-crypto entertainment (sports, gaming, betting)
-   - Social media engagement bait
-   - Personal/social content without market context
-   - Generic opinions without specific tokens/prices
+2. MUST REJECT These Types:
+   a) Social/Personal Content:
+   - Personal conversations/greetings
+   - Social media drama
+   - Food/lifestyle content
+   - Entertainment/memes without market context
+   - Personal updates/activities
+   - Non-crypto videos/images
    
-   Focus on the intent and context, not specific words
+   b) Low Quality Content:
+   - Single emoji messages
+   - "gm", "wagmi", etc
+   - Random links without context
+   - Copy-pasted promotional text
+   - Join channel/group invites
+   - Generic greetings
+   
+   c) Off-Topic Content:
+   - Gaming/sports without crypto context
+   - General tech news without crypto
+   - Politics without crypto impact
+   - Random videos/memes
+   - Personal opinions without market data
+
+3. REQUIRED Market Elements (MUST have at least ONE):
+   a) Token Identifiers:
+   - $SYMBOL or #SYMBOL format
+   - Official token names (Bitcoin, Ethereum)
+   - Token contract addresses
+   
+   b) Market Data:
+   - Specific prices (e.g. "BTC $45,000")
+   - Volume numbers
+   - Market cap figures
+   - Trading metrics
+   
+   c) Trading Activity:
+   - Long/short positions with tokens
+   - Entry/exit points with prices
+   - Trading pairs (BTC/USD)
+   - Exchange actions (listings)
+
+4. Auto-Nullify ALL Fields If:
+   - No crypto tokens mentioned
+   - No market/trading context
+   - No price/volume data
+   - Pure social/personal content
+   - Entertainment without market impact
+   
+   Set these to null/empty:
+   - event_type
+   - category  
+   - subcategory
+   - impact (set to 0)
+   - confidence (set to 0)
+   - sentiment (set to {market:0, social:0})
+   - tokens.primary.symbol
+   - tokens.primary.related
+   - entities (set to {projects:[], persons:[], locations:[]})
 
 IMPORTANT SYMBOL EXTRACTION RULES:
 1. PRIMARY TOKEN:

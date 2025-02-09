@@ -122,21 +122,36 @@ function extractTwitterUsername(text) {
     return null;
 }
 
-// Check similarity with vector search
+// Check similarity with vector search across all relevant tables
 async function findSimilarMessages(db, embedding, channelTable) {
     try {
+        // Query to check similarity in both tables
         const query = `
-            SELECT content, type,
-                   1 - (embedding <-> $1::vector) as vector_similarity
-            FROM ${channelTable}
-            WHERE type IN ('raw', 'post')
-            AND "createdAt" > NOW() - INTERVAL '48 hours'
-            AND 1 - (embedding <-> $1::vector) > 0.65
+            WITH combined_results AS (
+                SELECT content, type, table_name,
+                       1 - (embedding <-> $1::vector) as vector_similarity
+                FROM (
+                    SELECT content, type, 'crypto' as table_name, embedding
+                    FROM crypto
+                    WHERE "createdAt" > NOW() - INTERVAL '48 hours'
+                    UNION ALL
+                    SELECT content, type, 'trades' as table_name, embedding
+                    FROM trades 
+                    WHERE "createdAt" > NOW() - INTERVAL '48 hours'
+                    UNION ALL
+                    SELECT content, type, $2 as table_name, embedding
+                    FROM ${channelTable}
+                    WHERE "createdAt" > NOW() - INTERVAL '48 hours'
+                ) combined
+                WHERE 1 - (embedding <-> $1::vector) > 0.65
+            )
+            SELECT * FROM combined_results
             ORDER BY vector_similarity DESC
         `;
 
         const result = await db.query(query, [
-            `[${embedding.join(',')}]`  // Format as PostgreSQL array
+            `[${embedding.join(',')}]`,  // Format as PostgreSQL array
+            channelTable
         ]);
 
         if (result.rows.length > 0) {
@@ -144,6 +159,7 @@ async function findSimilarMessages(db, embedding, channelTable) {
                 matches: result.rows.map(row => ({
                     content: row.content.substring(0, 100) + '...',
                     type: row.type,
+                    table: row.table_name,
                     vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
                 }))
             });
