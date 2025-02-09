@@ -29,18 +29,20 @@ export async function extractEntities(text, _, authorInfo = {}) {
         // Parse JSON from LLM response
         try {
             const content = response.choices[0].message.content;
-            // Match valid JSON object, non-greedy to avoid capturing text between multiple objects
-            const jsonMatch = content.match(/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/);
-            if (!jsonMatch) {
-                throw new Error('No JSON object found in response');
+            // Find first complete JSON object
+            let depth = 0;
+            let start = content.indexOf('{');
+            if (start === -1) throw new Error('No JSON object found');
+            
+            for (let i = start; i < content.length; i++) {
+                if (content[i] === '{') depth++;
+                if (content[i] === '}') depth--;
+                if (depth === 0) {
+                    const json = content.slice(start, i + 1);
+                    return JSON.parse(json.trim());
+                }
             }
-            const json = jsonMatch[0].trim();
-            // Verify it's the only JSON object
-            const allMatches = content.match(/\{(?:[^{}]|(?:\{[^{}]*\}))*\}/g);
-            if (allMatches && allMatches.length > 1) {
-                throw new Error('Multiple JSON objects found in response');
-            }
-            return JSON.parse(json);
+            throw new Error('No complete JSON object found');
         } catch (parseError) {
             console.error('Failed to parse LLM response:', parseError.message);
             throw new Error('Failed to parse LLM response');
