@@ -122,6 +122,40 @@ function extractTwitterUsername(text) {
     return null;
 }
 
+// Check similarity with vector search
+async function findSimilarMessages(db, embedding, channelTable) {
+    try {
+        const query = `
+            SELECT content, type,
+                   1 - (embedding <-> $1::vector) as vector_similarity
+            FROM ${channelTable}
+            WHERE type IN ('raw', 'post')
+            AND "createdAt" > NOW() - INTERVAL '48 hours'
+            AND 1 - (embedding <-> $1::vector) > 0.65
+            ORDER BY vector_similarity DESC
+        `;
+
+        const result = await db.query(query, [
+            `[${embedding.join(',')}]`  // Format as PostgreSQL array
+        ]);
+
+        if (result.rows.length > 0) {
+            console.log('Similar content found:', {
+                matches: result.rows.map(row => ({
+                    content: row.content.substring(0, 100) + '...',
+                    type: row.type,
+                    vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
+                }))
+            });
+        }
+
+        return result.rows;
+    } catch (error) {
+        console.error('Error checking similarity:', error);
+        throw error;
+    }
+}
+
 export async function processMessage({ message, db, channelMapping }) {
     // Add to single global queue
     return messageQueue.add(async () => {
@@ -159,7 +193,7 @@ export async function processMessage({ message, db, channelMapping }) {
             
             // 3. Check similarity with existing messages
             try {
-                const similar = await findSimilarMessages(db, embedding);
+                const similar = await findSimilarMessages(db, embedding, channelMapping.table);
                 if (similar && similar.length > 0) {
                     console.log('Found similar messages:', similar.length);
                     return { skip: true, reason: 'duplicate' };
