@@ -218,10 +218,23 @@ IMPORTANT - SPAM DETECTION:
    - Sports/gaming content without crypto context
    - Social media engagement requests
    - Personal updates/announcements
+   - Trading advice without specific tickers
+   - Market commentary without token symbols
+   - Personal opinions without price/token context
+   - Social media drama/personal posts
+   - Memes/jokes unrelated to specific tokens
    
-   If ANY spam signals are detected:
-   - Set event_type to "NONE"
-   - Set category to "NONE"
+   c. Trading Content Without Context:
+   - General trading advice without tickers
+   - Market commentary without specific tokens
+   - Position discussions without symbols
+   - Technical analysis without token names
+   - Trading psychology posts
+   - Generic market observations
+   
+   If ANY of these conditions are met:
+   - Set event_type to null
+   - Set category to null
    - Set subcategory to null
    - Set impact to 0
    - Set confidence to 0
@@ -229,38 +242,27 @@ IMPORTANT - SPAM DETECTION:
    - Set tokens.primary.symbol to null
    - Set tokens.primary.related to []
    - Clear all entities (projects:[], persons:[], locations:[])
-   DO NOT try to categorize these - they should be filtered out
 
-2. Spam Detection Keywords:
-   Check for these promotional patterns:
-   - "contest winner"
-   - "congratulations"
-   - "stay tuned"
-   - "chance to win"
-   - "don't miss out"
-   - "limited time"
-   - "exclusive offer"
-   - "special access"
-   - "early bird"
-   - "sign up now"
-   - "join now"
-   - "click here"
-   - "super bowl"
-   - "march madness" 
-   - "sports betting"
-   - "gaming"
-   - "lottery"
-   
-3. Content Requirements:
+2. Content Requirements (STRICTER):
    Message MUST contain at least one of:
-   - Verified crypto token symbols
-   - Known crypto project names
-   - Blockchain addresses
-   - Crypto exchange names
-   - DeFi protocol names
-   - Crypto-specific terminology
+   - Verified crypto token symbols ($BTC, ETH, etc)
+   - Specific price levels with token names
+   - Trading positions with exact tokens
+   - Exchange actions with token pairs
+   - DeFi protocol interactions with tokens
    
-   If none found, treat as potential spam and validate carefully
+   If none found, MUST set impact=0 and nullify all fields
+
+3. Spam Pattern Detection:
+   Check for these conceptual patterns:
+   - Promotional language (contests, offers, limited time)
+   - Marketing tactics (FOMO, urgency, exclusivity)
+   - Non-crypto entertainment (sports, gaming, betting)
+   - Social media engagement bait
+   - Personal/social content without market context
+   - Generic opinions without specific tokens/prices
+   
+   Focus on the intent and context, not specific words
 
 IMPORTANT SYMBOL EXTRACTION RULES:
 1. PRIMARY TOKEN:
