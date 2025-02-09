@@ -250,6 +250,19 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('\n=== Template Output ===');
                 console.log(JSON.stringify(entities, null, 2));
 
+                // Check required fields
+                if (!entities?.event?.category) {
+                    console.log('❌ Rejected: Missing category');
+                    console.log('Message:', contentData.original);
+                    return { skip: true, reason: 'missing_category' };
+                }
+
+                if (!entities?.context?.impact || entities.context.impact <= 30) {
+                    console.log('❌ Rejected: Low impact score:', entities?.context?.impact);
+                    console.log('Message:', contentData.original);
+                    return { skip: true, reason: 'low_impact' };
+                }
+
             } catch (error) {
                 console.log('❌ LLM Processing Error:', error.message);
                 return { skip: true, reason: 'llm_error' };
@@ -257,6 +270,16 @@ export async function processMessage({ message, db, channelMapping }) {
 
             if (!entities) {
                 return { skip: true, reason: 'no_entities' };
+            }
+
+            // Check for duplicates
+            const similar = await findSimilarMessages(db, embedding, channelMapping.table);
+            if (similar.length > 0) {
+                console.log('❌ Found duplicate message:');
+                console.log('Original:', contentData.original);
+                console.log('Similar to:', similar[0].content);
+                console.log('Similarity:', similar[0].vector_similarity);
+                return { skip: true, reason: 'duplicate' };
             }
 
             // 5. Save to DB with embedding
