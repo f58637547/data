@@ -419,9 +419,6 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'no_entities' };
             }
 
-            // Store the embedding with the processed message
-            entities.embedding = embedding;
-
             // 1.1 Validate required fields after template
             console.log('\n=== Validating Required Fields ===');
             if (!entities?.event?.category) {
