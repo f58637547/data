@@ -16,17 +16,8 @@ HEADLINE:
 - Keep all URLs, emojis, and formatting intact
 
 SPAM DETECTION:
-1. MUST REJECT Message If NO:
-   - Verified crypto token symbols ($BTC, ETH, etc)
-   - Specific price/volume numbers with token names
-   - Exchange/protocol names (Binance, Uniswap, etc)
-   - Trading positions with exact tokens
-   - Market events (listings, delistings)
-   - DeFi protocol interactions
-   - Regulatory news about crypto
-   - On-chain metrics or transactions
 
-2. MUST REJECT These Types:
+. MUST REJECT These Types:
    a) Social/Personal Content:
    - Personal conversations/greetings
    - Social media drama
@@ -50,55 +41,29 @@ SPAM DETECTION:
    - Random videos/memes
    - Personal opinions without market data
 
-3. Auto-Nullify ALL Fields If:
-   - No crypto tokens mentioned
-   - No market/trading context
-   - No price/volume data
-   - Pure social/personal content
-   - Entertainment without market impact
+IMPORTANT - SYMBOL EXTRACTION RULES:
+1. Extract tokens from:
+   - $ prefixed symbols ($BTC, $ETH, etc)
+   - Token names in text (Bitcoin -> BTC)
+   - Trading pairs (BTC/USDT)
+   - Contract addresses if named
    
-   Set these to null/empty:
-   - event_type
-   - category  
-   - subcategory
-   - impact (set to 0)
-   - confidence (set to 0)
-   - sentiment (set to {market:0, social:0})
-   - tokens.primary.symbol
-   - tokens.primary.related
-   - entities (set to {projects:[], persons:[], locations:[]})
-
-SYMBOL:
-1. PRIMARY_TOKEN:
-   - Must be official symbol (e.g., BTC, ETH, USDT)
-   - Extract the MAIN symbol the post is about
-   - Remove $ prefix if present
+2. Token Format:
+   - Remove $ prefix
    - Convert to uppercase
-   - Don't assign random tokens when none are mentioned
-   - If no specific token is mentioned but content is about crypto in general, set symbol to null
+   - Use official symbol if known
+   - Keep as-is if uncertain
 
-   Primary Token Extraction by Category:
-   a) MARKET events:
-      - For PRICE/VOLUME: Token being traded/discussed
-      - For TRADE: Base token in the trading pair
-      - For POSITION: Token being positioned
+3. Primary vs Related:
+   PRIMARY_TOKEN:
+   - Main token being traded/discussed
+   - Must be uppercase symbol
+   - Required for market events
    
-   b) DATA events:
-      - For WHALE_MOVE: Token being transferred
-      - For METRICS: Token being measured
-      - For ONCHAIN: Token network being analyzed
-   
-   c) NEWS events:
-      - For DEVELOPMENT: Token/project being developed
-      - For PARTNERSHIPS: All involved tokens
-      - For GENERAL: Only if specifically about a token
-      - For REGULATORY: Affected tokens if mentioned
-      - Set to null for industry-wide news
-
-2. RELATED_TOKENS:
-   - Only include tokens explicitly mentioned
-   - Must be relevant to the main topic
-   - Leave empty if no related tokens mentioned
+   RELATED_TOKENS:
+   - Other tokens mentioned in context
+   - Must be uppercase symbols
+   - Optional array, can be empty
 
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
@@ -382,9 +347,9 @@ OUTPUT FORMAT:
             "related": ["RELATED_TOKENS"]
         }
     },
+    "event_type": "EVENT_TYPE",
     "category": "CATEGORY",
     "subcategory": "SUBCATEGORY",
-    "type": "EVENT_TYPE",
     "action": {
         "type": "ACTION_TYPE",
         "direction": "DIRECTION",
