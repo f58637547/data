@@ -180,58 +180,31 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('\n' + '='.repeat(80));
             console.log('🔄 PROCESSING MESSAGE START');
             console.log('='.repeat(80));
-            console.log('📝 Message Details:');
+
+            // Extract text and get content data
+            const contentData = extractDiscordText(message);
+            if (!contentData?.original) {
+                return { skip: true, reason: 'no_content' };
+            }
+
+            // Log extracted content
+            console.log('\n📝 Message Details:');
             console.log('  Channel:', channelMapping.table);
             console.log('  Message ID:', message.id);
             console.log('-'.repeat(80));
 
-            // 1. Extract text first
-            const contentData = extractDiscordText(message);
-            if (!contentData) {
-                console.log('='.repeat(80));
-                console.log('🔄 PROCESSING MESSAGE END\n');
-                return { skip: true, reason: 'content_too_short' };
-            }
-
-            // Log what we extracted
-            console.log('\n=== Extracted Text ===');
+            console.log('=== Extracted Text ===');
             console.log('Original:', contentData.original);
             console.log('Clean:', contentData.clean);
             console.log('Author:', contentData.author);
             console.log('RT Author:', contentData.rtAuthor);
 
-            // 2. Generate embedding and check similarity BEFORE LLM
-            let embedding;
-            try {
-                console.log('Generating embedding for text length:', contentData.original.length);
-                embedding = await generateEmbedding(contentData.original);
-                console.log('Embedding generated successfully:', {
-                    model: 'text-embedding-3-small',
-                    dimensions: embedding.length
-                });
-            } catch (error) {
-                console.log('❌ Embedding Error:', error.message);
-                return { skip: true, reason: 'embedding_error' };
-            }
-            
-            // 3. Check similarity with existing messages
-            try {
-                const similar = await findSimilarMessages(db, embedding, channelMapping.table);
-                if (similar && similar.length > 0) {
-                    console.log('Found similar messages:', similar.length);
-                    return { skip: true, reason: 'duplicate' };
-                }
-            } catch (error) {
-                console.log('❌ Similarity Check Error:', error.message);
-                return { skip: true, reason: 'similarity_error' };
-            }
-
-            // 4. Only if unique, process with LLM template
+            // 1. Process with LLM template first
             let entities;
             try {
                 console.log('🤖 Starting LLM processing for message:', message.id);
                 entities = await extractEntities(
-                    contentData.original,  // Original text with tickers
+                    contentData.original,
                     null,
                     {
                         message: contentData.original,
@@ -250,19 +223,6 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('\n=== Template Output ===');
                 console.log(JSON.stringify(entities, null, 2));
 
-                // Check required fields
-                if (!entities?.event?.category) {
-                    console.log('❌ Rejected: Missing category');
-                    console.log('Message:', contentData.original);
-                    return { skip: true, reason: 'missing_category' };
-                }
-
-                if (!entities?.context?.impact || entities.context.impact <= 30) {
-                    console.log('❌ Rejected: Low impact score:', entities?.context?.impact);
-                    console.log('Message:', contentData.original);
-                    return { skip: true, reason: 'low_impact' };
-                }
-
             } catch (error) {
                 console.log('❌ LLM Processing Error:', error.message);
                 return { skip: true, reason: 'llm_error' };
@@ -272,7 +232,36 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'no_entities' };
             }
 
-            // Check for duplicates
+            // 1.1 Validate required fields after template
+            if (!entities?.event?.category) {
+                console.log('❌ Rejected: Missing category');
+                console.log('Message:', contentData.original);
+                return { skip: true, reason: 'missing_category' };
+            }
+
+            if (!entities?.context?.impact || entities.context.impact <= 30) {
+                console.log('❌ Rejected: Low impact score:', entities?.context?.impact);
+                console.log('Message:', contentData.original);
+                return { skip: true, reason: 'low_impact' };
+            }
+
+            // 2. Generate embedding from processed headline
+            let embedding;
+            try {
+                // Use processed headline for similarity check
+                const textForEmbedding = entities.headline?.text || contentData.original;
+                console.log('Generating embedding for processed text:', textForEmbedding);
+                embedding = await generateEmbedding(textForEmbedding);
+                console.log('Embedding generated successfully:', {
+                    model: 'text-embedding-3-small',
+                    dimensions: embedding.length
+                });
+            } catch (error) {
+                console.log('❌ Embedding Error:', error.message);
+                return { skip: true, reason: 'embedding_error' };
+            }
+
+            // 3. Check similarity with existing messages
             const similar = await findSimilarMessages(db, embedding, channelMapping.table);
             if (similar.length > 0) {
                 console.log('❌ Found duplicate message:');
@@ -282,7 +271,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'duplicate' };
             }
 
-            // 5. Save to DB with embedding
+            // 4. Save to DB with embedding
             try {
                 await db.query(`
                     INSERT INTO ${channelMapping.table}
