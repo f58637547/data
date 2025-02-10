@@ -156,14 +156,21 @@ async function findSimilarMessages(db, embedding, channelTable) {
         ]);
 
         if (result.rows.length > 0) {
-            console.log('Similar content found:', {
-                matches: result.rows.map(row => ({
-                    content: row.content.substring(0, 100) + '...',
-                    type: row.type,
-                    table: row.table_name,
-                    vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
-                }))
-            });
+            console.log('\n=== Similar Content Found ===');
+            for (const row of result.rows) {
+                try {
+                    const content = JSON.parse(row.content);
+                    console.log(`Table: ${row.table_name}`);
+                    console.log(`Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
+                    console.log(`Content: ${content.original?.substring(0, 100) || content.headline?.substring(0, 100)}...`);
+                    console.log('-'.repeat(80));
+                } catch (e) {
+                    console.log(`Table: ${row.table_name}`);
+                    console.log(`Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
+                    console.log(`Content: ${row.content.substring(0, 100)}...`);
+                    console.log('-'.repeat(80));
+                }
+            }
             
             // If very similar content found (>90% similarity)
             const hasVerySimilar = result.rows.some(row => row.vector_similarity > 0.90);
@@ -171,6 +178,8 @@ async function findSimilarMessages(db, embedding, channelTable) {
                 console.log('❌ REJECTED - Nearly identical content found');
                 return { isDuplicate: true, matches: result.rows };
             }
+        } else {
+            console.log('✅ No similar content found');
         }
 
         return { isDuplicate: false, matches: result.rows };
