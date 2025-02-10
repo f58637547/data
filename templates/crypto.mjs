@@ -5,194 +5,17 @@ CRITICAL FORMAT RULES:
 2. NO explanatory text
 3. NO code blocks or markdown
 4. NO "thinking out loud" about the extraction
-5. The output must be EXACTLY like this format (but with your extracted values):
-{
-    "headline": {"text": "..."},
-    "tokens": {"primary": {"symbol": "...", "related": []}},
-    "entities": {"projects": [], "persons": [], "locations": []},
-    "event": {
-        "category": "NEWS",
-        "subcategory": "FUNDAMENTAL",
-        "type": "LAUNCH",
-        "action": {"type": "LAUNCH", "direction": "NEUTRAL", "magnitude": "MEDIUM"}
-    },
-    "metrics": {"market": {}, "onchain": {}},
-    "context": {"impact": 50, "confidence": 85, "sentiment": {"market": 50, "social": 50}}
-}
+5. Follow the OUTPUT FORMAT at the end of this template exactly
 
 Message to analyze:
 {{message}}
 
-IMPORTANT - MESSAGE STRUCTURE:
-The message object contains:
-{
-    "type": "raw",
-    "author": "username",
-    "rt_author": null,
-    "original": "raw text with URLs",
-    "entities": {
-        "headline": {
-            "text": "raw text with URLs"
-        }
-    }
-}
+HEADLINE:
+- Use the provided message text EXACTLY as is
+- NEVER modify the text (no cleaning/formatting)
+- Keep all URLs, emojis, and formatting intact
 
-EXTRACTION RULES:
-1. Use message.entities.headline.text for headline exactly
-2. Use message.original for raw text
-3. Extract entities from raw text:
-   - Token symbols ($BTC, #ETH, TST)
-   - Project names (Binance, Ripple)
-   - Person names (Brad)
-   - Locations (U.S.)
-
-4. Required Output Fields:
-   NEVER return null/empty/undefined for these fields:
-   - headline.text: Use message.entities.headline.text exactly
-   - tokens.primary.symbol: Must match token from text
-   - entities.projects[]: Must match projects from text
-   - event.category
-   - event.subcategory
-   - event.type
-   - event.action.type
-   - event.action.direction
-   - event.action.magnitude
-
-5. Example:
-   Input: {
-     "entities": {
-       "headline": {
-         "text": "Binance lists TST token"
-       }
-     }
-   }
-   Output:
-   {
-     "headline": {"text": "Binance lists TST token"},
-     "tokens": {"primary": {"symbol": "TST"}},
-     "entities": {
-       "projects": [{"name": "Binance", "type": "EXCHANGE"}],
-       "persons": [],
-       "locations": []
-     }
-   }
-
-IMPORTANT - TEXT ANALYSIS:
-1. The raw message contains:
-   - Original URLs
-   - Markdown links [text](url)
-   - Discord formatting
-   - Line breaks
-
-2. To analyze content:
-   a) First extract meaningful text:
-      - Remove URLs
-      - Extract text from markdown links [text](url) -> text
-      - Remove Discord formatting
-      - Clean whitespace
-   
-   b) Then analyze the cleaned text for:
-      - Token symbols ($BTC, #ETH)
-      - Project names (Ripple, Bitcoin)
-      - Person names (Brad Garlinghouse)
-      - Locations (U.S., Singapore)
-
-3. Required Fields:
-   NEVER return null/empty/undefined for these fields:
-   - tokens.primary.symbol
-   - entities.projects[]
-   - event.category
-   - event.subcategory
-   - event.type
-   - event.action.type
-   - event.action.direction
-   - event.action.magnitude
-
-IMPORTANT - MESSAGE ANALYSIS:
-1. First, analyze the message content:
-   - If message is an object, use message.entities.headline.text
-   - If message is a string, use the full message
-   - Look for URLs, markdown links, and text content
-   - Extract meaningful text for classification
-
-2. Entity Extraction:
-   a) Projects/Tokens:
-      - Look for $SYMBOL or #SYMBOL patterns
-      - Look for project names (e.g. Ripple, Bitcoin)
-      - Extract from markdown links [#Ripple](...)
-   
-   b) Persons:
-      - Look for full names with titles
-      - Look for crypto personalities
-      - Extract from quoted statements or announcements
-
-   c) Locations:
-      - Look for country names
-      - Look for region references
-      - Extract jurisdictions
-
-3. Event Classification:
-   For news about people/companies:
-   {
-     "tokens": {
-       "primary": {
-         "symbol": "XRP",  // For Ripple news
-         "related": []
-       }
-     },
-     "entities": {
-       "projects": [{
-         "name": "Ripple",
-         "type": "COMPANY",
-         "role": "primary"
-       }],
-       "persons": [{
-         "name": "Brad Garlinghouse",
-         "title": "CEO",
-         "org": "Ripple"
-       }],
-       "locations": [{
-         "name": "United States",
-         "type": "COUNTRY",
-         "context": "primary"
-       }]
-     },
-     "event": {
-       "category": "NEWS",
-       "subcategory": "FUNDAMENTAL",
-       "type": "POLICY",
-       "action": {
-         "type": "UPDATE",
-         "direction": "UP",
-         "magnitude": "LARGE"
-       }
-     },
-     "context": {
-       "impact": 80,
-       "confidence": 70,
-       "sentiment": {
-         "market": 65,
-         "social": 70
-       }
-     }
-   }
-
-IMPORTANT - HEADLINE HANDLING:
-1. Headline Field:
-   {
-     "headline": {
-       "text": "EXACT original message text, unmodified"
-     }
-   }
-   - NEVER modify the headline text
-   - NEVER clean or format the headline
-   - NEVER remove URLs, emojis, or formatting
-   - Use EXACTLY what is provided in message
-   - If message is an object, use message.entities.headline.text
-   - If message is a string, use the full message
-
-IMPORTANT - SPAM DETECTION:
-
+SPAM DETECTION:
 1. MUST REJECT Message If NO:
    - Verified crypto token symbols ($BTC, ETH, etc)
    - Specific price/volume numbers with token names
@@ -227,25 +50,7 @@ IMPORTANT - SPAM DETECTION:
    - Random videos/memes
    - Personal opinions without market data
 
-3. REQUIRED Market Elements (MUST have at least ONE):
-   a) Token Identifiers:
-   - $SYMBOL or #SYMBOL format
-   - Official token names (Bitcoin, Ethereum)
-   - Token contract addresses
-   
-   b) Market Data:
-   - Specific prices (e.g. "BTC $45,000")
-   - Volume numbers
-   - Market cap figures
-   - Trading metrics
-   
-   c) Trading Activity:
-   - Long/short positions with tokens
-   - Entry/exit points with prices
-   - Trading pairs (BTC/USD)
-   - Exchange actions (listings)
-
-4. Auto-Nullify ALL Fields If:
+3. Auto-Nullify ALL Fields If:
    - No crypto tokens mentioned
    - No market/trading context
    - No price/volume data
@@ -263,8 +68,8 @@ IMPORTANT - SPAM DETECTION:
    - tokens.primary.related
    - entities (set to {projects:[], persons:[], locations:[]})
 
-IMPORTANT SYMBOL EXTRACTION RULES:
-1. PRIMARY TOKEN:
+SYMBOL:
+1. PRIMARY_TOKEN:
    - Must be official symbol (e.g., BTC, ETH, USDT)
    - Extract the MAIN symbol the post is about
    - Remove $ prefix if present
@@ -290,575 +95,332 @@ IMPORTANT SYMBOL EXTRACTION RULES:
       - For REGULATORY: Affected tokens if mentioned
       - Set to null for industry-wide news
 
-2. RELATED TOKENS:
+2. RELATED_TOKENS:
    - Only include tokens explicitly mentioned
    - Must be relevant to the main topic
-   - Don't add exchange tokens unless specifically discussed
-   - Include trading pairs for TRADE events
-   - Include affected tokens for ecosystem events
    - Leave empty if no related tokens mentioned
 
-IMPORTANT ENTITY EXTRACTION RULES:
-1. Projects:
-   - Extract ALL mentioned crypto projects, protocols, or platforms
-   - Include full project names (e.g., "Bitcoin" not just "BTC")
-   - Mark primary project based on the main topic
-   - Include exchanges only when directly involved
-   - For partnerships/integrations, include all parties
-   - Don't add random projects not mentioned in text
-
-2. Persons:
-   - Extract mentioned individuals with their roles
-   - Include full names where available
-   - Only include relevant titles/organizations
-   - Don't add team members unless specifically mentioned
-   - Extract from quoted statements or announcements
-
-3. Locations:
-   - Only include locations directly relevant to the news
-   - Include countries for regulatory news
-   - Include cities for physical events/conferences
-   - Don't add exchange headquarters unless relevant
-   - Don't add random locations
-
-4. Events:
-   - Extract mentioned conferences, meetups, or launches
-   - Include dates if specified
-   - Include virtual/physical status if known
-   - Don't create events from regular updates
-
-CLASSIFICATION RULES:
-
-1. Every event must be classified with:
-   - category (MARKET, DATA, or NEWS)
-   - subcategory (must match allowed subcategories for the main category)
-   - type (must match allowed types for the category/subcategory)
-   - action (must match allowed actions for the category/subcategory)
-
-2. Valid Category Combinations:
-
-MARKET Events:
-  - When category = "MARKET":
-    Allowed subcategories:
-    a) PRICE
-       - Types: BREAKOUT, REVERSAL, SUPPORT, RESISTANCE, CONSOLIDATION, TREND, DIVERGENCE
-       - Actions: BREAK_UP, BREAK_DOWN, BOUNCE, RANGE, RECORD, DROP, RISE
-    
-    b) VOLUME
-       - Types: SPIKE, DECLINE, ACCUMULATION, DISTRIBUTION, IMBALANCE
-       - Actions: INCREASE, DECREASE, SURGE, DUMP
-    
-    c) TRADE
-       - Types: SPOT_ENTRY, FUTURES_ENTRY, LEVERAGE_ENTRY, HEDGE_POSITION, ARBITRAGE
-       - Actions: BUY, SELL, HOLD, ENTRY, EXIT, LIQUIDATE
-    
-    d) POSITION
-       - Types: TAKE_PROFIT, STOP_LOSS, POSITION_EXIT, LIQUIDATION
-       - Actions: OPEN, CLOSE, MODIFY, LIQUIDATE
-
-DATA Events:
-  - When category = "DATA":
-    Allowed subcategories:
-    a) WHALE_MOVE
-       - Types: LARGE_TRANSFER, ACCUMULATION, DISTRIBUTION
-       - Actions: DEPOSIT, WITHDRAW, TRANSFER
-    
-    b) FUND_FLOW
-       - Types: EXCHANGE_FLOW, BRIDGE_FLOW, PROTOCOL_FLOW
-       - Actions: INFLOW, OUTFLOW, BRIDGE, STAKE
-    
-    c) ONCHAIN
-       - Types: DEX_POOL, LIQUIDITY_POOL, NETWORK_METRICS, GAS_METRICS
-       - Actions: MINT, BURN, SWAP, UPGRADE, EXPLOIT
-
-NEWS Events:
-  - When category = "NEWS":
-    Allowed subcategories:
-    a) TECHNICAL
-       - Types: DEVELOPMENT, INFRASTRUCTURE, PROTOCOL, SECURITY, SCALING
-       - Actions: UPDATE, UPGRADE, RELEASE, FORK, OPTIMIZE, SECURE
-    
-    b) FUNDAMENTAL
-       - Types: LAUNCH, ETF_FILING, LISTING, DELISTING, INTEGRATION
-       - Actions: LAUNCH, EXPAND, ACQUIRE, INVEST, COLLABORATE, INTEGRATE
-    
-    c) REGULATORY
-       - Types: COMPLIANCE, POLICY, LEGAL, INVESTIGATION, LICENSE
-       - Actions: APPROVE, REJECT, INVESTIGATE, REGULATE, BAN, PERMIT
-    
-    d) SECURITY
-       - Types: HACK, EXPLOIT, RUGPULL, SCAM, VULNERABILITY
-       - Actions: HACK, EXPLOIT, MITIGATE, PATCH, RECOVER, COMPENSATE
-
-3. Action Properties:
-   Every action must include:
-   - type: One of the valid actions listed above
-   - direction: UP, DOWN, or NEUTRAL
-   - magnitude: SMALL, MEDIUM, or LARGE
-
-EXAMPLE CLASSIFICATIONS:
-
-1. Price Breakout Event:
-{
-    "category": "MARKET",
-    "subcategory": "PRICE",
-    "type": "BREAKOUT",
-    "action": {
-        "type": "BREAK_UP",
-        "direction": "UP",
-        "magnitude": "LARGE"
-    }
-}
-
-2. Whale Movement Event:
-{
-    "category": "DATA",
-    "subcategory": "WHALE_MOVE",
-    "type": "LARGE_TRANSFER",
-    "action": {
-        "type": "WITHDRAW",
-        "direction": "NEUTRAL",
-        "magnitude": "LARGE"
-    }
-}
-
-3. Regulatory News Event:
-{
-    "category": "NEWS",
-    "subcategory": "REGULATORY",
-    "type": "POLICY",
-    "action": {
-        "type": "APPROVE",
-        "direction": "UP",
-        "magnitude": "MEDIUM"
-    }
-}
-
-VALIDATION RULES:
-1. Category must be one of: MARKET, DATA, NEWS
-2. Subcategory must match the allowed subcategories for the chosen category
-3. Type must match the allowed types for the chosen category/subcategory
-4. Action type must match the allowed actions for the chosen category/subcategory
-5. Direction must be: UP, DOWN, or NEUTRAL
-6. Magnitude must be: SMALL, MEDIUM, or LARGE
-
-When classifying, always ensure all combinations are valid according to the above rules.
-
-EXTRACT MAIN ENTITIES:
+IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
+   PROJECT_NAME:
    - Must be officially recognized entity
    - Extract from direct mentions or context
+   - Include full project names (e.g., "Bitcoin" not just "BTC")
+   
+   PROJECT_TYPE:
+   - Must be one of: PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET
+   
+   PROJECT_ROLE:
+   - Must be: primary|related
    - For each category:
      * MARKET: Main trading venue/protocol
      * DATA: Platform where activity occurred
      * NEWS: Subject of the news/announcement
 
+IMPORTANT - PERSONS EXTRACTION RULES:
 2. Primary Person:
+   PERSON_NAME:
    - Must be named individual
    - Include full name when available
-   - For each category:
-     * MARKET: Key decision maker/analyst
-     * DATA: Platform representative
-     * NEWS: Main spokesperson/official
+   
+   PERSON_TITLE:
+   - Extract mentioned individuals with their roles
+   - Only include relevant titles
+   
+   ORGANIZATION:
+   - Organization name
+   - Don't add team members unless specifically mentioned
 
+IMPORTANT - LOCATION EXTRACTION RULES:
 3. Primary Location:
+   LOCATION_NAME:
    - Must be specific geographic location
    - Include jurisdiction level
+   - Only include locations directly relevant to the news
+   
+   LOCATION_TYPE:
+   - Must be one of: COUNTRY|REGION|CITY
+   
+   LOCATION_CONTEXT:
+   - Must be: primary|related
    - For each category:
      * MARKET: Main trading jurisdiction
      * DATA: Primary jurisdiction affected
      * NEWS: Main regulatory/event location
 
-EXAMPLES:
-
-1. Market Event:
-{
-    "entities": {
-        "projects": [{
-            "name": "Binance",
-            "type": "EXCHANGE",
-            "role": "primary"
-        }, {
-            "name": "Uniswap",
-            "type": "DEX",
-            "role": "related"
-        }],
-        "persons": [{
-            "name": "Changpeng Zhao",
-            "title": "CEO",
-            "org": "Binance"
-        }],
-        "locations": [{
-            "name": "Singapore",
-            "type": "COUNTRY",
-            "context": "primary"
-        }]
-    }
-}
-
-2. Data Event:
-{
-    "entities": {
-        "projects": [{
-            "name": "Aave",
-            "type": "PROTOCOL",
-            "role": "primary"
-        }],
-        "persons": [],
-        "locations": [{
-            "name": "European Union",
-            "type": "REGION",
-            "context": "primary"
-        }]
-    }
-}
-
-3. News Event:
-{
-    "entities": {
-        "projects": [{
-            "name": "SEC",
-            "type": "REGULATOR",
-            "role": "primary"
-        }, {
-            "name": "Ripple",
-            "type": "PROJECT",
-            "role": "related"
-        }],
-        "persons": [{
-            "name": "Gary Gensler",
-            "title": "Chairman",
-            "org": "SEC"
-        }],
-        "locations": [{
-            "name": "United States",
-            "type": "COUNTRY",
-            "context": "primary"
-        }]
-    }
-}
-
-VALIDATION RULES:
-1. All entity arrays must be present (can be empty)
-2. All required fields must be present for each entity
-3. Type and role fields must use exact enum values
-4. Use empty arrays when no entities are found
-5. Don't force extraction when entities are unclear
-
 METRICS EXTRACTION RULES:
-
 1. Market Metrics:
-   
+   NUMBER:
    a) PRICE:
       - Extract exact numerical value
-      - Remove currency symbols ($, €, etc.)
-      - Convert written numbers to digits
-      - Maintain original decimal precision
-      - Use null if price not mentioned
-      - Examples:
-        * "$42,500" → 42500
-        * "42.5K" → 42500
-        * "0.0012" → 0.0012
-
-   b) VOLUME:
-      - Extract 24h trading volume
       - Remove currency symbols
-      - Convert K/M/B to numbers:
-        * K = *1000
-        * M = *1000000
-        * B = *1000000000
-      - Round to whole numbers
-      - Use null if volume not mentioned
-      - Examples:
-        * "$1.2M" → 1200000
-        * "500K" → 500000
-        * "1.5B" → 1500000000
-
+      - Convert K/M/B to numbers
+   
+   b) VOLUME:
+      - Extract trading volume
+      - Convert to USD value
+      - Remove currency symbols
+   
    c) LIQUIDITY:
       - Extract available liquidity
-      - Convert all values to USD
+      - Convert to USD value
       - Remove currency symbols
-      - Round to whole numbers
-      - Use null if not mentioned
-      - Examples:
-        * "$50M pool" → 50000000
-        * "2.5M liquidity" → 2500000
-
+   
    d) VOLATILITY:
       - Extract as percentage
       - Remove % symbol
-      - Use decimal format (0-100)
-      - Use null if not mentioned
-      - Examples:
-        * "25% volatility" → 25
-        * "0.5 vol" → 0.5
+      - Use decimal format
 
 2. Onchain Metrics:
-
+   NUMBER:
    a) TRANSACTIONS:
       - Count of transactions
       - Convert K/M to numbers
-      - Use whole numbers only
-      - Use null if not mentioned
-      - Examples:
-        * "50K tx" → 50000
-        * "1.2M transactions" → 1200000
-
+   
    b) ADDRESSES:
       - Count of addresses
       - Convert K/M to numbers
-      - Use whole numbers only
-      - Use null if not mentioned
-      - Examples:
-        * "100K addresses" → 100000
-        * "2.5M wallets" → 2500000
 
-3. Metric Validation Rules:
-   - All metrics must be numbers or null
-   - No currency symbols in values
-   - No commas in numbers
-   - Use proper decimal places:
-     * Price: Keep original precision
-     * Volume: Whole numbers
-     * Liquidity: Whole numbers
-     * Volatility: Up to 2 decimals
-     * Transactions: Whole numbers
-     * Addresses: Whole numbers
+IMPORTANT - CLASSIFICATION EXTRACTION RULES:
+1. Every event must be classified with:
+   - CATEGORY (MARKET, DATA, or NEWS)
+   - SUBCATEGORY (must match allowed subcategories for the main category)
+   - EVENT_TYPE (must match allowed types for the category/subcategory)
+   - ACTION_TYPE (must match allowed actions for the category/subcategory)
 
-4. Examples:
+2. Valid Category Combinations:
 
-{
-    "metrics": {
-        "market": {
-            "price": 42500.50,        // Exact price with decimals
-            "volume": 1500000000,     // 1.5B converted to full number
-            "liquidity": 50000000,    // 50M converted to full number
-            "volatility": 25.5        // Percentage as decimal
-        },
-        "onchain": {
-            "transactions": 1200000,   // 1.2M transactions
-            "addresses": 500000       // 500K addresses
-        }
-    }
-}
+MARKET Events:
+  - When CATEGORY = "MARKET":
+    Allowed SUBCATEGORY values:
+    a) PRICE
+       - EVENT_TYPE: BREAKOUT, REVERSAL, SUPPORT, RESISTANCE, CONSOLIDATION, TREND, DIVERGENCE
+       - ACTION_TYPE: BREAK_UP, BREAK_DOWN, BOUNCE, RANGE, RECORD, DROP, RISE
+    
+    b) VOLUME
+       - EVENT_TYPE: SPIKE, DECLINE, ACCUMULATION, DISTRIBUTION, IMBALANCE
+       - ACTION_TYPE: INCREASE, DECREASE, SURGE, DUMP
+    
+    c) TRADE
+       - EVENT_TYPE: SPOT_ENTRY, FUTURES_ENTRY, LEVERAGE_ENTRY, HEDGE_POSITION, ARBITRAGE
+       - ACTION_TYPE: BUY, SELL, HOLD, ENTRY, EXIT, LIQUIDATE
+    
+    d) POSITION
+       - EVENT_TYPE: TAKE_PROFIT, STOP_LOSS, POSITION_EXIT, LIQUIDATION
+       - ACTION_TYPE: OPEN, CLOSE, MODIFY, LIQUIDATE
 
-{
-    "metrics": {
-        "market": {
-            "price": 0.0012,         // Small cap token price
-            "volume": 500000,        // 500K daily volume
-            "liquidity": null,       // Not mentioned
-            "volatility": 75         // 75% volatility
-        },
-        "onchain": {
-            "transactions": null,     // Not mentioned
-            "addresses": 1000000     // 1M addresses
-        }
-    }
-}
+DATA Events:
+  - When CATEGORY = "DATA":
+    Allowed SUBCATEGORY values:
+    a) WHALE_MOVE
+       - EVENT_TYPE: LARGE_TRANSFER, ACCUMULATION, DISTRIBUTION
+       - ACTION_TYPE: DEPOSIT, WITHDRAW, TRANSFER
+    
+    b) FUND_FLOW
+       - EVENT_TYPE: EXCHANGE_FLOW, BRIDGE_FLOW, PROTOCOL_FLOW
+       - ACTION_TYPE: INFLOW, OUTFLOW, BRIDGE, STAKE
+    
+    c) ONCHAIN
+       - EVENT_TYPE: DEX_POOL, LIQUIDITY_POOL, NETWORK_METRICS, GAS_METRICS
+       - ACTION_TYPE: MINT, BURN, SWAP, UPGRADE, EXPLOIT
+
+NEWS Events:
+  - When CATEGORY = "NEWS":
+    Allowed SUBCATEGORY values:
+    a) TECHNICAL
+       - EVENT_TYPE: DEVELOPMENT, INFRASTRUCTURE, PROTOCOL, SECURITY, SCALING
+       - ACTION_TYPE: UPDATE, UPGRADE, RELEASE, FORK, OPTIMIZE, SECURE
+    
+    b) FUNDAMENTAL
+       - EVENT_TYPE: LAUNCH, ETF_FILING, LISTING, DELISTING, INTEGRATION
+       - ACTION_TYPE: LAUNCH, EXPAND, ACQUIRE, INVEST, COLLABORATE, INTEGRATE
+    
+    c) REGULATORY
+       - EVENT_TYPE: COMPLIANCE, POLICY, LEGAL, INVESTIGATION, LICENSE
+       - ACTION_TYPE: APPROVE, REJECT, INVESTIGATE, REGULATE, BAN, PERMIT
+    
+    d) SECURITY
+       - EVENT_TYPE: HACK, EXPLOIT, RUGPULL, SCAM, VULNERABILITY
+       - ACTION_TYPE: HACK, EXPLOIT, MITIGATE, PATCH, RECOVER, COMPENSATE
+
+2. Action Properties:
+   Every action must include:
+   - type: One of the valid actions listed above
+   - direction: UP, DOWN, or NEUTRAL
+   - magnitude: SMALL, MEDIUM, or LARGE
+
+VALIDATION RULES:
+1. CATEGORY is REQUIRED and must be one of: MARKET|DATA|NEWS
+2. All entity arrays must be present (can be empty)
+3. All required fields must be present for each entity
+4. Type and role fields must use exact enum values
+5. Use empty arrays when no entities are found
+6. Don't force extraction when entities are unclear
+
+EVENT CLASSIFICATION RULES:
+1. Subcategory must match the allowed subcategories for the chosen category
+2. Type must match the allowed types for the category/subcategory
+3. Action type must match the allowed actions for the category/subcategory
+4. Direction must be: UP, DOWN, or NEUTRAL
+5. Magnitude must be: SMALL, MEDIUM, or LARGE
+
+When classifying, always ensure all combinations are valid according to the above rules.
 
 SCORING GUIDELINES:
+Impact Score (0-100):
+   Score ranges indicate event importance:
+   90-100: Critical events (major policy changes, critical hacks)
+   70-89: High impact (significant price moves, major partnerships)
+   50-69: Medium impact (protocol updates, notable trades)
+   30-49: Low impact (minor updates, small trades)
+   0-29: Minimal impact (routine updates, tiny moves)
 
-1. Impact Score Calculation (0-100):
-   Base Impact = Category Base + Subcategory Modifier + Impact Modifiers
+   NEWS events:
+   REGULATORY (70-100):
+   - LARGE: 90-100 (major policy change)
+   - MEDIUM: 80-89 (significant update)
+   - SMALL: 70-79 (minor update)
 
-   a) Category Base Scores:
-      NEWS: 40 base
-      - TECHNICAL: +10 (development updates, protocol changes)
-      - FUNDAMENTAL: +15 (partnerships, listings, acquisitions)
-      - REGULATORY: +20 (policy changes, compliance)
-      - SECURITY: +25 (breaches, vulnerabilities, fixes)
+   SECURITY (70-100):
+   - LARGE: 90-100 (critical vulnerability)
+   - MEDIUM: 80-89 (serious bug)
+   - SMALL: 70-79 (minor issue)
 
-      MARKET: 30 base
-      - PRICE: +20 (price movements >5%)
-      - VOLUME: +15 (volume changes >50%)
-      - TRADE: +10 (significant trades >$1M)
-      - POSITION: +5 (position changes)
+   FUNDAMENTAL (50-90):
+   - LARGE: 77-90 (major partnership)
+   - MEDIUM: 63-76 (notable update)
+   - SMALL: 50-62 (minor news)
 
-      DATA: 50 base
-      - WHALE_MOVE: +30 (moves >$1M)
-      - FUND_FLOW: +20 (significant fund movements)
-      - ONCHAIN: +15 (notable chain activity)
+   TECHNICAL (30-70):
+   - LARGE: 57-70 (major upgrade)
+   - MEDIUM: 43-56 (feature update)
+   - SMALL: 30-42 (minor fix)
 
-   b) Impact Modifiers:
-      Magnitude:
-      - LARGE: +20 (major market impact)
-      - MEDIUM: +10 (moderate impact)
-      - SMALL: +0 (minimal impact)
+   MARKET events:
+   PRICE (50-100):
+   - LARGE: 84-100 (>20% move)
+   - MEDIUM: 67-83 (10-20% move)
+   - SMALL: 50-66 (<10% move)
 
-      Market Cap:
-      - Top 10 coin: +10
-      - Top 50 coin: +5
-      - Others: +0
+   VOLUME (40-90):
+   - LARGE: 74-90 (>100% spike)
+   - MEDIUM: 57-73 (50-100% change)
+   - SMALL: 40-56 (<50% change)
 
-      Verification:
-      - Official source: +10
-      - Verified reporter: +5
-      - Unverified: +0
+   TRADE (30-80):
+   - LARGE: 64-80 (>$10M)
+   - MEDIUM: 47-63 ($1M-$10M)
+   - SMALL: 30-46 (<$1M)
 
-      Time Sensitivity:
-      - Breaking news: +10
-      - Recent (<6h): +5
-      - Older: +0
+   POSITION (30-70):
+   - LARGE: 57-70 (major position)
+   - MEDIUM: 43-56 (medium size)
+   - SMALL: 30-42 (small trade)
 
-2. Confidence Score Calculation (0-100):
-   Start at 100, subtract penalties:
+   DATA events:
+   WHALE_MOVE (50-100):
+   - LARGE: 84-100 (>$100M)
+   - MEDIUM: 67-83 ($10M-$100M)
+   - SMALL: 50-66 (<$10M)
 
-   Source Reliability:
-   - Unverified source: -30
-   - Anonymous source: -20
-   - Secondary source: -10
+   FUND_FLOW (40-90):
+   - LARGE: 74-90 (major flow)
+   - MEDIUM: 57-73 (medium flow)
+   - SMALL: 40-56 (minor flow)
 
-   Information Quality:
-   - Missing key details: -20
-   - Conflicting info: -25
-   - Unclear metrics: -15
-   - Speculation: -30
+   ONCHAIN (30-80):
+   - LARGE: 64-80 (significant activity)
+   - MEDIUM: 47-63 (notable activity)
+   - SMALL: 30-46 (minor activity)
 
-   Verification:
-   - Multiple sources: +10
-   - Official confirmation: +20
-   - On-chain proof: +15
+SENTIMENT SCORE RANGES (0-100):
 
-3. Market Sentiment Calculation (0-100):
-   Base: 50 points, add/subtract based on factors
+Market Sentiment:
+   BULLISH: 70-100
+   - Strong uptrend, high volume
+   - Major positive news
+   - Strong fundamentals
 
-   BULLISH Factors:
-   - Price increase >5%: +15
-   - Volume growth >50%: +10
-   - Positive development: +15
-   - Strong fundamentals: +10
-   - Technical breakout: +10
+   NEUTRAL: 40-69
+   - Sideways price action
+   - Mixed signals
+   - Normal activity
 
-   BEARISH Factors:
-   - Price decline >5%: -15
-   - Volume decrease >50%: -10
-   - Negative development: -15
-   - Weak fundamentals: -10
-   - Technical breakdown: -10
+   BEARISH: 0-39
+   - Strong downtrend
+   - Negative news
+   - Weak fundamentals
 
-4. Social Sentiment Calculation (0-100):
-   Base: 50 points, adjust based on signals
+Social Sentiment:
+   POSITIVE: 70-100
+   - High engagement
+   - Strong community growth
+   - Positive feedback
 
-   POSITIVE Signals (70-100):
-   - Growing community engagement: +15
-   - Active development: +15
-   - New partnerships: +10
-   - Positive user feedback: +10
-   - Strong social metrics: +20
+   NEUTRAL: 40-69
+   - Normal activity
+   - Mixed feedback
+   - Steady community
 
-   NEUTRAL Signals (40-70):
-   - Standard activity levels: +0
-   - Mixed community feedback: +0
-   - Normal development pace: +0
-   - Regular updates: +0
-   - Average engagement: +0
-
-   NEGATIVE Signals (0-40):
-   - Declining engagement: -15
-   - Development issues: -15
-   - Lost partnerships: -10
-   - User complaints: -10
-   - Poor social metrics: -20
-
-EXAMPLES:
-
-1. Major Market Event:
-{
-    "context": {
-        "impact": 85,  // Base(30) + PRICE(20) + LARGE(20) + Top10(10) + Breaking(10) - Unverified(-5)
-        "confidence": 90,  // Base(100) - Secondary(-10)
-        "sentiment": {
-            "market": 75,  // Base(50) + PriceUp(15) + Volume(10)
-            "social": 80   // Base(50) + Engagement(15) + Feedback(15)
-        }
-    }
-}
-
-2. Security Incident:
-{
-    "context": {
-        "impact": 95,  // Base(40) + SECURITY(25) + LARGE(20) + Top10(10)
-        "confidence": 85,  // Base(100) - Unclear(-15)
-        "sentiment": {
-            "market": 35,  // Base(50) - Decline(15)
-            "social": 30   // Base(50) - Concerns(20)
-        }
-    }
-}
-
-3. Regular Update:
-{
-    "context": {
-        "impact": 55,  // Base(40) + TECHNICAL(10) + SMALL(0) + Verified(5)
-        "confidence": 100, // Base(100) + Official(20) - Normalized(20)
-        "sentiment": {
-            "market": 50,  // Base(50), no significant change
-            "social": 60   // Base(50) + Regular(10)
-        }
-    }
-}
+   NEGATIVE: 0-39
+   - Low engagement
+   - Community decline
+   - Negative feedback
 
 VALIDATION RULES:
 1. All scores must be integers between 0 and 100
 2. Impact score cannot exceed 100 after all modifiers
-3. Confidence starts at 100 and can only be reduced
-4. Sentiment scores must align with event context
-5. All scoring components must be present
+3. Sentiment scores must align with event context
+4. All scoring components must be present
 
 OUTPUT FORMAT:
 {
-    "headline": {
-        "text": "exact original message"
-    },
+    "headline": "{{message}}",
     "tokens": {
         "primary": {
-            "symbol": "Main cryptocurrency symbol (e.g., BTC, ETH)",
-            "related": ["Array of related token symbols"]
+            "symbol": "PRIMARY_TOKEN",
+            "related": ["RELATED_TOKENS"]
         }
+    },
+    "category": "CATEGORY",
+    "subcategory": "SUBCATEGORY",
+    "type": "EVENT_TYPE",
+    "action": {
+        "type": "ACTION_TYPE",
+        "direction": "DIRECTION",
+        "magnitude": "MAGNITUDE"
     },
     "entities": {
         "projects": [{
-            "name": "Exact official project name",
-            "type": "One of: PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET",
-            "role": "Either: primary|related"
+            "name": "PROJECT_NAME",
+            "type": "PROJECT_TYPE",
+            "role": "PROJECT_ROLE"
         }],
         "persons": [{
-            "name": "Full person name",
-            "title": "Exact role/position",
-            "org": "Organization name"
+            "name": "PERSON_NAME",
+            "title": "PERSON_TITLE",
+            "org": "ORGANIZATION"
         }],
         "locations": [{
-            "name": "Location name",
-            "type": "One of: COUNTRY|REGION|CITY",
-            "context": "Either: primary|related"
+            "name": "LOCATION_NAME",
+            "type": "LOCATION_TYPE",
+            "context": "LOCATION_CONTEXT"
         }]
-    },
-   "event": {
-        "category": "One of: MARKET|DATA|NEWS",
-        "subcategory": "Must match allowed subcategories",
-        "type": "Must match allowed types",
-        "action": {
-            "type": "Must match allowed actions",
-            "direction": "One of: UP|DOWN|NEUTRAL",
-            "magnitude": "One of: SMALL|MEDIUM|LARGE"
-        }
     },
     "metrics": {
         "market": {
-            "price": "number",
-            "volume": "number",
-            "liquidity": "number",
-            "volatility": "number"
+            "price": "NUMBER",
+            "volume": "NUMBER",
+            "liquidity": "NUMBER",
+            "volatility": "NUMBER"
         },
         "onchain": {
-            "transactions": "number",
-            "addresses": "number"
+            "transactions": "NUMBER",
+            "addresses": "NUMBER"
         }
     },
     "context": {
         "impact": "0-100",
-        "confidence": "0-100",
         "sentiment": {
             "market": "0-100",
             "social": "0-100"

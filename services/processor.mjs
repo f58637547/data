@@ -233,29 +233,35 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             // 1.1 Validate required fields after template
+            console.log('\n=== Validating Required Fields ===');
             if (!entities?.event?.category) {
-                console.log('❌ Rejected: Missing category');
-                console.log('Message:', contentData.original);
+                console.log('❌ REJECTED - Missing Category:');
+                console.log('Original:', contentData.original);
+                console.log('Processed:', entities?.headline?.text);
                 return { skip: true, reason: 'missing_category' };
             }
 
             if (!entities?.context?.impact || entities.context.impact <= 30) {
-                console.log('❌ Rejected: Low impact score:', entities?.context?.impact);
-                console.log('Message:', contentData.original);
+                console.log('❌ REJECTED - Low Impact:');
+                console.log('Original:', contentData.original);
+                console.log('Processed:', entities?.headline?.text);
+                console.log('Impact Score:', entities?.context?.impact);
+                console.log('Category:', entities?.event?.category);
                 return { skip: true, reason: 'low_impact' };
             }
+
+            console.log('✅ Validation passed:');
+            console.log('Impact Score:', entities.context.impact);
+            console.log('Category:', entities.event.category);
 
             // 2. Generate embedding from processed headline
             let embedding;
             try {
                 // Use processed headline for similarity check
                 const textForEmbedding = entities.headline?.text || contentData.original;
-                console.log('Generating embedding for processed text:', textForEmbedding);
+                console.log('\n=== Checking Uniqueness ===');
+                console.log('Text being compared:', textForEmbedding);
                 embedding = await generateEmbedding(textForEmbedding);
-                console.log('Embedding generated successfully:', {
-                    model: 'text-embedding-3-small',
-                    dimensions: embedding.length
-                });
             } catch (error) {
                 console.log('❌ Embedding Error:', error.message);
                 return { skip: true, reason: 'embedding_error' };
@@ -264,12 +270,18 @@ export async function processMessage({ message, db, channelMapping }) {
             // 3. Check similarity with existing messages
             const similar = await findSimilarMessages(db, embedding, channelMapping.table);
             if (similar.length > 0) {
-                console.log('❌ Found duplicate message:');
-                console.log('Original:', contentData.original);
-                console.log('Similar to:', similar[0].content);
-                console.log('Similarity:', similar[0].vector_similarity);
+                console.log('❌ REJECTED - Duplicate Found:');
+                console.log('Current message:', entities.headline?.text);
+                console.log('Similar messages:');
+                for (const row of similar) {
+                    const content = JSON.parse(row.content);
+                    console.log(`- [${row.table_name}] ${content.entities?.headline?.text}`);
+                    console.log(`  Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
+                }
                 return { skip: true, reason: 'duplicate' };
             }
+
+            console.log('✅ Message is unique - proceeding to save');
 
             // 4. Save to DB with embedding
             try {
