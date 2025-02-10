@@ -203,12 +203,16 @@ function validateMetrics(metrics) {
     // Validate market metrics
     const market = metrics.market || {};
     const validMarketMetrics = ['price', 'volume', 'liquidity', 'volatility']
-        .every(key => market[key] === null || typeof market[key] === 'number');
+        .every(key => market[key] === null || market[key] === 0 || typeof market[key] === 'number');
 
     // Validate onchain metrics
     const onchain = metrics.onchain || {};
     const validOnchainMetrics = ['transactions', 'addresses']
-        .every(key => onchain[key] === null || typeof onchain[key] === 'number');
+        .every(key => onchain[key] === null || onchain[key] === 0 || typeof onchain[key] === 'number');
+
+    if (!validMarketMetrics || !validOnchainMetrics) {
+        console.warn('Invalid metrics:', { market, onchain });
+    }
 
     return validMarketMetrics && validOnchainMetrics;
 }
@@ -236,30 +240,27 @@ function validateContext(context) {
 // Create or update goal based on message content
 async function processGoal(db, entities, channelMapping) {
     try {
-        // Extract and validate required fields
-        const {
-            tokens: { primary: { symbol } },
-            event: { category, subcategory, type },
-            action,
-            entities: { projects, persons },
-            metrics,
-            context
-        } = entities;
+        // Check required fields for goal name
+        const symbol = entities.tokens?.primary?.symbol;
+        const category = entities.event?.category;
+        const type = entities.event?.type;
 
-        // Validate metrics and context
-        if (!validateMetrics(metrics)) {
-            console.warn('⚠️ Invalid metrics format:', metrics);
-            return;
-        }
-
-        if (!validateContext(context)) {
-            console.warn('⚠️ Invalid context format:', context);
+        if (!symbol || !category || !type) {
+            console.log('⚠️ Missing required fields for goal name, skipping:', { symbol, category, type });
             return;
         }
 
         // Create unique goal name
         const goalName = `${symbol}_${category}_${type}`.toUpperCase();
         
+        // Extract optional fields
+        const {
+            action,
+            entities: { projects = [], persons = [] } = {},
+            metrics = {},
+            context = {}
+        } = entities;
+
         // Find existing goal
         const existingGoal = await db.query(`
             SELECT id, objectives, status
@@ -273,34 +274,12 @@ async function processGoal(db, entities, channelMapping) {
             timestamp: new Date().toISOString(),
             symbol,
             category,
-            subcategory,
-            event_type: type,
-            action: {
-                type: action.type,
-                direction: action.direction,
-                magnitude: action.magnitude
-            },
-            projects: projects.map(p => p.name),
-            persons: persons.map(p => p.name),
-            metrics: {
-                market: {
-                    price: metrics.market?.price || null,
-                    volume: metrics.market?.volume || null,
-                    liquidity: metrics.market?.liquidity || null,
-                    volatility: metrics.market?.volatility || null
-                },
-                onchain: {
-                    transactions: metrics.onchain?.transactions || null,
-                    addresses: metrics.onchain?.addresses || null
-                }
-            },
-            context: {
-                impact: context.impact,
-                sentiment: {
-                    market: context.sentiment?.market || null,
-                    social: context.sentiment?.social || null
-                }
-            }
+            type,
+            action,
+            projects,
+            persons,
+            metrics,
+            context
         };
 
         if (existingGoal.rows.length > 0) {
