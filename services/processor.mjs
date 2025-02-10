@@ -261,6 +261,13 @@ async function processGoal(db, entities, channelMapping) {
             context = {}
         } = entities;
 
+        // Normalize impact score to number
+        if (typeof context.impact === 'string') {
+            context.impact = context.impact.toLowerCase() === 'low' ? 30 :
+                           context.impact.toLowerCase() === 'medium' ? 50 :
+                           context.impact.toLowerCase() === 'high' ? 80 : 50;
+        }
+
         // Find existing goal
         const existingGoal = await db.query(`
             SELECT id, objectives, status
