@@ -347,9 +347,11 @@ OUTPUT FORMAT:
             "related": ["RELATED_TOKENS"]
         }
     },
-    "event_type": "EVENT_TYPE",
-    "category": "CATEGORY",
-    "subcategory": "SUBCATEGORY",
+    "event": {
+        "category": "CATEGORY",          // MARKET, DATA, or NEWS
+        "subcategory": "SUBCATEGORY",    // From allowed subcategories
+        "type": "EVENT_TYPE"             // From allowed types
+    },
     "action": {
         "type": "ACTION_TYPE",
         "direction": "DIRECTION",
