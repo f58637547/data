@@ -189,6 +189,181 @@ async function findSimilarMessages(db, embedding, channelTable) {
     }
 }
 
+// Goal status transitions
+const GOAL_STATUS = {
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled'
+};
+
+// Validation rules for metrics and context
+function validateMetrics(metrics) {
+    if (!metrics) return false;
+    
+    // Validate market metrics
+    const market = metrics.market || {};
+    const validMarketMetrics = ['price', 'volume', 'liquidity', 'volatility']
+        .every(key => market[key] === null || typeof market[key] === 'number');
+
+    // Validate onchain metrics
+    const onchain = metrics.onchain || {};
+    const validOnchainMetrics = ['transactions', 'addresses']
+        .every(key => onchain[key] === null || typeof onchain[key] === 'number');
+
+    return validMarketMetrics && validOnchainMetrics;
+}
+
+function validateContext(context) {
+    if (!context) return false;
+
+    // Validate impact (0-100)
+    const validImpact = typeof context.impact === 'number' && 
+                       context.impact >= 0 && 
+                       context.impact <= 100;
+
+    // Validate sentiment
+    const sentiment = context.sentiment || {};
+    const validSentiment = ['market', 'social'].every(key => 
+        sentiment[key] === null || 
+        (typeof sentiment[key] === 'number' && 
+         sentiment[key] >= 0 && 
+         sentiment[key] <= 100)
+    );
+
+    return validImpact && validSentiment;
+}
+
+// Create or update goal based on message content
+async function processGoal(db, entities, channelMapping) {
+    try {
+        // Extract and validate required fields
+        const {
+            tokens: { primary: { symbol } },
+            event: { category, subcategory, type },
+            action,
+            entities: { projects, persons },
+            metrics,
+            context
+        } = entities;
+
+        // Validate metrics and context
+        if (!validateMetrics(metrics)) {
+            console.warn('⚠️ Invalid metrics format:', metrics);
+            return;
+        }
+
+        if (!validateContext(context)) {
+            console.warn('⚠️ Invalid context format:', context);
+            return;
+        }
+
+        // Create unique goal name
+        const goalName = `${symbol}_${category}_${type}`.toUpperCase();
+        
+        // Find existing goal
+        const existingGoal = await db.query(`
+            SELECT id, objectives, status
+            FROM goals 
+            WHERE name = $1 AND status = $2
+            LIMIT 1
+        `, [goalName, GOAL_STATUS.IN_PROGRESS]);
+
+        // Prepare objective from current message
+        const newObjective = {
+            timestamp: new Date().toISOString(),
+            symbol,
+            category,
+            subcategory,
+            event_type: type,
+            action: {
+                type: action.type,
+                direction: action.direction,
+                magnitude: action.magnitude
+            },
+            projects: projects.map(p => p.name),
+            persons: persons.map(p => p.name),
+            metrics: {
+                market: {
+                    price: metrics.market?.price || null,
+                    volume: metrics.market?.volume || null,
+                    liquidity: metrics.market?.liquidity || null,
+                    volatility: metrics.market?.volatility || null
+                },
+                onchain: {
+                    transactions: metrics.onchain?.transactions || null,
+                    addresses: metrics.onchain?.addresses || null
+                }
+            },
+            context: {
+                impact: context.impact,
+                sentiment: {
+                    market: context.sentiment?.market || null,
+                    social: context.sentiment?.social || null
+                }
+            }
+        };
+
+        if (existingGoal.rows.length > 0) {
+            const goal = existingGoal.rows[0];
+            
+            // Don't update completed or cancelled goals
+            if (goal.status !== GOAL_STATUS.IN_PROGRESS) {
+                console.log('⚠️ Goal is not in progress:', goalName);
+                return;
+            }
+
+            const objectives = JSON.parse(goal.objectives);
+            objectives.push(newObjective);
+
+            // Check if goal should be completed based on metrics/context
+            const shouldComplete = objectives.length >= 5 && 
+                                 objectives.some(obj => obj.metrics?.market?.price) &&
+                                 objectives.some(obj => obj.context?.impact >= 80);
+
+            await db.query(`
+                UPDATE goals 
+                SET objectives = $1,
+                    status = $2,
+                    "updatedAt" = CURRENT_TIMESTAMP
+                WHERE id = $3
+            `, [
+                JSON.stringify(objectives),
+                shouldComplete ? GOAL_STATUS.COMPLETED : GOAL_STATUS.IN_PROGRESS,
+                goal.id
+            ]);
+
+            console.log(`✅ Updated goal: ${goalName} (${shouldComplete ? 'Completed' : 'In Progress'})`);
+        } else {
+            // Create new goal
+            const description = `Tracking ${symbol} ${category.toLowerCase()} ${type.toLowerCase()} events`;
+            
+            await db.query(`
+                INSERT INTO goals (
+                    id,
+                    name,
+                    status,
+                    description,
+                    objectives,
+                    "roomId"
+                ) VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                uuidv4(),
+                goalName,
+                GOAL_STATUS.IN_PROGRESS,
+                description,
+                JSON.stringify([newObjective]),
+                channelMapping.roomId
+            ]);
+
+            console.log('✅ Created new goal:', goalName);
+        }
+
+    } catch (error) {
+        console.error('Error processing goal:', error);
+        // Don't throw - we don't want to fail message processing if goal fails
+    }
+}
+
 export async function processMessage({ message, db, channelMapping }) {
     // Add to single global queue
     return messageQueue.add(async () => {
@@ -309,6 +484,10 @@ export async function processMessage({ message, db, channelMapping }) {
                     }),
                     `[${embedding.join(',')}]`
                 ]);
+
+                // Process goal after saving message
+                await processGoal(db, entities, channelMapping);
+
             } catch (error) {
                 console.log('❌ Save Error:', error.message);
                 return { skip: true, reason: 'save_error' };
