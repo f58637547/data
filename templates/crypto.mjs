@@ -33,6 +33,11 @@ SPAM DETECTION:
    - Copy-pasted promotional text
    - Join channel/group invites
    - Generic greetings
+   - AMAs without market impact
+   - Sponsored/promotional content
+   - Marketing announcements
+   - Community fund updates
+   - Generic ecosystem posts
    
    c) Off-Topic Content:
    - Gaming/sports without crypto context
@@ -68,19 +73,31 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
    PROJECT_NAME:
-   - Must be officially recognized entity
-   - Extract from direct mentions or context
-   - Include full project names (e.g., "Bitcoin" not just "BTC")
+   - Must be specific named entity (not generic terms like "ecosystem", "platform", "network")
+   - Must be officially recognized project
+   - Extract from direct mentions
+   - Include full project names
+   - Reject if only generic description
    
    PROJECT_TYPE:
    - Must be one of: PROJECT|EXCHANGE|PROTOCOL|COMPANY|REGULATOR|DAO|DEX|DEFI|WALLET
+   - Must match actual project type
+   - Don't use generic types
    
    PROJECT_ROLE:
    - Must be: primary|related
    - For each category:
      * MARKET: Main trading venue/protocol
-     * DATA: Platform where activity occurred
+     * DATA: Platform where activity occurred  
      * NEWS: Subject of the news/announcement
+   - Don't use generic roles
+
+2. Project Validation:
+   - Reject if project name is generic term
+   - Reject if promotional/marketing content
+   - Reject if no market/trading impact
+   - Reject if duplicate of recent post
+   - Reject community/ecosystem updates without specific news
 
 IMPORTANT - PERSONS EXTRACTION RULES:
 2. Primary Person:

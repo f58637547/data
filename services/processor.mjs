@@ -133,24 +133,25 @@ async function findSimilarMessages(db, embedding, channelTable) {
                 FROM (
                     SELECT content, type, 'crypto' as table_name, embedding
                     FROM crypto
-                    WHERE "createdAt" > NOW() - INTERVAL '48 hours'
+                    WHERE "createdAt" > NOW() - INTERVAL '24 hours'
                     UNION ALL
                     SELECT content, type, 'trades' as table_name, embedding
                     FROM trades 
-                    WHERE "createdAt" > NOW() - INTERVAL '48 hours'
+                    WHERE "createdAt" > NOW() - INTERVAL '24 hours'
                     UNION ALL
                     SELECT content, type, $2 as table_name, embedding
                     FROM ${channelTable}
-                    WHERE "createdAt" > NOW() - INTERVAL '48 hours'
+                    WHERE "createdAt" > NOW() - INTERVAL '24 hours'
                 ) combined
-                WHERE 1 - (embedding <-> $1::vector) > 0.65
+                WHERE 1 - (embedding <-> $1::vector) > 0.85
             )
             SELECT * FROM combined_results
             ORDER BY vector_similarity DESC
+            LIMIT 5
         `;
 
         const result = await db.query(query, [
-            `[${embedding.join(',')}]`,  // Format as PostgreSQL array
+            `[${embedding.join(',')}]`,
             channelTable
         ]);
 
@@ -163,9 +164,16 @@ async function findSimilarMessages(db, embedding, channelTable) {
                     vector_sim: (row.vector_similarity * 100).toFixed(2) + '%'
                 }))
             });
+            
+            // If very similar content found (>90% similarity)
+            const hasVerySimilar = result.rows.some(row => row.vector_similarity > 0.90);
+            if (hasVerySimilar) {
+                console.log('❌ REJECTED - Nearly identical content found');
+                return { isDuplicate: true, matches: result.rows };
+            }
         }
 
-        return result.rows;
+        return { isDuplicate: false, matches: result.rows };
     } catch (error) {
         console.error('Error checking similarity:', error);
         throw error;
@@ -187,6 +195,22 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'no_content' };
             }
 
+            // Generate embedding and check similarity early
+            console.log('\n=== Checking Uniqueness ===');
+            let embedding;
+            try {
+                embedding = await generateEmbedding(contentData.original);
+                
+                // Check for similar content before processing
+                const similarityResult = await findSimilarMessages(db, embedding, channelMapping.table);
+                if (similarityResult.isDuplicate) {
+                    return { skip: true, reason: 'duplicate_content' };
+                }
+            } catch (error) {
+                console.error('Error generating embedding:', error);
+                return { skip: true, reason: 'embedding_error' };
+            }
+
             // Log extracted content
             console.log('\n📝 Message Details:');
             console.log('  Channel:', channelMapping.table);
@@ -199,7 +223,7 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('Author:', contentData.author);
             console.log('RT Author:', contentData.rtAuthor);
 
-            // 1. Process with LLM template first
+            // Process with LLM template
             let entities;
             try {
                 console.log('🤖 Starting LLM processing for message:', message.id);
@@ -232,6 +256,9 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'no_entities' };
             }
 
+            // Store the embedding with the processed message
+            entities.embedding = embedding;
+
             // 1.1 Validate required fields after template
             console.log('\n=== Validating Required Fields ===');
             if (!entities?.event?.category) {
@@ -253,35 +280,6 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('✅ Validation passed:');
             console.log('Impact Score:', entities.context.impact);
             console.log('Category:', entities.event.category);
-
-            // 2. Generate embedding from processed headline
-            let embedding;
-            try {
-                // Use processed headline for similarity check
-                const textForEmbedding = entities.headline?.text || contentData.original;
-                console.log('\n=== Checking Uniqueness ===');
-                console.log('Text being compared:', textForEmbedding);
-                embedding = await generateEmbedding(textForEmbedding);
-            } catch (error) {
-                console.log('❌ Embedding Error:', error.message);
-                return { skip: true, reason: 'embedding_error' };
-            }
-
-            // 3. Check similarity with existing messages
-            const similar = await findSimilarMessages(db, embedding, channelMapping.table);
-            if (similar.length > 0) {
-                console.log('❌ REJECTED - Duplicate Found:');
-                console.log('Current message:', entities.headline?.text);
-                console.log('Similar messages:');
-                for (const row of similar) {
-                    const content = JSON.parse(row.content);
-                    console.log(`- [${row.table_name}] ${content.entities?.headline?.text}`);
-                    console.log(`  Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
-                }
-                return { skip: true, reason: 'duplicate' };
-            }
-
-            console.log('✅ Message is unique - proceeding to save');
 
             // 4. Save to DB with embedding
             try {
