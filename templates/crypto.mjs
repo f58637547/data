@@ -15,6 +15,17 @@ HEADLINE:
 - NEVER modify the text (no cleaning/formatting)
 - Keep all URLs, emojis, and formatting intact
 
+SUMMARY:
+- Generate a concise 1-2 sentence summary based on:
+  1. Original message text
+  2. Extracted category, subcategory, and type
+  3. Action type, direction, and magnitude
+  4. Any relevant projects, persons, or locations
+  5. Include specific metrics if available
+- Format: "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] due to [EVENT] with [METRICS/CONTEXT]"
+- Example: "BTC price moved UP due to MARKET BREAKOUT with 15% volume increase"
+- Must be factual and based only on extracted data
+
 SPAM DETECTION:
 
 . MUST REJECT These Types:
@@ -358,6 +369,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
+    "summary": "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] due to [EVENT] with [METRICS/CONTEXT]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",

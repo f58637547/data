@@ -286,7 +286,8 @@ async function processGoal(db, entities, channelMapping) {
             projects,
             persons,
             metrics,
-            context
+            context,
+            summary: entities.summary
         };
 
         if (existingGoal.rows.length > 0) {
