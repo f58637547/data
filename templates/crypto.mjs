@@ -16,15 +16,25 @@ HEADLINE:
 - Keep all URLs, emojis, and formatting intact
 
 SUMMARY:
-- Generate a concise 1-2 sentence summary based on:
-  1. Original message text
-  2. Extracted category, subcategory, and type
-  3. Action type, direction, and magnitude
-  4. Any relevant projects, persons, or locations
-  5. Include specific metrics if available
-- Format: "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] due to [EVENT] with [METRICS/CONTEXT]"
-- Example: "BTC price moved UP due to MARKET BREAKOUT with 15% volume increase"
-- Must be factual and based only on extracted data
+- Generate a concise 1-2 sentence summary that MUST include:
+  1. PRIMARY_TOKEN (single token only, no pairs)
+  2. Event details: CATEGORY, SUBCATEGORY, TYPE
+  3. Action details: ACTION_TYPE, DIRECTION, MAGNITUDE
+  4. All extracted entities:
+     - PROJECTS with name, type, role
+     - PERSONS with name, title, org
+     - LOCATIONS with name, type, context
+  5. Any available METRICS (market/onchain)
+  6. Overall sentiment (market/social scores)
+  7. Important context from {{message}} embedded naturally
+
+- STRICT Format with embedded context: 
+  "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details] impact. Market sentiment: [MARKET_SCORE], Social: [SOCIAL_SCORE]"
+
+- Example: 
+  "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch and SEC approval in US regulatory context, following their spot ETF filing announcement. Market sentiment: 80, Social: 75"
+
+- Note: Organically blend {{message}} details with extracted entities to provide complete context while maintaining the structured format
 
 SPAM DETECTION:
 
@@ -75,6 +85,7 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
    - Main token being traded/discussed
    - Must be uppercase symbol
    - Required for market events
+   - Single token only, no pairs
    
    RELATED_TOKENS:
    - Other tokens mentioned in context
@@ -369,7 +380,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] due to [EVENT] with [METRICS/CONTEXT]",
+    "summary": "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details] impact. Market sentiment: [MARKET_SCORE], Social: [SOCIAL_SCORE]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
