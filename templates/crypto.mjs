@@ -261,11 +261,11 @@ NEWS Events:
 
    CRITICAL ACTION_TYPE RULES:
    * ALWAYS use exact type from category's allowed actions
-   * ALWAYS use uppercase (MONITOR not monitor)
-   * NEVER add special chars (.monitor -> MONITOR)
+   * ALWAYS use uppercase (BUY not buy)
+   * NEVER add special chars (.buy -> BUY)
    * NEVER use variations (trading -> TRADE)
    * NEVER make up new types
-   * Examples: .monitor -> MONITOR, Trading -> TRADE
+   * Examples: .buy -> BUY, trading -> TRADE
 
 VALIDATION RULES:
 1. CATEGORY is REQUIRED and must be one of: MARKET|DATA|NEWS
