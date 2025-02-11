@@ -86,6 +86,12 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
    - Must be uppercase symbol
    - Required for market events
    - Single token only, no pairs
+   - CRITICAL RULES:
+     * ALWAYS remove $ or # prefix
+     * ALWAYS use uppercase (BTC not btc)
+     * NEVER include pairs (BTC not BTC/USDT)
+     * NEVER include special chars (BTC not $BTC)
+     * Examples: $BTC -> BTC, #eth -> ETH
    
    RELATED_TOKENS:
    - Other tokens mentioned in context
@@ -252,6 +258,14 @@ NEWS Events:
    - type: One of the valid actions listed above
    - direction: UP, DOWN, or NEUTRAL
    - magnitude: SMALL, MEDIUM, or LARGE
+
+   CRITICAL ACTION_TYPE RULES:
+   * ALWAYS use exact type from category's allowed actions
+   * ALWAYS use uppercase (MONITOR not monitor)
+   * NEVER add special chars (.monitor -> MONITOR)
+   * NEVER use variations (trading -> TRADE)
+   * NEVER make up new types
+   * Examples: .monitor -> MONITOR, Trading -> TRADE
 
 VALIDATION RULES:
 1. CATEGORY is REQUIRED and must be one of: MARKET|DATA|NEWS
