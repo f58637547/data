@@ -441,10 +441,10 @@ OUTPUT FORMAT:
         }
     },
     "context": {
-        "impact": "0-100",
+        "impact": "NUMBER (single value 0-100)",
         "sentiment": {
-            "market": "0-100",
-            "social": "0-100"
+            "market": "NUMBER (single value 0-100)",
+            "social": "NUMBER (single value 0-100)"
         }
     }
 }
