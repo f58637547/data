@@ -92,7 +92,17 @@ function getRawMessageText(message) {
         }
     }
 
-    return textParts.join('\n').trim();
+    const text = textParts.join('\n').trim();
+
+    // Check if text is ONLY an image markdown link with no other content
+    const imageUrlRegex = /^\[.*?\]\(https?:\/\/.*?\.(png|jpg|jpeg|gif|webp)\)$/i;
+    if (imageUrlRegex.test(text)) {
+        console.log('❌ Skipping: Content is only an image link');
+        console.log('Text:', text);
+        return null;
+    }
+
+    return text;
 }
 
 // Get cleaned text from message (for content processing)
