@@ -29,7 +29,7 @@ SUMMARY:
   7. Important context from {{message}} embedded naturally
 
 - STRICT Format with embedded context: 
-  "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details] impact. Market sentiment: [MARKET_SCORE], Social: [SOCIAL_SCORE]"
+  "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details]"
 
 - Example: 
   "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch and SEC approval in US regulatory context, following their spot ETF filing announcement. Market sentiment: 80, Social: 75"
@@ -394,7 +394,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details] impact. Market sentiment: [MARKET_SCORE], Social: [SOCIAL_SCORE]",
+    "summary": "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
