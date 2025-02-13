@@ -15,26 +15,27 @@ HEADLINE:
 - NEVER modify the text (no cleaning/formatting)
 - Keep all URLs, emojis, and formatting intact
 
-SUMMARY:
-- Generate a concise 1-2 sentence summary that MUST include:
-  1. PRIMARY_TOKEN (single token only, no pairs)
-  2. Event details: CATEGORY, SUBCATEGORY, TYPE
-  3. Action details: ACTION_TYPE, DIRECTION, MAGNITUDE
-  4. All extracted entities:
-     - PROJECTS with name, type, role
-     - PERSONS with name, title, org
-     - LOCATIONS with name, type, context
-  5. Any available METRICS (market/onchain)
-  6. Overall sentiment (market/social scores)
-  7. Important context from {{message}} embedded naturally
+SUMMARY RULES:
+- Generate a complete summary that MUST include ALL components
+- NEVER skip or leave placeholders empty
+- ALWAYS include market/social sentiment scores
+- Format EXACTLY as shown:
+  "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [full context including ALL projects, persons, locations]"
 
-- STRICT Format with embedded context: 
-  "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details]"
+- REQUIRED Elements (ALL must be filled):
+  1. PRIMARY_TOKEN: Verified token symbol
+  2. ACTION_TYPE: Specific action (TRADE, INVEST, etc)
+  3. DIRECTION: Clear direction (UP, DOWN, NEUTRAL)
+  4. MAGNITUDE: Size (LARGE, MEDIUM, SMALL)
+  5. CATEGORY/SUBCATEGORY/TYPE: Specific event classification
+  6. ALL relevant entities with full details
+  7. Market and Social sentiment scores
 
-- Example: 
-  "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch and SEC approval in US regulatory context, following their spot ETF filing announcement. Market sentiment: 80, Social: 75"
+- Example Good Summary:
+  "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch (PROJECT: BlackRock, TYPE: COMPANY) and SEC approval (PROJECT: SEC, TYPE: REGULATOR) in US regulatory context (LOCATION: United States, TYPE: COUNTRY). Market sentiment: 80, Social: 75"
 
-- Note: Organically blend {{message}} details with extracted entities to provide complete context while maintaining the structured format
+- Example Bad Summary (DO NOT DO):
+  "$COINSHARES REGULATE NEUTRAL SMALL due to NEWS REGULATORY FUNDAMENTAL with projects [], persons [CEO of CoinShares], locations []"
 
 SPAM DETECTION:
 
@@ -396,7 +397,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [PROJECTS/PERSONS/LOCATIONS plus relevant {{message}} details]",
+    "summary": "[COMPLETE summary with ALL components as specified above]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
