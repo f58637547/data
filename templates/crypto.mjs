@@ -18,7 +18,7 @@ HEADLINE:
 SUMMARY RULES:
 - Generate a complete summary that MUST include ALL components
 - NEVER skip or leave placeholders empty
-- ALWAYS include market/social sentiment scores
+- NEVER include sentiment scores in summary text (they go in context object only)
 - Format EXACTLY as shown:
   "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [full context including ALL projects, persons, locations]"
 
@@ -32,10 +32,19 @@ SUMMARY RULES:
   7. Market and Social sentiment scores
 
 - Example Good Summary:
-  "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch (PROJECT: BlackRock, TYPE: COMPANY) and SEC approval (PROJECT: SEC, TYPE: REGULATOR) in US regulatory context (LOCATION: United States, TYPE: COUNTRY). Market sentiment: 80, Social: 75"
+  "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch (PROJECT: BlackRock, TYPE: COMPANY) and SEC approval (PROJECT: SEC, TYPE: REGULATOR) in US regulatory context (LOCATION: United States, TYPE: COUNTRY)"
 
 - Example Bad Summary (DO NOT DO):
   "$COINSHARES REGULATE NEUTRAL SMALL due to NEWS REGULATORY FUNDAMENTAL with projects [], persons [CEO of CoinShares], locations []"
+  "BTC TRADE UP LARGE due to MARKET PRICE with Binance. Market sentiment: 85, Social: 65" // NO sentiment scores in summary
+
+- Sentiment scores go ONLY in the context object:
+  "context": {
+    "sentiment": {
+      "market": 85,
+      "social": 65
+    }
+  }
 
 SPAM DETECTION:
 
