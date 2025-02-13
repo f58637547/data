@@ -70,9 +70,7 @@ SPAM DETECTION:
 IMPORTANT - SYMBOL EXTRACTION RULES:
 1. Extract tokens from:
    - $ prefixed symbols ($BTC, $ETH, etc)
-   - Token names in text (Bitcoin -> BTC)
-   - Trading pairs (BTC/USDT)
-   - Contract addresses if named
+   - Token names in text (Bitcoin -> BTC)d
    
 2. Token Format:
    - Remove $ prefix
@@ -91,12 +89,16 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
      * ALWAYS use uppercase (BTC not btc)
      * NEVER include pairs (BTC not BTC/USDT)
      * NEVER include special chars (BTC not $BTC)
+     * NEVER extract generic terms as tokens (memecoin, token, crypto)
+     * NEVER create tokens from unverified projects or scams
+     * ONLY extract verified tokens from major exchanges
      * Examples: $BTC -> BTC, #eth -> ETH
    
    RELATED_TOKENS:
    - Other tokens mentioned in context
    - Must be uppercase symbols
    - Optional array, can be empty
+   - Same validation rules as PRIMARY_TOKEN apply
 
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
