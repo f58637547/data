@@ -16,35 +16,32 @@ HEADLINE:
 - Keep all URLs, emojis, and formatting intact
 
 SUMMARY RULES:
-- Generate a complete summary that MUST include ALL components
-- NEVER skip or leave placeholders empty
-- NEVER include sentiment scores in summary text (they go in context object only)
-- Format EXACTLY as shown:
-  "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE] with [full context including ALL projects, persons, locations]"
-
-- REQUIRED Elements (ALL must be filled):
-  1. PRIMARY_TOKEN: Verified token symbol
-  2. ACTION_TYPE: Specific action (TRADE, INVEST, etc)
-  3. DIRECTION: Clear direction (UP, DOWN, NEUTRAL)
-  4. MAGNITUDE: Size (LARGE, MEDIUM, SMALL)
-  5. CATEGORY/SUBCATEGORY/TYPE: Specific event classification
-  6. ALL relevant entities with full details
-  7. Market and Social sentiment scores
+- Summary must have TWO parts:
+  1. STRUCTURED INFO: "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE]"
+  2. CONTENT SUMMARY: Clean summary of {{message}} without URLs/emojis
 
 - Example Good Summary:
-  "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock ETF launch (PROJECT: BlackRock, TYPE: COMPANY) and SEC approval (PROJECT: SEC, TYPE: REGULATOR) in US regulatory context (LOCATION: United States, TYPE: COUNTRY)"
+  "STRUCTURED: BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT
+   CONTENT: Bitcoin price surges above $50k as BlackRock ETF sees record inflows of $2.3B in first week of trading, making it the most successful ETF launch of 2024"
 
 - Example Bad Summary (DO NOT DO):
-  "$COINSHARES REGULATE NEUTRAL SMALL due to NEWS REGULATORY FUNDAMENTAL with projects [], persons [CEO of CoinShares], locations []"
-  "BTC TRADE UP LARGE due to MARKET PRICE with Binance. Market sentiment: 85, Social: 65" // NO sentiment scores in summary
+  1. "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock (PROJECT: BlackRock)" // Missing content summary
+  2. "Bitcoin price up due to ETF" // Missing structured format
 
-- Sentiment scores go ONLY in the context object:
-  "context": {
-    "sentiment": {
-      "market": 85,
-      "social": 65
-    }
-  }
+- REQUIRED Elements:
+  1. STRUCTURED part must have:
+     - PRIMARY_TOKEN (verified symbol)
+     - ACTION_TYPE (TRADE, INVEST, etc)
+     - DIRECTION (UP, DOWN, NEUTRAL)
+     - MAGNITUDE (LARGE, MEDIUM, SMALL)
+     - CATEGORY/SUBCATEGORY/TYPE
+  
+  2. CONTENT part must:
+     - Summarize key information from {{message}}
+     - Remove URLs, emojis, and special formatting
+     - Keep numbers, stats, and important details
+     - Include project names and relevant context
+     - Be clear and informative
 
 SPAM DETECTION:
 
@@ -406,7 +403,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "[COMPLETE summary with ALL components as specified above]",
+    "summary": "STRUCTURED: [structured format as above]\nCONTENT: [clean content summary of message]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
