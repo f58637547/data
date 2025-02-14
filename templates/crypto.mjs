@@ -21,12 +21,22 @@ HEADLINE & SUMMARY RULES:
      * Social media handles
      * Special formatting
 
-2. SUMMARY:
- - Keep ALL content and analysis but REMOVE:
+2. SUMMARY PREFIX FORMAT:
+   "[PRIMARY_TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] [CATEGORY] [EVENT_TYPE]"
+
+3. SUMMARY:
+   - Start with PREFIX using rules above
+   - Then add cleaned message text
+    Keep ALL content and analysis but REMOVE:
      * URLs and links
      * Emojis and special characters
      * Social media handles
      * Special formatting
+
+CRITICAL:
+- Use "-" when data not in message
+- Never make up token/price/volume
+- Keep metadata format but be honest about missing data
 
 SPAM DETECTION:
 
@@ -388,7 +398,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE CATEGORY EVENT_TYPE {{message}}",
+    "summary": "[PRIMARY_TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] [CATEGORY] [EVENT_TYPE] {{message}}",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
