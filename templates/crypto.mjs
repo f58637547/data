@@ -22,26 +22,11 @@ HEADLINE & SUMMARY RULES:
      * Special formatting
 
 2. SUMMARY:
-   MUST include in natural language:
-   * PRIMARY_TOKEN and main ACTION first
-   * Full event details and magnitude
-   * All key numbers and data points
-   * Market impact and context
-   * Related project/person details
-   
-   Format: "TOKEN does ACTION with DETAILS and CONTEXT"
-   Examples:
-   - "BTC breaks above $48k resistance as whale accumulation rises, volume spikes to $5B showing strong institutional demand"
-   - "ETH layer 2 adoption surges with Arbitrum reaching 2M daily transactions, TVL up 40% following Blackrock's integration"
-   - "USDC gains institutional adoption as Aston Martin F1 team signs major sponsorship deal with Coinbase, paid fully in stablecoin"
-
-   CRITICAL:
-   - NO mechanical formats
-   - NO category labels
-   - NO square brackets
-   - Keep ALL numbers exact
-   - Include ALL key details
-   - Write in clear news style
+ - Keep ALL content and analysis but REMOVE:
+     * URLs and links
+     * Emojis and special characters
+     * Social media handles
+     * Special formatting
 
 SPAM DETECTION:
 
@@ -403,7 +388,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "TOKEN does ACTION with DETAILS and CONTEXT",
+    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE CATEGORY EVENT_TYPE {{message}}",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
