@@ -13,21 +13,35 @@ CRITICAL FORMAT RULES:
 Message to analyze:
 {{message}}
 
-HEADLINE:
-- Keep ALL content and analysis but REMOVE:
-  * URLs and links
-  * Emojis and special characters
-  * Social media handles
-  * Special formatting
+HEADLINE & SUMMARY RULES:
+1. HEADLINE:
+   - Keep ALL content and analysis but REMOVE:
+     * URLs and links
+     * Emojis and special characters
+     * Social media handles
+     * Special formatting
 
-SUMMARY FORMAT:
-- Must be ONE LINE combining:
-  PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Complete analysis with ALL details]
-- Keep ALL content but REMOVE formatting:
-  * Keep all numbers, statistics, and comparisons
-  * Keep all theories and analysis
-  * Keep all examples and evidence
-  * Remove URLs, emojis, and special formatting
+2. SUMMARY:
+   MUST include in natural language:
+   * PRIMARY_TOKEN and main ACTION first
+   * Full event details and magnitude
+   * All key numbers and data points
+   * Market impact and context
+   * Related project/person details
+   
+   Format: "TOKEN does ACTION with DETAILS and CONTEXT"
+   Examples:
+   - "BTC breaks above $48k resistance as whale accumulation rises, volume spikes to $5B showing strong institutional demand"
+   - "ETH layer 2 adoption surges with Arbitrum reaching 2M daily transactions, TVL up 40% following Blackrock's integration"
+   - "USDC gains institutional adoption as Aston Martin F1 team signs major sponsorship deal with Coinbase, paid fully in stablecoin"
+
+   CRITICAL:
+   - NO mechanical formats
+   - NO category labels
+   - NO square brackets
+   - Keep ALL numbers exact
+   - Include ALL key details
+   - Write in clear news style
 
 SPAM DETECTION:
 
@@ -389,7 +403,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Complete analysis with ALL details]",
+    "summary": "TOKEN does ACTION with DETAILS and CONTEXT",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
