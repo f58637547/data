@@ -254,18 +254,27 @@ function validateMetrics(metrics) {
 function validateContext(context) {
     if (!context) return false;
 
+    // Normalize impact and sentiment scores to numbers
+    const normalizeScore = (score) => {
+        if (typeof score === 'string') {
+            return parseInt(score, 10) || 0;
+        }
+        return score || 0;
+    };
+
+    const impact = normalizeScore(context.impact);
+    const sentiment = {
+        market: normalizeScore(context.sentiment?.market),
+        social: normalizeScore(context.sentiment?.social)
+    };
+
     // Validate impact (0-100)
-    const validImpact = typeof context.impact === 'number' && 
-                       context.impact >= 0 && 
-                       context.impact <= 100;
+    const validImpact = impact >= 0 && impact <= 100;
 
     // Validate sentiment
-    const sentiment = context.sentiment || {};
     const validSentiment = ['market', 'social'].every(key => 
-        sentiment[key] === null || 
-        (typeof sentiment[key] === 'number' && 
-         sentiment[key] >= 0 && 
-         sentiment[key] <= 100)
+        sentiment[key] >= 0 && 
+        sentiment[key] <= 100
     );
 
     return validImpact && validSentiment;
@@ -294,11 +303,6 @@ async function processGoal(db, entities, channelMapping) {
             metrics = {},
             context = {}
         } = entities;
-
-        // Normalize impact score to number
-        const impact = typeof context.impact === 'string' ? 
-            parseInt(context.impact, 10) : 
-            (context.impact || 0);
 
         // Find existing goal
         const existingGoal = await db.query(`
@@ -352,8 +356,7 @@ async function processGoal(db, entities, channelMapping) {
             await db.query(`
                 UPDATE goals 
                 SET objectives = $1,
-                    status = $2,
-                    "updatedAt" = CURRENT_TIMESTAMP
+                    status = $2
                 WHERE id = $3
             `, [
                 JSON.stringify(objectives),

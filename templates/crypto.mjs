@@ -6,54 +6,40 @@ CRITICAL FORMAT RULES:
 3. NO code blocks or markdown
 4. NO "thinking out loud" about the extraction
 5. Follow the OUTPUT FORMAT at the end of this template exactly
+6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
 
 Message to analyze:
 {{message}}
 
 HEADLINE:
-- Use the provided message text EXACTLY as is
-- NEVER modify the text (no cleaning/formatting)
-- Keep all URLs, emojis, and formatting intact
+- Extract key information, entities and context
+- Remove URLs, emojis, and special formatting
+- Keep all important details: names, numbers, events
+- Make it clear and informative
 
-SUMMARY RULES:
-- Summary must be ONE LINE with both parts separated by ' | ':
-  "STRUCTURED: [token/action format] - [category/type] | CONTENT: [clean message summary]"
+SUMMARY FORMAT:
+- Must be ONE LINE combining:
+  [TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] - [CATEGORY] [TYPE] | [Full context with all entities and details]
+  Example: "BTC CRASH DOWN LARGE - MARKET WARNING | Kiyosaki warns of market crash and depression, oil companies cut jobs, economy contracting"
 
-- Example Good Summary:
-  "STRUCTURED: BTC INVEST UP LARGE - MARKET PRICE BREAKOUT | CONTENT: Bitcoin price surges above $50k as BlackRock ETF sees record inflows of $2.3B in first week of trading"
+BAD SUMMARIES (DO NOT DO):
+- Missing entities: "Bitcoin price down" 
+- Missing context: "BTC DOWN - MARKET"
+- Too formatted: "STRUCTURED: BTC | CONTENT: Price down"
+- With newlines or special chars
 
-- Example Bad Summary (DO NOT DO):
-  1. "STRUCTURED: BTC INVEST UP LARGE - MARKET PRICE BREAKOUT
-      CONTENT: Bitcoin price up" // NO newlines allowed
-  2. "BTC INVEST UP LARGE - MARKET PRICE BREAKOUT" // Missing content part
-  3. "Bitcoin price up due to ETF" // Missing structured part
-
-- REQUIRED Elements:
-  1. STRUCTURED part must have:
-     - PRIMARY_TOKEN (verified symbol)
-     - ACTION_TYPE (TRADE, INVEST, etc)
-     - DIRECTION (UP, DOWN, NEUTRAL)
-     - MAGNITUDE (LARGE, MEDIUM, SMALL)
-     - CATEGORY/SUBCATEGORY/TYPE
-  
-  2. CONTENT part must:
-     - Summarize key information from {{message}}
-     - Remove URLs, emojis, and special formatting
-     - Keep numbers, stats, and important details
-     - Include project names and relevant context
-     - Be clear and informative
-
-SUMMARY FORMAT RULES:
-1. NO special characters in summary except: letters, numbers, spaces, periods, commas, parentheses
-2. NO newlines or quotes in summary
-3. Use dash (-) between structured parts
-4. Use pipe (|) between structured and content
-5. Example good summary:
-   "STRUCTURED: BTC TRADE UP LARGE - MARKET PRICE BREAKOUT | CONTENT: Bitcoin price hits 52k after BlackRock ETF launch with 2.3B inflows"
-6. Example bad summary:
-   "BTC TRADE UP\nLARGE" // NO newlines
-   "BTC "TRADE" UP" // NO quotes
-   "BTC (TRADE) UP" // NO special formatting
+REQUIRED in summary:
+1. Token (BTC, ETH)
+2. Action (CRASH, PUMP, WARN)
+3. Direction (UP, DOWN)
+4. Magnitude (LARGE, MEDIUM, SMALL) 
+5. Category (MARKET, NEWS, TECH)
+6. Type (WARNING, PRICE, ADOPTION)
+7. Full context with:
+   - All key entities (people, companies)
+   - Important numbers and stats
+   - Critical events and impacts
+   - Clear cause-effect relationships
 
 SPAM DETECTION:
 
@@ -415,7 +401,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "STRUCTURED: [token] [action] [direction] [magnitude] - [category] [type] | CONTENT: [single line text]",
+    "summary": "[TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] - [CATEGORY] [TYPE] | [Full context with all entities and details]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
@@ -462,10 +448,10 @@ OUTPUT FORMAT:
         }
     },
     "context": {
-        "impact": "NUMBER (single value 0-100)",
+        "impact": "NUMBER",
         "sentiment": {
-            "market": "NUMBER (single value 0-100)",
-            "social": "NUMBER (single value 0-100)"
+            "market": "NUMBER",
+            "social": "NUMBER"
         }
     }
 }
