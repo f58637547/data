@@ -138,7 +138,7 @@ async function findSimilarMessages(db, embedding, channelTable) {
         // Query to check similarity in both tables
         const query = `
             WITH combined_results AS (
-                SELECT content, type, table_name,
+                SELECT content::text, type, table_name,
                        1 - (embedding <-> $1::vector) as vector_similarity
                 FROM (
                     SELECT content, type, 'crypto' as table_name, embedding
@@ -160,6 +160,11 @@ async function findSimilarMessages(db, embedding, channelTable) {
             LIMIT 5
         `;
 
+        // Log the query and params for debugging
+        console.log('Running similarity query with params:');
+        console.log('Embedding:', embedding.length, 'dimensions');
+        console.log('Channel table:', channelTable);
+
         const result = await db.query(query, [
             `[${embedding.join(',')}]`,
             channelTable
@@ -169,17 +174,36 @@ async function findSimilarMessages(db, embedding, channelTable) {
             console.log('\n=== Similar Content Found ===');
             for (const row of result.rows) {
                 try {
-                    const content = JSON.parse(row.content);
+                    // Handle both string and object content
+                    let content = row.content;
+                    if (typeof content === 'string') {
+                        try {
+                            content = JSON.parse(content);
+                        } catch (parseError) {
+                            // If can't parse, use as is
+                            console.log(`Table: ${row.table_name}`);
+                            console.log(`Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
+                            console.log(`Content: ${content.substring(0, 100)}...`);
+                            continue;
+                        }
+                    }
+
+                    // Now content is definitely an object
                     console.log(`Table: ${row.table_name}`);
                     console.log(`Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
-                    console.log(`Content: ${content.original?.substring(0, 100) || content.headline?.substring(0, 100)}...`);
-                    console.log('-'.repeat(80));
+                    
+                    // Try to get displayable content
+                    const displayContent = content.original || content.headline || 
+                        (typeof content === 'string' ? content : JSON.stringify(content));
+                    console.log(`Content: ${displayContent.substring(0, 100)}...`);
+                    
                 } catch (e) {
+                    // Last resort fallback
                     console.log(`Table: ${row.table_name}`);
                     console.log(`Similarity: ${(row.vector_similarity * 100).toFixed(2)}%`);
-                    console.log(`Content: ${row.content.substring(0, 100)}...`);
-                    console.log('-'.repeat(80));
+                    console.log(`Content: [Failed to parse content]`);
                 }
+                console.log('-'.repeat(80));
             }
             
             // If very similar content found (>90% similarity)

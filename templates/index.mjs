@@ -17,43 +17,43 @@ export async function extractEntities(text, _, authorInfo = {}) {
 
         // Get LLM to parse content
         const response = await getLLMResponse(cryptoTemplate, {
-            message: text,  // This replaces {{message}} in template
+            message: text,
             author: authorInfo.author || 'none',
             rtAuthor: authorInfo.rtAuthor || ''
         });
 
-        // Log LLM response before parsing
+        // Log raw response
         console.log('\n=== Raw LLM Response ===');
         console.log(response.choices[0].message.content);
 
-        // Parse JSON from LLM response
+        // Get raw response and clean it
+        const rawContent = response.choices[0].message.content;
+        
+        // Find the JSON object
+        const match = rawContent.match(/\{[\s\S]*\}/);
+        if (!match) {
+            console.error('Raw content:', rawContent);
+            throw new Error('No JSON object found in response');
+        }
+
+        // Clean up the JSON string - replace newlines and normalize spaces
+        const jsonStr = match[0]
+            .replace(/\n\s*/g, ' ')  // Replace newlines and following spaces with a single space
+            .replace(/\s+/g, ' ')    // Normalize multiple spaces to single space
+            .trim();                 // Remove leading/trailing whitespace
+
         try {
-            const content = response.choices[0].message.content;
+            const parsed = JSON.parse(jsonStr);
             
-            // Clean up the content before parsing
-            const cleanContent = content
-                .replace(/\n/g, ' ') // Replace newlines with spaces
-                .replace(/\s+/g, ' ') // Normalize whitespace
-                .trim(); // Remove leading/trailing whitespace
-
-            // Find the JSON object
-            const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
-                throw new Error('No JSON object found');
-            }
-
-            // Parse the cleaned JSON
-            const parsedJson = JSON.parse(jsonMatch[0]);
-
-            // Additional validation
-            if (!parsedJson.summary || typeof parsedJson.summary !== 'string') {
-                throw new Error('Invalid summary format');
-            }
-
-            return parsedJson;
-
+            // Log the parsed result
+            console.log('\n=== Parsed Result ===');
+            console.log(JSON.stringify(parsed, null, 2));
+            
+            return parsed;
         } catch (parseError) {
             console.error('Failed to parse LLM response:', parseError.message);
+            console.error('Raw content:', rawContent);
+            console.error('Cleaned JSON:', jsonStr);
             throw new Error('Failed to parse LLM response');
         }
 
