@@ -7,36 +7,9 @@ CRITICAL FORMAT RULES:
 4. NO text outside the JSON structure
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
-7. KEEP ALL NUMBERS EXACTLY AS THEY APPEAR - never summarize or round numbers
-8. NEVER include URLs, links, emojis, or special formatting in headline or summary
 
 Message to analyze:
 {{message}}
-
-HEADLINE & SUMMARY RULES:
-1. HEADLINE:
-   - Keep ALL content and analysis but REMOVE:
-     * URLs and links
-     * Emojis and special characters
-     * Social media handles
-     * Special formatting
-
-2. SUMMARY PREFIX FORMAT:
-   "[PRIMARY_TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] [CATEGORY] [EVENT_TYPE]"
-
-3. SUMMARY:
-   - Start with PREFIX using rules above
-   - Then add cleaned message text
-    Keep ALL content and analysis but REMOVE:
-     * URLs and links
-     * Emojis and special characters
-     * Social media handles
-     * Special formatting
-
-CRITICAL:
-- Use "-" when data not in message
-- Never make up token/price/volume
-- Keep metadata format but be honest about missing data
 
 SPAM DETECTION:
 
@@ -72,7 +45,7 @@ SPAM DETECTION:
 IMPORTANT - SYMBOL EXTRACTION RULES:
 1. Extract tokens from:
    - $ prefixed symbols ($BTC, $ETH, etc)
-   - Token names in text (Bitcoin -> BTC)d
+   - Token names in text (Bitcoin -> BTC)
    
 2. Token Format:
    - Remove $ prefix
@@ -398,7 +371,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "[PRIMARY_TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] [CATEGORY] [EVENT_TYPE] {{message}}",
+    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE CATEGORY EVENT_TYPE {{message}}",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",

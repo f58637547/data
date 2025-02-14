@@ -115,6 +115,7 @@ function getMessageText(message) {
         .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links but keep text
         .replace(/\[\s*[↧⬇️]\s*\]\s*\(\s*\)/g, '')  // Remove empty markdown links with arrows
         .replace(/<:[^>]+>/g, '')  // Remove Discord emotes
+        .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|\p{Extended_Pictographic}/gu, '')  // Remove all emojis
         .replace(/\s+/g, ' ')  // Normalize whitespace
         .trim();
 }
@@ -450,10 +451,10 @@ export async function processMessage({ message, db, channelMapping }) {
             try {
                 console.log('🤖 Starting LLM processing for message:', message.id);
                 entities = await extractEntities(
-                    contentData.original,
+                    contentData.clean,  // Use clean text for analysis
                     null,
                     {
-                        message: contentData.original,
+                        message: contentData.clean,  // Pass clean text to template
                         author: contentData.author || 'none',
                         rtAuthor: contentData.rtAuthor || ''
                     }
@@ -470,7 +471,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
                 // Log what template got
                 console.log('\n=== Template Input ===');
-                console.log('Text:', contentData.original);
+                console.log('Text:', contentData.clean);  // Log clean text
                 console.log('Author:', contentData.author || 'none');
                 console.log('RT:', contentData.rtAuthor || '');
 
