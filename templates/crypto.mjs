@@ -1,10 +1,10 @@
 export const cryptoTemplate = `
 You are a crypto news data extractor. Extract information from messages into a JSON object.
 CRITICAL FORMAT RULES:
-1. Output ONLY the JSON object - nothing else
-2. NO explanatory text
-3. NO code blocks or markdown
-4. NO "thinking out loud" about the extraction
+1. Output ONLY valid JSON - nothing else
+2. NO explanatory text or markdown
+3. NO special tokens like <|eom_id|> or <|start_header_id|>
+4. NO text outside the JSON structure
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
 7. KEEP ALL NUMBERS EXACTLY AS THEY APPEAR - never summarize or round numbers
