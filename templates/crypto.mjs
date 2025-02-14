@@ -14,26 +14,20 @@ Message to analyze:
 {{message}}
 
 HEADLINE:
-- Extract key information and context
-- REMOVE ALL:
-  * URLs and links (e.g., linktr.ee/*, https://*) 
-  * Emojis (e.g., 🚀, 💎)
-  * Special formatting ([text], *text*, _text_)
-  * Social media handles (@name)
-- Keep only: plain text, numbers, dates, company names
-- Example bad: "Check linktr.ee/xyz 🚀 [Latest update]"
-- Example good: "Collab Land leads token gating since May 2020"
+- Keep ALL content and analysis but REMOVE:
+  * URLs and links
+  * Emojis and special characters
+  * Social media handles
+  * Special formatting
 
 SUMMARY FORMAT:
 - Must be ONE LINE combining:
-  PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Clean context with exact numbers]
-- REMOVE ALL:
-  * URLs and links
-  * Emojis
-  * Special formatting
-  * Social media handles
-- Example bad: "BTC DIG - MARKET BREAKOUT - linktr.ee/xyz [Click here]"
-- Example good: "BTC DIG UP LARGE - MARKET BREAKOUT - Token gating leader since May 2020"
+  PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Complete analysis with ALL details]
+- Keep ALL content but REMOVE formatting:
+  * Keep all numbers, statistics, and comparisons
+  * Keep all theories and analysis
+  * Keep all examples and evidence
+  * Remove URLs, emojis, and special formatting
 
 SPAM DETECTION:
 
@@ -395,7 +389,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Clean context with exact numbers]",
+    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Complete analysis with ALL details]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
