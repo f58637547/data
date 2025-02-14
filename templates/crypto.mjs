@@ -42,37 +42,45 @@ SPAM DETECTION:
    - Personal opinions without market data
 
 IMPORTANT - SYMBOL EXTRACTION RULES:
-1. Extract tokens from:
-   - $ prefixed symbols ($BTC, $ETH, etc)
-   - Token names in text (Bitcoin -> BTC)
+1. ONLY extract token if EXPLICITLY marked in text:
+   - With $ prefix ($SOL, $DOGE)
+   - Full name -> known ticker (Bitcoin -> "-", unless marked as $BTC)
+   - NEVER invent or assume tickers
+   - If not marked with $, use "-"
    
-2. Token Format:
-   - Remove $ prefix
-   - Convert to uppercase
-   - Use official symbol if known
-   - Keep as-is if uncertain
+2. PRIMARY_TOKEN RULES:
+   - Must be marked with $ in text ($SOL, $DOGE)
+   - Remove $ prefix in output (SOL, DOGE)
+   - If multiple $ tokens, use first one as PRIMARY
+   - If no $ tokens, use "-"
+   - NEVER create tokens from context
+   - NEVER use unmarked token names
+   - NEVER default to any token
+   - NEVER guess or infer tokens
 
-3. Primary vs Related:
-   PRIMARY_TOKEN:
-   - Main token being traded/discussed
-   - Must be uppercase symbol
-   - Required for market events
-   - Single token only, no pairs
-   - CRITICAL RULES:
-     * ALWAYS remove $ or # prefix
-     * ALWAYS use uppercase (BTC not btc)
-     * NEVER include pairs (BTC not BTC/USDT)
-     * NEVER include special chars (BTC not $BTC)
-     * NEVER extract generic terms as tokens (memecoin, token, crypto)
-     * NEVER create tokens from unverified projects or scams
-     * ONLY extract verified tokens from major exchanges
-     * Examples: $BTC -> BTC, #eth -> ETH
-   
-   RELATED_TOKENS:
-   - Other tokens mentioned in context
-   - Must be uppercase symbols
-   - Optional array, can be empty
-   - Same validation rules as PRIMARY_TOKEN apply
+3. RELATED_TOKENS RULES:
+   - Only include other $ marked tokens after PRIMARY
+   - Must have $ prefix in text
+   - Empty array if no other $ tokens
+   - NEVER include unmarked tokens
+   - NEVER guess or infer related tokens
+
+4. Examples:
+   "$SOL drops while $ETH rises"
+   -> PRIMARY_TOKEN: "SOL" (first $ token)
+   -> RELATED: ["ETH"] (other $ tokens)
+
+   "$BNB/USDT trading at..."
+   -> PRIMARY_TOKEN: "BNB"
+   -> RELATED: [] (no other $ tokens)
+
+   "Solana and Bitcoin news"
+   -> PRIMARY_TOKEN: "-" (no $ prefix)
+   -> RELATED: [] (no $ tokens)
+
+   "Crypto market moves"
+   -> PRIMARY_TOKEN: "-" (no tokens)
+   -> RELATED: [] (no tokens)
 
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
@@ -373,7 +381,7 @@ OUTPUT FORMAT:
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
-            "related": ["RELATED_TOKENS"]
+            "related": ["RELATED"]
         }
     },
     "event": {
