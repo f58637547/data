@@ -418,6 +418,15 @@ export async function processMessage({ message, db, channelMapping }) {
                     }
                 );
 
+                // Clean up entities before saving
+                if (entities?.summary) {
+                    // Replace newlines and normalize whitespace in summary
+                    entities.summary = entities.summary
+                        .replace(/\n/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                }
+
                 // Log what template got
                 console.log('\n=== Template Input ===');
                 console.log('Text:', contentData.original);
@@ -461,6 +470,23 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // 4. Save to DB with embedding
             try {
+                // Clean and prepare content for saving
+                const contentToSave = {
+                    original: contentData.original,
+                    entities: {
+                        ...entities,
+                        // Ensure summary is clean
+                        summary: entities.summary?.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+                    },
+                    type: 'raw',
+                    author: contentData.author,
+                    rt_author: contentData.rtAuthor
+                };
+
+                // Validate JSON before saving
+                const stringifiedContent = JSON.stringify(contentToSave);
+                JSON.parse(stringifiedContent); // Test parse to ensure it's valid
+
                 await db.query(`
                     INSERT INTO ${channelMapping.table}
                     (id, "createdAt", type, "agentId", content, embedding)
@@ -469,13 +495,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     uuidv4(),
                     new Date().toISOString(),
                     process.env.AGENT_ID,
-                    JSON.stringify({
-                        original: contentData.original,
-                        entities,
-                        type: 'raw',
-                        author: contentData.author,
-                        rt_author: contentData.rtAuthor
-                    }),
+                    stringifiedContent,
                     `[${embedding.join(',')}]`
                 ]);
 

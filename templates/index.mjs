@@ -29,20 +29,29 @@ export async function extractEntities(text, _, authorInfo = {}) {
         // Parse JSON from LLM response
         try {
             const content = response.choices[0].message.content;
-            // Find first complete JSON object
-            let depth = 0;
-            let start = content.indexOf('{');
-            if (start === -1) throw new Error('No JSON object found');
             
-            for (let i = start; i < content.length; i++) {
-                if (content[i] === '{') depth++;
-                if (content[i] === '}') depth--;
-                if (depth === 0) {
-                    const json = content.slice(start, i + 1);
-                    return JSON.parse(json.trim());
-                }
+            // Clean up the content before parsing
+            const cleanContent = content
+                .replace(/\n/g, ' ') // Replace newlines with spaces
+                .replace(/\s+/g, ' ') // Normalize whitespace
+                .trim(); // Remove leading/trailing whitespace
+
+            // Find the JSON object
+            const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                throw new Error('No JSON object found');
             }
-            throw new Error('No complete JSON object found');
+
+            // Parse the cleaned JSON
+            const parsedJson = JSON.parse(jsonMatch[0]);
+
+            // Additional validation
+            if (!parsedJson.summary || typeof parsedJson.summary !== 'string') {
+                throw new Error('Invalid summary format');
+            }
+
+            return parsedJson;
+
         } catch (parseError) {
             console.error('Failed to parse LLM response:', parseError.message);
             throw new Error('Failed to parse LLM response');

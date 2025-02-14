@@ -415,7 +415,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "STRUCTURED: [token/action] - [category/type] | CONTENT: [message summary without newlines or special chars]",
+    "summary": "STRUCTURED: [token] [action] [direction] [magnitude] - [category] [type] | CONTENT: [single line text]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
