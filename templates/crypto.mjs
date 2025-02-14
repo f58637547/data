@@ -12,8 +12,7 @@ Message to analyze:
 {{message}}
 
 SPAM DETECTION:
-
-. MUST REJECT These Types:
+. For these types, set impact = 0:
    a) Social/Personal Content:
    - Personal conversations/greetings
    - Social media drama
@@ -371,10 +370,6 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": {
-        "prefix": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE CATEGORY EVENT_TYPE",
-        "text": "{{message}}"
-    },
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",

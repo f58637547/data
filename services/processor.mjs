@@ -333,7 +333,7 @@ async function processGoal(db, entities, channelMapping) {
             persons,
             metrics,
             context: normalizedContext,
-            summary: entities.summary
+            headline: entities.headline
         };
 
         if (existingGoal.rows.length > 0) {
@@ -461,14 +461,9 @@ export async function processMessage({ message, db, channelMapping }) {
                 );
 
                 // Clean up entities before saving
-                if (entities?.summary) {
-                    // Combine prefix and text
-                    if (typeof entities.summary === 'object' && entities.summary.prefix && entities.summary.text) {
-                        entities.summary = `${entities.summary.prefix} - ${entities.summary.text}`;
-                    }
-                    
-                    // Replace newlines and normalize whitespace
-                    entities.summary = entities.summary
+                if (entities?.headline) {
+                    // Replace newlines and normalize whitespace in headline
+                    entities.headline = entities.headline
                         .replace(/\n/g, ' ')
                         .replace(/\s+/g, ' ')
                         .trim();
@@ -476,7 +471,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
                 // Log what template got
                 console.log('\n=== Template Input ===');
-                console.log('Text:', contentData.clean);  // Log clean text
+                console.log('Text:', contentData.clean);
                 console.log('Author:', contentData.author || 'none');
                 console.log('RT:', contentData.rtAuthor || '');
 
@@ -498,14 +493,14 @@ export async function processMessage({ message, db, channelMapping }) {
             if (!entities?.event?.category) {
                 console.log('❌ REJECTED - Missing Category:');
                 console.log('Original:', contentData.original);
-                console.log('Processed:', entities?.headline?.text);
+                console.log('Processed:', entities?.headline);
                 return { skip: true, reason: 'missing_category' };
             }
 
             if (!entities?.context?.impact || entities.context.impact <= 30) {
                 console.log('❌ REJECTED - Low Impact:');
                 console.log('Original:', contentData.original);
-                console.log('Processed:', entities?.headline?.text);
+                console.log('Processed:', entities?.headline);
                 console.log('Impact Score:', entities?.context?.impact);
                 console.log('Category:', entities?.event?.category);
                 return { skip: true, reason: 'low_impact' };
@@ -522,8 +517,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     original: contentData.original,
                     entities: {
                         ...entities,
-                        // Ensure summary is clean
-                        summary: entities.summary?.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+                        headline: entities.headline
                     },
                     type: 'raw',
                     author: contentData.author,
