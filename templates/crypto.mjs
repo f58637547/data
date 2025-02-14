@@ -8,21 +8,32 @@ CRITICAL FORMAT RULES:
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
 7. KEEP ALL NUMBERS EXACTLY AS THEY APPEAR - never summarize or round numbers
+8. NEVER include URLs, links, emojis, or special formatting in headline or summary
 
 Message to analyze:
 {{message}}
 
 HEADLINE:
-- Extract key information, entities and context
-- Use the provided message text EXACTLY as is
-- Remove URLs, emojis, and special formatting
-- Keep all important details: names, numbers, events
-- Make it clear and informative
-- ONLY use information from THIS message
+- Extract key information and context
+- REMOVE ALL:
+  * URLs and links (e.g., linktr.ee/*, https://*) 
+  * Emojis (e.g., 🚀, 💎)
+  * Special formatting ([text], *text*, _text_)
+  * Social media handles (@name)
+- Keep only: plain text, numbers, dates, company names
+- Example bad: "Check linktr.ee/xyz 🚀 [Latest update]"
+- Example good: "Collab Land leads token gating since May 2020"
 
 SUMMARY FORMAT:
 - Must be ONE LINE combining:
-  PRIMARY_TOKEN PRIMARY_TOKEN DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Full context with EXACT numbers and details]
+  PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Clean context with exact numbers]
+- REMOVE ALL:
+  * URLs and links
+  * Emojis
+  * Special formatting
+  * Social media handles
+- Example bad: "BTC DIG - MARKET BREAKOUT - linktr.ee/xyz [Click here]"
+- Example good: "BTC DIG UP LARGE - MARKET BREAKOUT - Token gating leader since May 2020"
 
 SPAM DETECTION:
 
@@ -384,7 +395,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "PRIMARY_TOKEN PRIMARY_TOKEN DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Full context with EXACT numbers and details]",
+    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Clean context with exact numbers]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
