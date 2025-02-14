@@ -296,11 +296,9 @@ async function processGoal(db, entities, channelMapping) {
         } = entities;
 
         // Normalize impact score to number
-        if (typeof context.impact === 'string') {
-            context.impact = context.impact.toLowerCase() === 'low' ? 30 :
-                           context.impact.toLowerCase() === 'medium' ? 50 :
-                           context.impact.toLowerCase() === 'high' ? 80 : 50;
-        }
+        const impact = typeof context.impact === 'string' ? 
+            parseInt(context.impact, 10) : 
+            (context.impact || 0);
 
         // Find existing goal
         const existingGoal = await db.query(`
@@ -320,7 +318,10 @@ async function processGoal(db, entities, channelMapping) {
             projects,
             persons,
             metrics,
-            context,
+            context: {
+                ...context,
+                impact  // Use normalized impact score
+            },
             summary: entities.summary
         };
 
@@ -333,7 +334,14 @@ async function processGoal(db, entities, channelMapping) {
                 return;
             }
 
-            const objectives = JSON.parse(goal.objectives);
+            let objectives;
+            try {
+                objectives = Array.isArray(goal.objectives) ? goal.objectives : JSON.parse(goal.objectives);
+            } catch (e) {
+                console.error('Failed to parse objectives:', e);
+                objectives = [];
+            }
+            
             objectives.push(newObjective);
 
             // Check if goal should be completed based on metrics/context
