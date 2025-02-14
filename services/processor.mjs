@@ -254,29 +254,19 @@ function validateMetrics(metrics) {
 function validateContext(context) {
     if (!context) return false;
 
-    // Normalize impact and sentiment scores to numbers
-    const normalizeScore = (score) => {
-        if (typeof score === 'string') {
-            return parseInt(score, 10) || 0;
-        }
-        return score || 0;
-    };
-
-    // Extract and normalize scores from context
-    const contextImpact = normalizeScore(context?.impact);
-    const contextSentiment = {
-        market: normalizeScore(context?.sentiment?.market),
-        social: normalizeScore(context?.sentiment?.social)
-    };
+    const impact = context.impact;
+    const sentiment = context.sentiment || {};
 
     // Validate impact (0-100)
-    const validImpact = contextImpact >= 0 && contextImpact <= 100;
+    const validImpact = typeof impact === 'number' && 
+                      impact >= 0 && 
+                      impact <= 100;
 
     // Validate sentiment
-    const validSentiment = ['market', 'social'].every(key => 
-        contextSentiment[key] >= 0 && 
-        contextSentiment[key] <= 100
-    );
+    const validSentiment = ['market', 'social'].every(key => {
+        const value = sentiment[key];
+        return typeof value === 'number' && value >= 0 && value <= 100;
+    });
 
     return validImpact && validSentiment;
 }
@@ -305,6 +295,24 @@ async function processGoal(db, entities, channelMapping) {
             context = {}
         } = entities;
 
+        // Normalize scores to numbers
+        const normalizeScore = (score) => {
+            if (typeof score === 'string') {
+                return parseInt(score, 10) || 0;
+            }
+            return score || 0;
+        };
+
+        // Extract and normalize scores
+        const normalizedContext = {
+            ...context,
+            impact: normalizeScore(context.impact),
+            sentiment: {
+                market: normalizeScore(context.sentiment?.market),
+                social: normalizeScore(context.sentiment?.social)
+            }
+        };
+
         // Find existing goal
         const existingGoal = await db.query(`
             SELECT id, objectives, status
@@ -323,11 +331,7 @@ async function processGoal(db, entities, channelMapping) {
             projects,
             persons,
             metrics,
-            context: {
-                ...context,
-                impact: contextImpact,
-                sentiment: contextSentiment
-            },
+            context: normalizedContext,
             summary: entities.summary
         };
 
