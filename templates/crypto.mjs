@@ -371,7 +371,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE CATEGORY EVENT_TYPE {{message}}",
+    "summary": "PRIMARY_TOKEN ACTION DIRECTION MAGNITUDE CATEGORY EVENT_TYPE - {{message}}",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
