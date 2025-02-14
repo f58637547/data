@@ -262,19 +262,20 @@ function validateContext(context) {
         return score || 0;
     };
 
-    const impact = normalizeScore(context.impact);
-    const sentiment = {
-        market: normalizeScore(context.sentiment?.market),
-        social: normalizeScore(context.sentiment?.social)
+    // Extract and normalize scores from context
+    const contextImpact = normalizeScore(context?.impact);
+    const contextSentiment = {
+        market: normalizeScore(context?.sentiment?.market),
+        social: normalizeScore(context?.sentiment?.social)
     };
 
     // Validate impact (0-100)
-    const validImpact = impact >= 0 && impact <= 100;
+    const validImpact = contextImpact >= 0 && contextImpact <= 100;
 
     // Validate sentiment
     const validSentiment = ['market', 'social'].every(key => 
-        sentiment[key] >= 0 && 
-        sentiment[key] <= 100
+        contextSentiment[key] >= 0 && 
+        contextSentiment[key] <= 100
     );
 
     return validImpact && validSentiment;
@@ -324,7 +325,8 @@ async function processGoal(db, entities, channelMapping) {
             metrics,
             context: {
                 ...context,
-                impact  // Use normalized impact score
+                impact: contextImpact,
+                sentiment: contextSentiment
             },
             summary: entities.summary
         };
