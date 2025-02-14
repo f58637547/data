@@ -16,17 +16,17 @@ HEADLINE:
 - Keep all URLs, emojis, and formatting intact
 
 SUMMARY RULES:
-- Summary must have TWO parts:
-  1. STRUCTURED INFO: "[PRIMARY_TOKEN] [ACTION_TYPE] [DIRECTION] [MAGNITUDE] due to [CATEGORY] [SUBCATEGORY] [TYPE]"
-  2. CONTENT SUMMARY: Clean summary of {{message}} without URLs/emojis
+- Summary must be ONE LINE with both parts separated by ' | ':
+  "STRUCTURED: [token/action format] - [category/type] | CONTENT: [clean message summary]"
 
 - Example Good Summary:
-  "STRUCTURED: BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT
-   CONTENT: Bitcoin price surges above $50k as BlackRock ETF sees record inflows of $2.3B in first week of trading, making it the most successful ETF launch of 2024"
+  "STRUCTURED: BTC INVEST UP LARGE - MARKET PRICE BREAKOUT | CONTENT: Bitcoin price surges above $50k as BlackRock ETF sees record inflows of $2.3B in first week of trading"
 
 - Example Bad Summary (DO NOT DO):
-  1. "BTC INVEST UP LARGE due to MARKET PRICE BREAKOUT with BlackRock (PROJECT: BlackRock)" // Missing content summary
-  2. "Bitcoin price up due to ETF" // Missing structured format
+  1. "STRUCTURED: BTC INVEST UP LARGE - MARKET PRICE BREAKOUT
+      CONTENT: Bitcoin price up" // NO newlines allowed
+  2. "BTC INVEST UP LARGE - MARKET PRICE BREAKOUT" // Missing content part
+  3. "Bitcoin price up due to ETF" // Missing structured part
 
 - REQUIRED Elements:
   1. STRUCTURED part must have:
@@ -42,6 +42,18 @@ SUMMARY RULES:
      - Keep numbers, stats, and important details
      - Include project names and relevant context
      - Be clear and informative
+
+SUMMARY FORMAT RULES:
+1. NO special characters in summary except: letters, numbers, spaces, periods, commas, parentheses
+2. NO newlines or quotes in summary
+3. Use dash (-) between structured parts
+4. Use pipe (|) between structured and content
+5. Example good summary:
+   "STRUCTURED: BTC TRADE UP LARGE - MARKET PRICE BREAKOUT | CONTENT: Bitcoin price hits 52k after BlackRock ETF launch with 2.3B inflows"
+6. Example bad summary:
+   "BTC TRADE UP\nLARGE" // NO newlines
+   "BTC "TRADE" UP" // NO quotes
+   "BTC (TRADE) UP" // NO special formatting
 
 SPAM DETECTION:
 
@@ -403,7 +415,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "STRUCTURED: [structured format as above]\nCONTENT: [clean content summary of message]",
+    "summary": "STRUCTURED: [token/action] - [category/type] | CONTENT: [message summary without newlines or special chars]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",
