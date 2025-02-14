@@ -7,39 +7,22 @@ CRITICAL FORMAT RULES:
 4. NO "thinking out loud" about the extraction
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
+7. KEEP ALL NUMBERS EXACTLY AS THEY APPEAR - never summarize or round numbers
 
 Message to analyze:
 {{message}}
 
 HEADLINE:
 - Extract key information, entities and context
+- Use the provided message text EXACTLY as is
 - Remove URLs, emojis, and special formatting
 - Keep all important details: names, numbers, events
 - Make it clear and informative
+- ONLY use information from THIS message
 
 SUMMARY FORMAT:
 - Must be ONE LINE combining:
-  [TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] - [CATEGORY] [TYPE] | [Full context with all entities and details]
-  Example: "BTC CRASH DOWN LARGE - MARKET WARNING | Kiyosaki warns of market crash and depression, oil companies cut jobs, economy contracting"
-
-BAD SUMMARIES (DO NOT DO):
-- Missing entities: "Bitcoin price down" 
-- Missing context: "BTC DOWN - MARKET"
-- Too formatted: "STRUCTURED: BTC | CONTENT: Price down"
-- With newlines or special chars
-
-REQUIRED in summary:
-1. Token (BTC, ETH)
-2. Action (CRASH, PUMP, WARN)
-3. Direction (UP, DOWN)
-4. Magnitude (LARGE, MEDIUM, SMALL) 
-5. Category (MARKET, NEWS, TECH)
-6. Type (WARNING, PRICE, ADOPTION)
-7. Full context with:
-   - All key entities (people, companies)
-   - Important numbers and stats
-   - Critical events and impacts
-   - Clear cause-effect relationships
+  PRIMARY_TOKEN PRIMARY_TOKEN DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Full context with EXACT numbers and details]
 
 SPAM DETECTION:
 
@@ -401,7 +384,7 @@ VALIDATION RULES:
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
-    "summary": "[TOKEN] [ACTION] [DIRECTION] [MAGNITUDE] - [CATEGORY] [TYPE] | [Full context with all entities and details]",
+    "summary": "PRIMARY_TOKEN PRIMARY_TOKEN DIRECTION MAGNITUDE - CATEGORY EVENT_TYPE - [Full context with EXACT numbers and details]",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_TOKEN",

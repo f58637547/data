@@ -153,7 +153,7 @@ async function findSimilarMessages(db, embedding, channelTable) {
                     FROM ${channelTable}
                     WHERE "createdAt" > NOW() - INTERVAL '24 hours'
                 ) combined
-                WHERE 1 - (embedding <-> $1::vector) > 0.85
+                WHERE 1 - (embedding <-> $1::vector) > 0.65
             )
             SELECT * FROM combined_results
             ORDER BY vector_similarity DESC
@@ -207,7 +207,7 @@ async function findSimilarMessages(db, embedding, channelTable) {
             }
             
             // If very similar content found (>90% similarity)
-            const hasVerySimilar = result.rows.some(row => row.vector_similarity > 0.90);
+            const hasVerySimilar = result.rows.some(row => row.vector_similarity > 0.65);
             if (hasVerySimilar) {
                 console.log('❌ REJECTED - Nearly identical content found');
                 return { isDuplicate: true, matches: result.rows };
