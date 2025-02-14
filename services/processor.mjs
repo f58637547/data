@@ -462,7 +462,12 @@ export async function processMessage({ message, db, channelMapping }) {
 
                 // Clean up entities before saving
                 if (entities?.summary) {
-                    // Replace newlines and normalize whitespace in summary
+                    // Combine prefix and text
+                    if (typeof entities.summary === 'object' && entities.summary.prefix && entities.summary.text) {
+                        entities.summary = `${entities.summary.prefix} - ${entities.summary.text}`;
+                    }
+                    
+                    // Replace newlines and normalize whitespace
                     entities.summary = entities.summary
                         .replace(/\n/g, ' ')
                         .replace(/\s+/g, ' ')
