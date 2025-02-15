@@ -11,44 +11,104 @@ CRITICAL FORMAT RULES:
 Message to analyze:
 {{message}}
 
-SPAM DETECTION:
-For these types, ALWAYS set impact = 0:
+SPAM DETECTION AND SCORING:
 
-a) Social/Personal Content:
-   - Personal conversations/greetings
-   - Social media drama/arguments
-   - Food/lifestyle content
-   - Entertainment/memes without market context
-   - Personal updates/activities
-   - Non-crypto videos/images
-   - Community chat/banter
-   - General questions without data
-   
-b) Low Quality Content:
-   - Single emoji messages
-   - "gm", "wagmi", etc
-   - Random links without context
-   - Copy-pasted promotional text
-   - Join channel/group invites
-   - Generic greetings/reactions
-   - AMAs without market impact
-   - Sponsored/promotional content
-   - Marketing announcements
-   - Community fund updates
-   - Generic ecosystem posts
-   - Hype messages without data
-   
-c) Off-Topic Content:
-   - Gaming/sports without crypto context
-   - General tech news without crypto
-   - Politics without crypto impact
-   - Random videos/memes
-   - Personal opinions without market data
-   - Non-market discussions
-   - General world news
-   - Unrelated project updates
+1. ZERO IMPACT Content (Impact = 0):
 
-For all other crypto content, see SCORING GUIDELINES section for impact ranges.
+   a) Social/Personal Content:
+      - Personal conversations/greetings
+      - Social media drama/arguments
+      - Food/lifestyle content
+      - Entertainment without market context
+      - Community chat/banter
+      - General questions without data
+
+   b) Low Quality Content:
+      - Single emoji messages
+      - Generic greetings/reactions
+      - Random links without context
+      - Copy-pasted promotional text
+      - Join channel/group invites
+      - Marketing announcements
+      - Generic ecosystem posts
+      - Hype messages without data
+
+   c) Off-Topic Content:
+      - Gaming/sports without crypto context
+      - General tech news without crypto
+      - Politics without crypto impact
+      - Random videos/memes
+      - Non-market discussions
+      - General world news
+      - Unrelated project updates
+
+   d) No-Value Content:
+      - Token launches without metrics
+      - Project reviews without data
+      - AMAs/events without updates
+      - Educational content without news
+      - Opinion/commentary only
+      - Generic market comments
+      - Sponsorship announcements
+
+2. NEWS Impact Ranges:
+   
+   REGULATORY (70-100):
+   - LARGE: 90-100 (major policy change, ETF approval)
+   - MEDIUM: 80-89 (significant update, guidance)
+   - SMALL: 70-79 (minor update, clarification)
+
+   SECURITY (70-100):
+   - LARGE: 90-100 (critical hack >$100M)
+   - MEDIUM: 80-89 (serious exploit $10M-$100M)
+   - SMALL: 70-79 (minor issue <$10M)
+
+   FUNDAMENTAL (50-90):
+   - LARGE: 77-90 (major partnership/adoption)
+   - MEDIUM: 63-76 (notable update/milestone)
+   - SMALL: 50-62 (minor improvement)
+
+   TECHNICAL (30-70):
+   - LARGE: 57-70 (major upgrade/fork)
+   - MEDIUM: 43-56 (feature update)
+   - SMALL: 30-42 (minor fix/patch)
+
+3. MARKET Impact Ranges:
+
+   PRICE (50-100):
+   - LARGE: 84-100 (>20% move)
+   - MEDIUM: 67-83 (10-20% move)
+   - SMALL: 50-66 (<10% move)
+
+   VOLUME (40-90):
+   - LARGE: 74-90 (>100% spike)
+   - MEDIUM: 57-73 (50-100% change)
+   - SMALL: 40-56 (<50% change)
+
+   TRADE (30-80):
+   - LARGE: 64-80 (>$10M)
+   - MEDIUM: 47-63 ($1M-$10M)
+   - SMALL: 30-46 (<$1M)
+
+4. DATA Impact Ranges:
+
+   WHALE_MOVE (50-100):
+   - LARGE: 84-100 (>$100M)
+   - MEDIUM: 67-83 ($10M-$100M)
+   - SMALL: 50-66 (<$10M)
+
+   FUND_FLOW (40-90):
+   - LARGE: 74-90 (>$50M)
+   - MEDIUM: 57-73 ($10M-$50M)
+   - SMALL: 40-56 (<$10M)
+
+   ONCHAIN (30-80):
+   - LARGE: 64-80 (significant metrics change)
+   - MEDIUM: 47-63 (notable activity)
+   - SMALL: 30-46 (minor movement)
+
+Note: Content must FIRST pass spam detection (not be in ZERO IMPACT categories)
+      before being scored based on magnitude ranges.
 
 CONTENT VALIDATION RULES:
 
@@ -286,74 +346,6 @@ EVENT CLASSIFICATION RULES:
 5. Magnitude must be: SMALL, MEDIUM, or LARGE
 
 When classifying, always ensure all combinations are valid according to the above rules.
-
-SCORING GUIDELINES:
-Impact Score (0-100):
-   See SPAM DETECTION section for complete list of content that should get impact = 0
-
-   ALL other crypto content must have non-zero impact:
-   90-100: Critical events (major policy changes, critical hacks)
-   70-89: High impact (significant price moves, major partnerships)
-   50-69: Medium impact (protocol updates, notable trades)
-   30-49: Low impact (minor updates, small trades)
-
-   NEWS events:
-   REGULATORY (70-100):
-   - LARGE: 90-100 (major policy change)
-   - MEDIUM: 80-89 (significant update)
-   - SMALL: 70-79 (minor update)
-
-   SECURITY (70-100):
-   - LARGE: 90-100 (critical vulnerability)
-   - MEDIUM: 80-89 (serious bug)
-   - SMALL: 70-79 (minor issue)
-
-   FUNDAMENTAL (50-90):
-   - LARGE: 77-90 (major partnership)
-   - MEDIUM: 63-76 (notable update)
-   - SMALL: 50-62 (minor news)
-
-   TECHNICAL (30-70):
-   - LARGE: 57-70 (major upgrade)
-   - MEDIUM: 43-56 (feature update)
-   - SMALL: 30-42 (minor fix)
-
-   MARKET events:
-   PRICE (50-100):
-   - LARGE: 84-100 (>20% move)
-   - MEDIUM: 67-83 (10-20% move)
-   - SMALL: 50-66 (<10% move)
-
-   VOLUME (40-90):
-   - LARGE: 74-90 (>100% spike)
-   - MEDIUM: 57-73 (50-100% change)
-   - SMALL: 40-56 (<50% change)
-
-   TRADE (30-80):
-   - LARGE: 64-80 (>$10M)
-   - MEDIUM: 47-63 ($1M-$10M)
-   - SMALL: 30-46 (<$1M)
-
-   POSITION (30-70):
-   - LARGE: 57-70 (major position)
-   - MEDIUM: 43-56 (medium size)
-   - SMALL: 30-42 (small trade)
-
-   DATA events:
-   WHALE_MOVE (50-100):
-   - LARGE: 84-100 (>$100M)
-   - MEDIUM: 67-83 ($10M-$100M)
-   - SMALL: 50-66 (<$10M)
-
-   FUND_FLOW (40-90):
-   - LARGE: 74-90 (major flow)
-   - MEDIUM: 57-73 (medium flow)
-   - SMALL: 40-56 (minor flow)
-
-   ONCHAIN (30-80):
-   - LARGE: 64-80 (significant activity)
-   - MEDIUM: 47-63 (notable activity)
-   - SMALL: 30-46 (minor activity)
 
 SENTIMENT SCORE RANGES (0-100):
 
