@@ -9,6 +9,12 @@ export async function loadTemplates() {
 
 export async function extractEntities(text, _, authorInfo = {}) {
     try {
+        // Skip if no text
+        if (!text) {
+            console.log('❌ Skipping: No text to process');
+            return null;
+        }
+
         // Log what we're sending to template
         console.log('\n=== Sending to Template ===');
         console.log('Text:', text);
@@ -36,14 +42,24 @@ export async function extractEntities(text, _, authorInfo = {}) {
             throw new Error('No JSON object found in response');
         }
 
-        // Clean up the JSON string - replace newlines and normalize spaces
+        // Clean up the JSON string
         const jsonStr = match[0]
-            .replace(/\n\s*/g, ' ')  // Replace newlines and following spaces with a single space
-            .replace(/\s+/g, ' ')    // Normalize multiple spaces to single space
-            .trim();                 // Remove leading/trailing whitespace
+            .replace(/\/\/[^\n]*/g, '')  // Remove comments
+            .replace(/,\s*([}\]])/g, '$1')  // Remove trailing commas
+            .replace(/\n\s*/g, ' ')  // Replace newlines
+            .replace(/\s+/g, ' ')  // Normalize spaces
+            .trim();
 
         try {
             const parsed = JSON.parse(jsonStr);
+            
+            // Validate required fields
+            const requiredFields = ['headline', 'tokens', 'event', 'action', 'entities', 'metrics', 'context'];
+            const missingFields = requiredFields.filter(field => !parsed[field]);
+            
+            if (missingFields.length > 0) {
+                throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+            }
             
             // Log the parsed result
             console.log('\n=== Parsed Result ===');
@@ -59,6 +75,6 @@ export async function extractEntities(text, _, authorInfo = {}) {
 
     } catch (error) {
         console.error('Entity extraction error:', error.message);
-        throw error;
+        return null;  // Return null instead of throwing to allow processing to continue
     }
 }

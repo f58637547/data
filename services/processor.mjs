@@ -107,17 +107,44 @@ function getRawMessageText(message) {
 
 // Get cleaned text from message (for content processing)
 function getMessageText(message) {
-    let text = getRawMessageText(message);
-    
-    // Clean the text for content processing:
-    return text
-        .replace(/https?:\/\/\S+/g, '')  // Remove URLs
-        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links but keep text
-        .replace(/\[\s*[↧⬇️]\s*\]\s*\(\s*\)/g, '')  // Remove empty markdown links with arrows
-        .replace(/<:[^>]+>/g, '')  // Remove Discord emotes
-        .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|\p{Extended_Pictographic}/gu, '')  // Remove all emojis
-        .replace(/\s+/g, ' ')  // Normalize whitespace
-        .trim();
+    try {
+        // Handle null/undefined message
+        if (!message) {
+            console.log('❌ Skipping: Message is null/undefined');
+            return null;
+        }
+
+        let text = '';
+
+        // Get text from content
+        if (message.content) {
+            text += message.content;
+        }
+
+        // Get text from embeds
+        if (message.embeds?.length > 0) {
+            for (const embed of message.embeds) {
+                if (embed.description) {
+                    text += '\n' + embed.description;
+                }
+            }
+        }
+
+        // If no text found, return null
+        if (!text.trim()) {
+            console.log('❌ Skipping: No text content found');
+            return null;
+        }
+
+        return text
+            .replace(/https?:\/\/\S+/g, '')  // Remove URLs
+            .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')  // Remove markdown links but keep text
+            .replace(/\s+/g, ' ')  // Normalize whitespace
+            .trim();
+    } catch (error) {
+        console.error('Error cleaning message text:', error);
+        return null;
+    }
 }
 
 // Extract Twitter username from text
