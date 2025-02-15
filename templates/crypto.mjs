@@ -12,34 +12,43 @@ Message to analyze:
 {{message}}
 
 SPAM DETECTION:
-. For these types, set impact = 0:
-   a) Social/Personal Content:
+For these types, ALWAYS set impact = 0:
+
+a) Social/Personal Content:
    - Personal conversations/greetings
-   - Social media drama
+   - Social media drama/arguments
    - Food/lifestyle content
    - Entertainment/memes without market context
    - Personal updates/activities
    - Non-crypto videos/images
+   - Community chat/banter
+   - General questions without data
    
-   b) Low Quality Content:
+b) Low Quality Content:
    - Single emoji messages
    - "gm", "wagmi", etc
    - Random links without context
    - Copy-pasted promotional text
    - Join channel/group invites
-   - Generic greetings
+   - Generic greetings/reactions
    - AMAs without market impact
    - Sponsored/promotional content
    - Marketing announcements
    - Community fund updates
    - Generic ecosystem posts
+   - Hype messages without data
    
-   c) Off-Topic Content:
+c) Off-Topic Content:
    - Gaming/sports without crypto context
    - General tech news without crypto
    - Politics without crypto impact
    - Random videos/memes
    - Personal opinions without market data
+   - Non-market discussions
+   - General world news
+   - Unrelated project updates
+
+For all other crypto content, see SCORING GUIDELINES section for impact ranges.
 
 IMPORTANT - SYMBOL EXTRACTION RULES:
 1. ONLY extract token if EXPLICITLY marked in text:
@@ -270,12 +279,13 @@ When classifying, always ensure all combinations are valid according to the abov
 
 SCORING GUIDELINES:
 Impact Score (0-100):
-   Score ranges indicate event importance:
+   See SPAM DETECTION section for complete list of content that should get impact = 0
+
+   ALL other crypto content must have non-zero impact:
    90-100: Critical events (major policy changes, critical hacks)
    70-89: High impact (significant price moves, major partnerships)
    50-69: Medium impact (protocol updates, notable trades)
    30-49: Low impact (minor updates, small trades)
-   0-29: Minimal impact (routine updates, tiny moves)
 
    NEWS events:
    REGULATORY (70-100):
