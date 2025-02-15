@@ -50,46 +50,56 @@ c) Off-Topic Content:
 
 For all other crypto content, see SCORING GUIDELINES section for impact ranges.
 
+CONTENT VALIDATION RULES:
+
+1. Language Requirements:
+   - ONLY process English content
+   - If non-English, set impact = 0
+   - Exception: Known tickers ($BTC, $ETH) can be in any language
+
+2. Token Assignment Rules:
+   - MUST have explicit token mentioned for non-zero impact
+   - Never infer tokens from context
+   - Never assign random tokens
+   - Check token is actually discussed in content
+
+3. Content Quality Rules:
+   - News must be about specific token/project
+   - Generic crypto news = impact 0 unless major event
+   - Require price/volume/data for market news
+   - Verify token matches the story topic
+
 IMPORTANT - SYMBOL EXTRACTION RULES:
-1. ONLY extract token if EXPLICITLY marked in text:
-   - With $ prefix ($SOL, $DOGE)
-   - Full name -> known ticker (Bitcoin -> "-", unless marked as $BTC)
-   - NEVER invent or assume tickers
-   - If not marked with $, use "-"
-   
-2. PRIMARY_TOKEN RULES:
-   - Must be marked with $ in text ($SOL, $DOGE)
-   - Remove $ prefix in output (SOL, DOGE)
-   - If multiple $ tokens, use first one as PRIMARY
-   - If no $ tokens, use "-"
-   - NEVER create tokens from context
-   - NEVER use unmarked token names
-   - NEVER default to any token
-   - NEVER guess or infer tokens
+1. Token Extraction Rules:
+   - MUST be explicitly marked with $ ($SOL, $ETH)
+   - OR be well-known full name:
+     * Bitcoin -> BTC
+     * Ethereum -> ETH
+     * Binance Coin -> BNB
+     * Ripple -> XRP
+   - Token must be 3-4 chars or known exception (BTC)
+   - Token must be actually discussed in content
+   - NEVER invent random tokens
+   - NEVER assume tokens from context
 
-3. RELATED_TOKENS RULES:
-   - Only include other $ marked tokens after PRIMARY
-   - Must have $ prefix in text
-   - Empty array if no other $ tokens
-   - NEVER include unmarked tokens
-   - NEVER guess or infer related tokens
+2. PRIMARY_TOKEN Rules:
+   - Use $ marked token if present ($SOL, $ETH)
+   - For known names, use standard ticker (Bitcoin -> BTC)
+   - If multiple tokens, use most relevant to story:
+     * What is the news mainly about?
+     * Which project/token is central topic?
+     * Which price/market is discussed?
+   - Token must match story focus
+   - NEVER guess or make up tokens
+   - NEVER use unrelated tokens
 
-4. Examples:
-   "$SOL drops while $ETH rises"
-   -> PRIMARY_TOKEN: "SOL" (first $ token)
-   -> RELATED: ["ETH"] (other $ tokens)
-
-   "$BNB/USDT trading at..."
-   -> PRIMARY_TOKEN: "BNB"
-   -> RELATED: [] (no other $ tokens)
-
-   "Solana and Bitcoin news"
-   -> PRIMARY_TOKEN: "-" (no $ prefix)
-   -> RELATED: [] (no $ tokens)
-
-   "Crypto market moves"
-   -> PRIMARY_TOKEN: "-" (no tokens)
-   -> RELATED: [] (no tokens)
+3. RELATED_TOKENS Rules:
+   - Only include other valid tokens from text
+   - Must be $ marked or known names
+   - Must be relevant to story
+   - Empty array if no other relevant tokens
+   - NEVER include unrelated tokens
+   - NEVER guess additional tokens
 
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
