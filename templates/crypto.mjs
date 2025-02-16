@@ -32,6 +32,9 @@ SPAM DETECTION AND SCORING:
       - Marketing announcements
       - Generic ecosystem posts
       - Hype messages without data
+      - Project stats/rankings without market impact
+      - Data aggregator links without trading signals
+      - Protocol comparisons without actionable data
 
    c) Off-Topic Content:
       - Gaming/sports without crypto context
