@@ -284,6 +284,8 @@ function validateContext(context) {
 
     const impact = context.impact;
     const sentiment = context.sentiment || {};
+    const risk = context.risk || {};
+    const trend = context.trend || {};
 
     // Validate impact (0-100)
     const validImpact = typeof impact === 'number' && 
@@ -296,14 +298,35 @@ function validateContext(context) {
         return typeof value === 'number' && value >= 0 && value <= 100;
     });
 
-    return validImpact && validSentiment;
+    // Validate risk
+    const validRisk = ['market', 'tech'].every(key => {
+        const value = risk[key];
+        return typeof value === 'number' && value >= 0 && value <= 100;
+    });
+
+    // Validate trend
+    const validTrend = (
+        ['short', 'medium'].every(key => 
+            !trend[key] || ['UP', 'DOWN', 'SIDEWAYS'].includes(trend[key])
+        ) &&
+        (!trend.strength || (typeof trend.strength === 'number' && 
+                           trend.strength >= 0 && 
+                           trend.strength <= 100))
+    );
+
+    return validImpact && validSentiment && validRisk && validTrend;
+}
+
+// Clean token symbol by removing $ prefix
+function cleanTokenSymbol(symbol) {
+    return symbol ? symbol.replace(/^\$/, '') : symbol;
 }
 
 // Create or update goal based on message content
 async function processGoal(db, entities, channelMapping) {
     try {
         // Check required fields for goal name
-        const symbol = entities.tokens?.primary?.symbol;
+        const symbol = cleanTokenSymbol(entities.tokens?.primary?.symbol);
         const category = entities.event?.category;
         const type = entities.event?.type;
 
@@ -335,9 +358,18 @@ async function processGoal(db, entities, channelMapping) {
         const normalizedContext = {
             ...context,
             impact: normalizeScore(context.impact),
+            risk: {
+                market: normalizeScore(context.risk?.market),
+                tech: normalizeScore(context.risk?.tech)
+            },
             sentiment: {
                 market: normalizeScore(context.sentiment?.market),
                 social: normalizeScore(context.sentiment?.social)
+            },
+            trend: {
+                short: context.trend?.short || 'SIDEWAYS',
+                medium: context.trend?.medium || 'SIDEWAYS',
+                strength: normalizeScore(context.trend?.strength)
             }
         };
 
@@ -351,58 +383,87 @@ async function processGoal(db, entities, channelMapping) {
 
         // Prepare objective from current message
         const newObjective = {
+            id: uuidv4(),
             timestamp: new Date().toISOString(),
             symbol,
             category,
             type,
-            action,
+            headline: entities.headline,
+            action: action || {},
             projects,
             persons,
-            metrics,
-            context: normalizedContext,
-            headline: entities.headline
+            metrics: metrics || {},
+            context: normalizedContext
         };
 
         if (existingGoal.rows.length > 0) {
             const goal = existingGoal.rows[0];
             
-            // Don't update completed or cancelled goals
             if (goal.status !== GOAL_STATUS.IN_PROGRESS) {
                 console.log('⚠️ Goal is not in progress:', goalName);
                 return;
             }
 
-            let objectives;
+            let objective;
             try {
-                objectives = Array.isArray(goal.objectives) ? goal.objectives : JSON.parse(goal.objectives);
+                objective = Array.isArray(goal.objectives) ? goal.objectives[0] : JSON.parse(goal.objectives)[0];
             } catch (e) {
-                console.error('Failed to parse objectives:', e);
-                objectives = [];
+                console.error('Failed to parse objective:', e);
+                return;
             }
-            
-            objectives.push(newObjective);
 
-            // Check if goal should be completed based on metrics/context
-            const shouldComplete = objectives.length >= 5 && 
-                                 objectives.some(obj => obj.metrics?.market?.price) &&
-                                 objectives.some(obj => obj.context?.impact >= 80);
+            // Update the objective with new data
+            const updatedObjective = {
+                type,
+                action: action || objective.action,
+                symbol,
+                context: normalizedContext,
+                metrics: metrics || objective.metrics,
+                persons,
+                category,
+                projects,
+                // Store headlines with timestamps
+                headlines: [
+                    {
+                        text: entities.headline,
+                        timestamp: new Date().toISOString()
+                    },
+                    ...(objective.headlines || [])
+                ],
+                // Keep original creation timestamp
+                timestamp: objective.timestamp
+            };
 
             await db.query(`
                 UPDATE goals 
-                SET objectives = $1,
-                    status = $2
-                WHERE id = $3
+                SET objectives = $1
+                WHERE id = $2
             `, [
-                JSON.stringify(objectives),
-                shouldComplete ? GOAL_STATUS.COMPLETED : GOAL_STATUS.IN_PROGRESS,
+                JSON.stringify([updatedObjective]),
                 goal.id
             ]);
 
-            console.log(`✅ Updated goal: ${goalName} (${shouldComplete ? 'Completed' : 'In Progress'})`);
+            console.log(`✅ Updated goal: ${goalName}`);
         } else {
-            // Create new goal
+            // Create new goal with initial objective
             const description = `Tracking ${symbol} ${category.toLowerCase()} ${type.toLowerCase()} events`;
             
+            const initialObjective = {
+                type,
+                action: action || {},
+                symbol,
+                context: normalizedContext,
+                metrics: metrics || {},
+                persons,
+                category,
+                projects,
+                headlines: [{
+                    text: entities.headline,
+                    timestamp: new Date().toISOString()
+                }],
+                timestamp: new Date().toISOString()
+            };
+
             await db.query(`
                 INSERT INTO goals (
                     id,
@@ -417,7 +478,7 @@ async function processGoal(db, entities, channelMapping) {
                 goalName,
                 GOAL_STATUS.IN_PROGRESS,
                 description,
-                JSON.stringify([newObjective]),
+                JSON.stringify([initialObjective]),
                 channelMapping.roomId
             ]);
 

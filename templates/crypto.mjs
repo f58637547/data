@@ -54,65 +54,6 @@ SPAM DETECTION AND SCORING:
       - Generic market comments
       - Sponsorship announcements
 
-2. NEWS Impact Ranges:
-   
-   REGULATORY (70-100):
-   - LARGE: 90-100 (major policy change, ETF approval)
-   - MEDIUM: 80-89 (significant update, guidance)
-   - SMALL: 70-79 (minor update, clarification)
-
-   SECURITY (70-100):
-   - LARGE: 90-100 (critical hack >$100M)
-   - MEDIUM: 80-89 (serious exploit $10M-$100M)
-   - SMALL: 70-79 (minor issue <$10M)
-
-   FUNDAMENTAL (50-90):
-   - LARGE: 77-90 (major partnership/adoption)
-   - MEDIUM: 63-76 (notable update/milestone)
-   - SMALL: 50-62 (minor improvement)
-
-   TECHNICAL (30-70):
-   - LARGE: 57-70 (major upgrade/fork)
-   - MEDIUM: 43-56 (feature update)
-   - SMALL: 30-42 (minor fix/patch)
-
-3. MARKET Impact Ranges:
-
-   PRICE (50-100):
-   - LARGE: 84-100 (>20% move)
-   - MEDIUM: 67-83 (10-20% move)
-   - SMALL: 50-66 (<10% move)
-
-   VOLUME (40-90):
-   - LARGE: 74-90 (>100% spike)
-   - MEDIUM: 57-73 (50-100% change)
-   - SMALL: 40-56 (<50% change)
-
-   TRADE (30-80):
-   - LARGE: 64-80 (>$10M)
-   - MEDIUM: 47-63 ($1M-$10M)
-   - SMALL: 30-46 (<$1M)
-
-4. DATA Impact Ranges:
-
-   WHALE_MOVE (50-100):
-   - LARGE: 84-100 (>$100M)
-   - MEDIUM: 67-83 ($10M-$100M)
-   - SMALL: 50-66 (<$10M)
-
-   FUND_FLOW (40-90):
-   - LARGE: 74-90 (>$50M)
-   - MEDIUM: 57-73 ($10M-$50M)
-   - SMALL: 40-56 (<$10M)
-
-   ONCHAIN (30-80):
-   - LARGE: 64-80 (significant metrics change)
-   - MEDIUM: 47-63 (notable activity)
-   - SMALL: 30-46 (minor movement)
-
-Note: Content must FIRST pass spam detection (not be in ZERO IMPACT categories)
-      before being scored based on magnitude ranges.
-
 CONTENT VALIDATION RULES:
 
 1. Language Requirements:
@@ -257,6 +198,208 @@ METRICS EXTRACTION RULES:
       - Count of addresses
       - Convert K/M to numbers
 
+CONTEXT SCORING GUIDELINES:
+
+1. Impact Score (0-100):
+   Calculate based on event category and type, with category weights:
+   MARKET Events (Highest Priority):
+   90-100:
+   - Major market structure changes (exchange failures, systemic risks)
+   - Critical market manipulation incidents
+   - Black swan events affecting multiple tokens
+   
+   75-89:
+   - Significant price movements (relative to market cap tier)
+   - Major liquidity events
+   - Important market maker activities
+   
+   60-74:
+   - Notable trading volume spikes
+   - Moderate price movements
+   - Local market structure changes
+   
+   40-59:
+   - Regular market movements
+   - Normal trading activity
+   - Expected volatility events
+
+   DATA Events (Medium-High Priority):
+   85-100:
+   - Major protocol exploits/hacks
+   - Critical smart contract vulnerabilities
+   - Significant fund movements (>10% of TVL)
+   
+   70-84:
+   - Large transfers relative to token liquidity
+   - Protocol parameter changes
+   - Notable TVL changes (5-10%)
+   
+   55-69:
+   - Moderate fund movements
+   - Regular protocol metrics changes
+   - Standard governance activities
+   
+   40-54:
+   - Small transfers
+   - Minor metric changes
+   - Routine operations
+
+   NEWS Events (Variable Priority):
+   Regulatory/Legal (80-100):
+   - Major regulatory decisions
+   - Legal precedents
+   - Global compliance changes
+   
+   Technical/Development (70-89):
+   - Major protocol upgrades
+   - Critical partnerships
+   - Significant technical innovations
+   
+   Business/Adoption (60-79):
+   - Important business developments
+   - New market entries
+   - Strategic partnerships
+   
+   Community/Social (40-69):
+   - Team updates
+   - Community events
+   - Social media developments
+
+   Impact Modifiers:
+   +10-20 points if:
+   - Affects top 10 market cap tokens
+   - Has cross-chain implications
+   - Involves major institutions
+   
+   -10-20 points if:
+   - Limited to small cap tokens
+   - Localized effect
+   - Temporary impact
+
+   Base Impact Calculation:
+   1. Start with category base score
+   2. Adjust for event type within category
+   3. Apply relevant modifiers
+   4. Consider market context
+   5. Cap final score at 100
+
+2. Risk Assessment (0-100):
+   Market Risk:
+   90-100: Critical
+   - Extreme market conditions
+   - Major liquidity crisis
+   - Systemic contagion risk
+   
+   70-89: High
+   - Significant volatility
+   - Notable liquidity issues
+   - Market structure concerns
+   
+   40-69: Moderate
+   - Normal market fluctuations
+   - Adequate liquidity
+   - Standard market risks
+   
+   0-39: Low
+   - Stable conditions
+   - Strong liquidity
+   - Minimal market risks
+   
+   Technical Risk:
+   90-100: Critical
+   - Active exploits
+   - Unpatched vulnerabilities
+   - Major protocol flaws
+   
+   70-89: High
+   - Complex changes
+   - Unaudited code
+   - Technical debt
+   
+   40-69: Moderate
+   - Standard updates
+   - Known limitations
+   - Manageable issues
+   
+   0-39: Low
+   - Well-audited
+   - Stable codebase
+   - Strong security
+
+3. Sentiment Analysis (0-100):
+   Market Sentiment:
+   70-100: Bullish
+   - Strong buying pressure
+   - Positive market structure
+   - Institutional interest
+   
+   40-69: Neutral
+   - Balanced order flow
+   - Mixed signals
+   - Range-bound activity
+   
+   0-39: Bearish
+   - Strong selling pressure
+   - Negative market structure
+   - Institutional exit
+   
+   Social Sentiment:
+   70-100: Positive
+   - High engagement metrics
+   - Growing community
+   - Strong developer activity
+   
+   40-69: Neutral
+   - Normal activity levels
+   - Stable community
+   - Steady development
+   
+   0-39: Negative
+   - Declining engagement
+   - Community concerns
+   - Reduced development
+
+4. Trend Analysis:
+   Direction:
+   UP: 
+   - Higher highs and lows
+   - Above key moving averages
+   - Increasing volume on rises
+   
+   DOWN:
+   - Lower highs and lows
+   - Below key moving averages
+   - Increasing volume on drops
+   
+   SIDEWAYS:
+   - No clear direction
+   - Within trading range
+   - Inconsistent volume
+   
+   Strength (0-100):
+   70-100: Strong
+   - Clear direction
+   - High volume confirmation
+   - Multiple timeframe alignment
+   
+   40-69: Moderate
+   - Developing trend
+   - Average volume
+   - Some timeframe conflict
+   
+   0-39: Weak
+   - Unclear direction
+   - Low volume
+   - Timeframe divergence
+
+SCORING PRINCIPLES:
+- Assess relative to token's market position
+- Consider market cap and volume context
+- Factor in historical patterns
+- Weight institutional vs retail activity
+- Consider cross-market correlations
+- Adjust for market conditions
+
 IMPORTANT - CLASSIFICATION EXTRACTION RULES:
 1. Every event must be classified with:
    - CATEGORY (MARKET, DATA, or NEWS)
@@ -350,64 +493,24 @@ EVENT CLASSIFICATION RULES:
 
 When classifying, always ensure all combinations are valid according to the above rules.
 
-SENTIMENT SCORE RANGES (0-100):
-
-Market Sentiment:
-   BULLISH: 70-100
-   - Strong uptrend, high volume
-   - Major positive news
-   - Strong fundamentals
-
-   NEUTRAL: 40-69
-   - Sideways price action
-   - Mixed signals
-   - Normal activity
-
-   BEARISH: 0-39
-   - Strong downtrend
-   - Negative news
-   - Weak fundamentals
-
-Social Sentiment:
-   POSITIVE: 70-100
-   - High engagement
-   - Strong community growth
-   - Positive feedback
-
-   NEUTRAL: 40-69
-   - Normal activity
-   - Mixed feedback
-   - Steady community
-
-   NEGATIVE: 0-39
-   - Low engagement
-   - Community decline
-   - Negative feedback
-
-VALIDATION RULES:
-1. All scores must be integers between 0 and 100
-2. Impact score cannot exceed 100 after all modifiers
-3. Sentiment scores must align with event context
-4. All scoring components must be present
-
 OUTPUT FORMAT:
 {
     "headline": "{{message}}",
     "tokens": {
         "primary": {
-            "symbol": "PRIMARY_TOKEN",
-            "related": ["RELATED"]
+            "symbol": "PRIMARY_TOKEN", // CRITICAL: Remove $ prefix, use clean token name (e.g. "BTC" not "$BTC")
+            "related": ["RELATED"] // CRITICAL: Remove $ prefix, use clean token name (e.g. "BTC" not "$BTC")
         }
     },
     "event": {
-        "category": "CATEGORY",          // MARKET, DATA, or NEWS
-        "subcategory": "SUBCATEGORY",    // From allowed subcategories
-        "type": "EVENT_TYPE"             // From allowed types
+        "category": "CATEGORY", // MARKET, DATA, or NEWS
+        "subcategory": "SUBCATEGORY", // From allowed subcategories
+        "type": "EVENT_TYPE" // From allowed types
     },
     "action": {
-        "type": "ACTION_TYPE",
-        "direction": "DIRECTION",
-        "magnitude": "MAGNITUDE"
+        "type": "ACTION_TYPE", // From allowed action types
+        "direction": "DIRECTION", // UP, DOWN, NEUTRAL
+        "magnitude": "MAGNITUDE" // SMALL, MEDIUM, LARGE
     },
     "entities": {
         "projects": [{
@@ -439,10 +542,19 @@ OUTPUT FORMAT:
         }
     },
     "context": {
-        "impact": "NUMBER",
+        "impact": "NUMBER",  // Overall impact score (0-100)
+        "risk": {
+            "market": "NUMBER",  // Market risk level (0-100)
+            "tech": "NUMBER"     // Technical risk level (0-100)
+        },
         "sentiment": {
-            "market": "NUMBER",
-            "social": "NUMBER"
+            "market": "NUMBER",  // Market sentiment (0-100)
+            "social": "NUMBER"   // Social sentiment (0-100)
+        },
+        "trend": {
+            "short": "TREND",    // Short-term: UP, DOWN, SIDEWAYS
+            "medium": "TREND",   // Medium-term: UP, DOWN, SIDEWAYS
+            "strength": "NUMBER" // Trend strength (0-100)
         }
     }
 }
