@@ -250,15 +250,16 @@ CONTEXT SCORING GUIDELINES:
    - Legal precedents
    - Global compliance changes
    
+   Business/Adoption (75-95):
+   - Major exchange listings
+   - First-of-kind institutional adoption
+   - Significant company acquisitions
+   - Historic market structure changes
+   
    Technical/Development (70-89):
    - Major protocol upgrades
    - Critical partnerships
    - Significant technical innovations
-   
-   Business/Adoption (60-79):
-   - Important business developments
-   - New market entries
-   - Strategic partnerships
    
    Community/Social (40-69):
    - Team updates
@@ -461,6 +462,10 @@ NEWS Events:
     d) SECURITY
        - EVENT_TYPE: HACK, EXPLOIT, RUGPULL, SCAM, VULNERABILITY
        - ACTION_TYPE: HACK, EXPLOIT, MITIGATE, PATCH, RECOVER, COMPENSATE
+
+    e) BUSINESS
+       - EVENT_TYPE: IPO, LISTING, MERGER, ADOPTION, PRODUCT
+       - ACTION_TYPE: EXPAND, ACQUIRE, INVEST, COLLABORATE, INTEGRATE, LAUNCH
 
 2. Action Properties:
    Every action must include:

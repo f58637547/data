@@ -576,7 +576,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'no_entities' };
             }
 
-            // 1.1 Validate required fields after template
+            // Validate required fields after template
             console.log('\n=== Validating Required Fields ===');
             if (!entities?.event?.category) {
                 console.log('❌ REJECTED - Missing Category:');
