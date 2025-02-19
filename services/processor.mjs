@@ -430,8 +430,8 @@ async function processGoal(db, entities, channelMapping) {
                     },
                     ...(objective.headlines || [])
                 ],
-                // Keep original creation timestamp
-                timestamp: objective.timestamp
+                // Update timestamp to current time
+                timestamp: new Date().toISOString()
             };
 
             await db.query(`
