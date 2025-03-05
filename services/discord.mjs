@@ -14,7 +14,6 @@ export async function startDiscordBot({ db, templates }) {
     const channelMappings = {
         [process.env.DISCORD_CHANNEL_1]: { table: 'crypto', type: 'raw' },
         [process.env.DISCORD_CHANNEL_2]: { table: 'crypto', type: 'raw' },
-        [process.env.DISCORD_CHANNEL_3]: { table: 'crypto', type: 'raw' }
     };
 
     client.on('messageCreate', async (message) => {
