@@ -89,6 +89,9 @@ function getRawMessageText(message) {
             if (embed.description) {
                 textParts.push(embed.description);
             }
+            if (embed.title) {
+                textParts.push(embed.title);
+            }
         }
     }
 
@@ -99,6 +102,17 @@ function getRawMessageText(message) {
     if (imageUrlRegex.test(text)) {
         console.log('❌ Skipping: Content is only an image link');
         console.log('Text:', text);
+        return null;
+    }
+    
+    // Check if text is ONLY a tweet link with no actual content
+    const tweetOnlyRegex = /^\s*\[.*?\]\s*\(\s*https?:\/\/twitter\.com\/[^\/]+\/status\/\d+\s*\)\s*$/;
+    if (tweetOnlyRegex.test(text)) {
+        // Extract the tweet URL to log it
+        const urlMatch = text.match(/https?:\/\/twitter\.com\/[^\/]+\/status\/\d+/);
+        const tweetUrl = urlMatch ? urlMatch[0] : "unknown";
+        console.log('❌ Skipping: Content is only a tweet link without content');
+        console.log('Tweet URL:', tweetUrl);
         return null;
     }
 
@@ -545,6 +559,21 @@ export async function processMessage({ message, db, channelMapping }) {
             const contentData = extractDiscordText(message);
             if (!contentData?.original) {
                 return { skip: true, reason: 'no_content' };
+            }
+
+            // Check for tweet-only messages with no meaningful content
+            const tweetOnlyRegex = /^\s*\[.*?\]\s*\(\s*https?:\/\/twitter\.com\/[^\/]+\/status\/\d+\s*\)\s*$/;
+            if (tweetOnlyRegex.test(contentData.original)) {
+                console.log('❌ REJECTED - Message only contains a tweet link without content');
+                return { skip: true, reason: 'tweet_link_only' };
+            }
+
+            // Check for minimum meaningful content (after removing URLs)
+            const contentWithoutUrls = contentData.clean.replace(/https?:\/\/\S+/g, '').trim();
+            if (contentWithoutUrls.length < 15) {
+                console.log('❌ REJECTED - Content too short after removing URLs');
+                console.log('Clean content without URLs:', contentWithoutUrls);
+                return { skip: true, reason: 'insufficient_content' };
             }
 
             // Generate embedding and check similarity early
