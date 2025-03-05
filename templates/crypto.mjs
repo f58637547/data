@@ -14,6 +14,8 @@ CRITICAL REQUIREMENTS:
 7. Set impact=0 only for non-news, promotional, or completely irrelevant content
 8. Set category to IGNORED for clearly irrelevant content (non-financial tech news, politics without market impact, etc.)
 9. EXTRACT ONLY ONE PRIMARY SYMBOL - the most relevant symbol that represents what the content is about
+10. CRITICAL: If no financial symbol is mentioned, set primary_symbol to null. NEVER insert AAPL, BTC, ETH or other common symbols if they're not in the message
+11. DOUBLE CHECK BEFORE FINALIZING: Verify that any symbol you include was EXPLICITLY mentioned in the text
 
 TASK: Create a JSON object with the structured data extracted from the content.
 
@@ -137,17 +139,20 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
 - For stocks, use the ticker symbol (e.g., "AAPL" for Apple)
 - For indices, use the full name (e.g., "S&P 500", "Nasdaq", "Dow Jones")
 - For crypto, use the token symbol (e.g., "BTC", "ETH", "SOL")
-- If no specific symbol is mentioned but the content is relevant to financial markets, set primary_symbol to null
+- MUST FOLLOW: If no specific symbol is mentioned, set primary_symbol to null
+- NEVER hallucinate symbols: DO NOT insert common symbols like "AAPL", "BTC", or "ETH" if they aren't specifically mentioned
 - Only include a primary_symbol if it's explicitly mentioned or clearly the main focus
+- When in doubt, set primary_symbol to null rather than guessing
 
 2. PRIMARY_SYMBOL Rules:
    - Set primary_symbol to the most relevant financial symbol in the message
    - For crypto: Use token symbols like "BTC", "ETH", "SOL", etc.
    - For stocks: Use ticker symbols like "AAPL", "TSLA", "MSFT", etc.
    - For indices: Use full names like "S&P 500", "Nasdaq", "Dow Jones", etc.
-   - If no specific symbol is the primary focus but the content is still financially relevant, set primary_symbol to null
+   - If no specific symbol is mentioned or the primary focus, set primary_symbol to null
    - Never set a primary_symbol for content with impact = 0
-   - Never invent symbols or guess from vague context
+   - CRITICAL: NEVER invent symbols or guess from vague context
+   - VERIFY: Double-check that any symbol you assign as primary_symbol actually appears in the text
    - Only set a primary_symbol for financial instruments explicitly mentioned in the content
    - If in doubt, set primary_symbol to null
 
