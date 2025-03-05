@@ -161,27 +161,16 @@ function extractTwitterUsername(text) {
 }
 
 // Check similarity with vector search across all relevant tables
-async function findSimilarMessages(db, embedding, channelTable) {
+async function findSimilarMessages(db, embedding) {
     try {
-        // Query to check similarity in both tables
+        // Query to check similarity only in the crypto table
         const query = `
             WITH combined_results AS (
-                SELECT content::text, type, table_name,
+                SELECT content::text, type, 'crypto' as table_name,
                        1 - (embedding <-> $1::vector) as vector_similarity
-                FROM (
-                    SELECT content, type, 'crypto' as table_name, embedding
-                    FROM crypto
-                    WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-                    UNION ALL
-                    SELECT content, type, 'trades' as table_name, embedding
-                    FROM trades 
-                    WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-                    UNION ALL
-                    SELECT content, type, $2 as table_name, embedding
-                    FROM ${channelTable}
-                    WHERE "createdAt" > NOW() - INTERVAL '24 hours'
-                ) combined
-                WHERE 1 - (embedding <-> $1::vector) > 0.65
+                FROM crypto
+                WHERE "createdAt" > NOW() - INTERVAL '24 hours'
+                AND 1 - (embedding <-> $1::vector) > 0.65
             )
             SELECT * FROM combined_results
             ORDER BY vector_similarity DESC
@@ -191,11 +180,9 @@ async function findSimilarMessages(db, embedding, channelTable) {
         // Log the query and params for debugging
         console.log('Running similarity query with params:');
         console.log('Embedding:', embedding.length, 'dimensions');
-        console.log('Channel table:', channelTable);
 
         const result = await db.query(query, [
-            `[${embedding.join(',')}]`,
-            channelTable
+            `[${embedding.join(',')}]`
         ]);
 
         if (result.rows.length > 0) {
@@ -250,13 +237,6 @@ async function findSimilarMessages(db, embedding, channelTable) {
         throw error;
     }
 }
-
-// Goal status transitions
-const GOAL_STATUS = {
-    IN_PROGRESS: 'in_progress',
-    COMPLETED: 'completed',
-    CANCELLED: 'cancelled'
-};
 
 // Validation rules for metrics and context
 function validateMetrics(metrics) {
@@ -322,175 +302,6 @@ function cleanTokenSymbol(symbol) {
     return symbol ? symbol.replace(/^\$/, '') : symbol;
 }
 
-// Create or update goal based on message content
-async function processGoal(db, entities, channelMapping) {
-    try {
-        // Check required fields for goal name
-        const symbol = cleanTokenSymbol(entities.tokens?.primary?.symbol);
-        const category = entities.event?.category;
-        const type = entities.event?.type;
-
-        if (!symbol || !category || !type) {
-            console.log('⚠️ Missing required fields for goal name, skipping:', { symbol, category, type });
-            return;
-        }
-
-        // Create unique goal name
-        const goalName = `${symbol}_${category}_${type}`.toUpperCase();
-        
-        // Extract optional fields
-        const {
-            action,
-            entities: { projects = [], persons = [] } = {},
-            metrics = {},
-            context = {}
-        } = entities;
-
-        // Normalize scores to numbers
-        const normalizeScore = (score) => {
-            if (typeof score === 'string') {
-                return parseInt(score, 10) || 0;
-            }
-            return score || 0;
-        };
-
-        // Extract and normalize scores
-        const normalizedContext = {
-            ...context,
-            impact: normalizeScore(context.impact),
-            risk: {
-                market: normalizeScore(context.risk?.market),
-                tech: normalizeScore(context.risk?.tech)
-            },
-            sentiment: {
-                market: normalizeScore(context.sentiment?.market),
-                social: normalizeScore(context.sentiment?.social)
-            },
-            trend: {
-                short: context.trend?.short || 'SIDEWAYS',
-                medium: context.trend?.medium || 'SIDEWAYS',
-                strength: normalizeScore(context.trend?.strength)
-            }
-        };
-
-        // Find existing goal
-        const existingGoal = await db.query(`
-            SELECT id, objectives, status
-            FROM goals 
-            WHERE name = $1 AND status = $2
-            LIMIT 1
-        `, [goalName, GOAL_STATUS.IN_PROGRESS]);
-
-        // Prepare objective from current message
-        const newObjective = {
-            id: uuidv4(),
-            timestamp: new Date().toISOString(),
-            symbol,
-            category,
-            type,
-            headline: entities.headline,
-            action: action || {},
-            projects,
-            persons,
-            metrics: metrics || {},
-            context: normalizedContext
-        };
-
-        if (existingGoal.rows.length > 0) {
-            const goal = existingGoal.rows[0];
-            
-            if (goal.status !== GOAL_STATUS.IN_PROGRESS) {
-                console.log('⚠️ Goal is not in progress:', goalName);
-                return;
-            }
-
-            let objective;
-            try {
-                objective = Array.isArray(goal.objectives) ? goal.objectives[0] : JSON.parse(goal.objectives)[0];
-            } catch (e) {
-                console.error('Failed to parse objective:', e);
-                return;
-            }
-
-            // Update the objective with new data
-            const updatedObjective = {
-                type,
-                action: action || objective.action,
-                symbol,
-                context: normalizedContext,
-                metrics: metrics || objective.metrics,
-                persons,
-                category,
-                projects,
-                // Store headlines with timestamps
-                headlines: [
-                    {
-                        text: entities.headline,
-                        timestamp: new Date().toISOString()
-                    },
-                    ...(objective.headlines || [])
-                ],
-                // Update timestamp to current time
-                timestamp: new Date().toISOString()
-            };
-
-            await db.query(`
-                UPDATE goals 
-                SET objectives = $1
-                WHERE id = $2
-            `, [
-                JSON.stringify([updatedObjective]),
-                goal.id
-            ]);
-
-            console.log(`✅ Updated goal: ${goalName}`);
-        } else {
-            // Create new goal with initial objective
-            const description = `Tracking ${symbol} ${category.toLowerCase()} ${type.toLowerCase()} events`;
-            
-            const initialObjective = {
-                type,
-                action: action || {},
-                symbol,
-                context: normalizedContext,
-                metrics: metrics || {},
-                persons,
-                category,
-                projects,
-                headlines: [{
-                    text: entities.headline,
-                    timestamp: new Date().toISOString()
-                }],
-                timestamp: new Date().toISOString()
-            };
-
-            await db.query(`
-                INSERT INTO goals (
-                    id,
-                    name,
-                    status,
-                    description,
-                    objectives,
-                    "roomId"
-                ) VALUES ($1, $2, $3, $4, $5, $6)
-            `, [
-                uuidv4(),
-                goalName,
-                GOAL_STATUS.IN_PROGRESS,
-                description,
-                JSON.stringify([initialObjective]),
-                channelMapping.roomId
-            ]);
-
-            console.log('✅ Created new goal:', goalName);
-        }
-
-    } catch (error) {
-        console.error('Error processing goal:', error);
-        // Don't throw - we don't want to fail message processing if goal fails
-    }
-}
-
 export async function processMessage({ message, db, channelMapping }) {
     // Add to single global queue
     return messageQueue.add(async () => {
@@ -513,7 +324,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 embedding = await generateEmbedding(contentData.original);
                 
                 // Check for similar content before processing
-                const similarityResult = await findSimilarMessages(db, embedding, channelMapping.table);
+                const similarityResult = await findSimilarMessages(db, embedding);
                 if (similarityResult.isDuplicate) {
                     return { skip: true, reason: 'duplicate_content' };
                 }
@@ -627,9 +438,6 @@ export async function processMessage({ message, db, channelMapping }) {
                     stringifiedContent,
                     `[${embedding.join(',')}]`
                 ]);
-
-                // Process goal after saving message
-                await processGoal(db, entities, channelMapping);
 
             } catch (error) {
                 console.log('❌ Save Error:', error.message);
