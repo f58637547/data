@@ -3,36 +3,69 @@ import { cryptoTemplate } from './crypto.mjs';
 
 // Safely parse JSON with error recovery
 function safeParseJSON(text) {
+    // If text is already an object, just return it
+    if (typeof text === 'object' && text !== null) {
+        return text;
+    }
+    
+    // If text is undefined or null, return null
+    if (!text) {
+        console.log('Empty content provided to safeParseJSON');
+        return null;
+    }
+
     try {
         // Try direct parsing first
         return JSON.parse(text);
     } catch (error) {
-        console.log('Failed to parse LLM response: ' + error.message);
-        console.log('Raw content: ' + text);
+        console.log('Failed to parse JSON: ' + error.message);
+        console.log('Attempting to recover...');
         
         // Attempt to clean and fix common issues
         try {
             // Remove any markdown code block markers
             let cleaned = text.replace(/```json|```/g, '').trim();
             
-            // Fix unescaped quotes in strings (common LLM error)
-            cleaned = cleaned.replace(/(\w+)(?<!\\)"/g, '$1\\"');
+            // Check if the JSON is incomplete (missing closing braces)
+            let openBraces = (cleaned.match(/{/g) || []).length;
+            let closeBraces = (cleaned.match(/}/g) || []).length;
+            if (openBraces > closeBraces) {
+                console.log(`JSON is incomplete: ${openBraces} opening braces, ${closeBraces} closing braces`);
+                // Add missing closing braces
+                while (openBraces > closeBraces) {
+                    cleaned += '}';
+                    closeBraces++;
+                }
+            }
+            
+            // Check if the JSON is incomplete (missing closing brackets)
+            let openBrackets = (cleaned.match(/\[/g) || []).length;
+            let closeBrackets = (cleaned.match(/\]/g) || []).length;
+            if (openBrackets > closeBrackets) {
+                console.log(`JSON is incomplete: ${openBrackets} opening brackets, ${closeBrackets} closing brackets`);
+                // Add missing closing brackets
+                while (openBrackets > closeBrackets) {
+                    cleaned += ']';
+                    closeBrackets++;
+                }
+            }
             
             // Remove trailing commas before closing brackets (common LLM error)
             cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
             
-            // Try to balance brackets if unbalanced
-            let openBraces = (cleaned.match(/{/g) || []).length;
-            let closeBraces = (cleaned.match(/}/g) || []).length;
-            while (openBraces > closeBraces) {
-                cleaned += '}';
-                closeBraces++;
-            }
+            // Fix any invalid escaping in the JSON
+            // DO NOT add backslashes to property names - this was causing issues
+            // Only handle specific escape sequences that are commonly problematic
             
-            console.log('Cleaned JSON: ' + cleaned);
-            return JSON.parse(cleaned);
+            // Try to parse the cleaned JSON
+            console.log('Attempting to parse cleaned JSON');
+            const result = JSON.parse(cleaned);
+            console.log('Successfully recovered and parsed JSON');
+            return result;
         } catch (secondError) {
-            console.error('Entity extraction error: Failed to parse LLM response');
+            console.error('JSON recovery failed: ' + secondError.message);
+            console.error('Original error: ' + error.message);
+            console.error('Original text: ' + text.substring(0, 200) + (text.length > 200 ? '...' : ''));
             return null;
         }
     }
@@ -72,15 +105,36 @@ export async function extractEntities(text, _, authorInfo = {}) {
         // Get raw response and clean it
         const rawContent = response.choices[0].message.content;
         
-        // Find the JSON object
-        const match = rawContent.match(/\{[\s\S]*\}/);
-        if (!match) {
-            console.error('Raw content:', rawContent);
-            throw new Error('No JSON object found in response');
+        // Skip if content too short
+        if (!rawContent || rawContent.length < 10) {
+            console.error('Invalid LLM response: content too short or empty');
+            return null;
+        }
+        
+        // Find the JSON object - try multiple approaches
+        let jsonStr = '';
+        
+        // First attempt: extract text between first { and last }
+        const fullMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (fullMatch) {
+            jsonStr = fullMatch[0];
+        } 
+        // Second attempt: if we don't have a complete object, look for partial JSON
+        else {
+            // If there's an opening brace but no closing, try to extract and fix
+            const openBraceIndex = rawContent.indexOf('{');
+            if (openBraceIndex !== -1) {
+                jsonStr = rawContent.substring(openBraceIndex);
+                // We'll let safeParseJSON handle the missing closing braces
+            } else {
+                console.error('No JSON object structure found in response');
+                console.error('Raw content:', rawContent);
+                return null;
+            }
         }
 
         // Clean up the JSON string
-        const jsonStr = match[0]
+        jsonStr = jsonStr
             .replace(/\/\/[^\n]*/g, '')  // Remove comments
             .replace(/,\s*([}\]])/g, '$1')  // Remove trailing commas
             .replace(/\n\s*/g, ' ')  // Replace newlines
@@ -112,6 +166,8 @@ export async function extractEntities(text, _, authorInfo = {}) {
 
     } catch (error) {
         console.error('Entity extraction error:', error.message);
+        // For debugging, log the stack trace
+        console.error(error.stack);
         return null;  // Return null instead of throwing to allow processing to continue
     }
 }
