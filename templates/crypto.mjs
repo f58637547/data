@@ -613,7 +613,7 @@ OUTPUT FORMAT:
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_SYMBOL", // Can be crypto, stock, or index (e.g., "BTC", "AAPL", "S&P 500")
-            "related": ["RELATED_SYMBOLS"] // All related financial symbols mentioned (crypto, stocks, indices)
+            "related": [] // Array of all related financial symbols mentioned
         }
     },
     "event": {
