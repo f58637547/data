@@ -302,6 +302,203 @@ function cleanTokenSymbol(symbol) {
     return symbol ? symbol.replace(/^\$/, '') : symbol;
 }
 
+// Safely parse JSON with error recovery
+function safeParseJSON(text) {
+    try {
+        // Try direct parsing first
+        return JSON.parse(text);
+    } catch (error) {
+        console.log('Failed to parse LLM response: ' + error.message);
+        console.log('Raw content: ' + text);
+        
+        // Attempt to clean and fix common issues
+        try {
+            // Remove any markdown code block markers
+            let cleaned = text.replace(/```json|```/g, '').trim();
+            
+            // Fix unescaped quotes in strings (common LLM error)
+            cleaned = cleaned.replace(/(\w+)(?<!\\)"/g, '$1\\"');
+            
+            // Remove trailing commas before closing brackets (common LLM error)
+            cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+            
+            // Try to balance brackets if unbalanced
+            let openBraces = (cleaned.match(/{/g) || []).length;
+            let closeBraces = (cleaned.match(/}/g) || []).length;
+            while (openBraces > closeBraces) {
+                cleaned += '}';
+                closeBraces++;
+            }
+            
+            console.log('Cleaned JSON: ' + cleaned);
+            return JSON.parse(cleaned);
+        } catch (secondError) {
+            console.error('Entity extraction error: Failed to parse LLM response');
+            return null;
+        }
+    }
+}
+
+// Normalize and validate entity structure
+function normalizeEntityStructure(entities) {
+    if (!entities) return null;
+    
+    try {
+        // Create normalized structure with defaults
+        const normalized = {
+            headline: entities.headline || '',
+            tokens: {
+                primary: { 
+                    symbol: entities.tokens?.primary?.symbol || null 
+                },
+                related: []
+            },
+            event: {
+                category: entities.event?.category || 'NEWS',
+                subcategory: entities.event?.subcategory || 'TECHNICAL',
+                type: entities.event?.type || 'UPDATE'
+            },
+            action: {
+                type: entities.action?.type || 'UPDATE',
+                direction: 'NEUTRAL',
+                magnitude: 'MEDIUM'
+            },
+            entities: {
+                projects: [],
+                persons: [],
+                locations: []
+            },
+            metrics: {
+                market: {
+                    price: null,
+                    volume: null,
+                    liquidity: null,
+                    volatility: null
+                },
+                onchain: {
+                    transactions: null,
+                    addresses: null
+                }
+            },
+            context: {
+                impact: entities.context?.impact || 0,
+                risk: {
+                    market: entities.context?.risk?.market || 0,
+                    tech: entities.context?.risk?.tech || 0
+                },
+                sentiment: {
+                    market: entities.context?.sentiment?.market || 0,
+                    social: entities.context?.sentiment?.social || 0
+                },
+                trend: {
+                    short: 'SIDEWAYS',
+                    medium: 'SIDEWAYS',
+                    strength: entities.context?.trend?.strength || 0
+                }
+            }
+        };
+
+        // Handle backwards compatibility with old format or common AI errors
+        
+        // Fix tokens.related structure
+        if (entities.tokens?.primary?.related && Array.isArray(entities.tokens.primary.related)) {
+            normalized.tokens.related = entities.tokens.primary.related;
+        } else if (entities.tokens?.related && Array.isArray(entities.tokens.related)) {
+            normalized.tokens.related = entities.tokens.related;
+        }
+        
+        // Fix entities structure
+        if (Array.isArray(entities.entities)) {
+            // Convert the old array format to the new object format
+            for (const entity of entities.entities) {
+                if (entity.type === 'PERSON') {
+                    normalized.entities.persons.push({
+                        name: entity.name,
+                        title: entity.title || '',
+                        org: entity.org || ''
+                    });
+                } else if (['PROJECT', 'EXCHANGE', 'PROTOCOL', 'COMPANY', 'REGULATOR', 'DAO', 'DEX', 'DEFI', 'WALLET'].includes(entity.type)) {
+                    normalized.entities.projects.push({
+                        name: entity.name,
+                        type: entity.type,
+                        role: entity.role || 'primary'
+                    });
+                } else if (['COUNTRY', 'REGION', 'CITY', 'LOCATION'].includes(entity.type)) {
+                    normalized.entities.locations.push({
+                        name: entity.name,
+                        type: entity.type === 'LOCATION' ? 'COUNTRY' : entity.type,
+                        context: entity.context || 'primary'
+                    });
+                }
+            }
+        } else if (entities.entities) {
+            // Use provided entity objects if they exist
+            if (Array.isArray(entities.entities.projects)) {
+                normalized.entities.projects = entities.entities.projects;
+            }
+            if (Array.isArray(entities.entities.persons)) {
+                normalized.entities.persons = entities.entities.persons;
+            }
+            if (Array.isArray(entities.entities.locations)) {
+                normalized.entities.locations = entities.entities.locations;
+            }
+        }
+        
+        // Normalize direction
+        if (normalized.action.direction) {
+            const direction = normalized.action.direction.toUpperCase();
+            if (['UP', 'DOWN', 'NEUTRAL'].includes(direction)) {
+                normalized.action.direction = direction;
+            } else {
+                normalized.action.direction = 'NEUTRAL';
+            }
+        }
+        
+        // Normalize magnitude
+        if (normalized.action.magnitude) {
+            const magnitude = normalized.action.magnitude.toUpperCase();
+            if (['SMALL', 'MEDIUM', 'LARGE'].includes(magnitude)) {
+                normalized.action.magnitude = magnitude;
+            } else {
+                normalized.action.magnitude = 'MEDIUM';
+            }
+        } else {
+            normalized.action.magnitude = 'MEDIUM';
+        }
+        
+        // Normalize trend values
+        if (normalized.context.trend.short) {
+            const short = normalized.context.trend.short.toUpperCase();
+            if (['UP', 'DOWN', 'SIDEWAYS'].includes(short)) {
+                normalized.context.trend.short = short;
+            } else {
+                normalized.context.trend.short = 'SIDEWAYS';
+            }
+        }
+        
+        if (normalized.context.trend.medium) {
+            const medium = normalized.context.trend.medium.toUpperCase();
+            if (['UP', 'DOWN', 'SIDEWAYS'].includes(medium)) {
+                normalized.context.trend.medium = medium;
+            } else {
+                normalized.context.trend.medium = 'SIDEWAYS';
+            }
+        }
+        
+        // Ensure impact score is a number between 0-100
+        if (normalized.context.impact === null || isNaN(normalized.context.impact)) {
+            normalized.context.impact = 0;
+        } else {
+            normalized.context.impact = Math.max(0, Math.min(100, normalized.context.impact));
+        }
+        
+        return normalized;
+    } catch (error) {
+        console.error('Error normalizing entity structure:', error);
+        return entities; // Return original on error
+    }
+}
+
 export async function processMessage({ message, db, channelMapping }) {
     // Add to single global queue
     return messageQueue.add(async () => {
@@ -349,7 +546,7 @@ export async function processMessage({ message, db, channelMapping }) {
             let entities;
             try {
                 console.log('🤖 Starting LLM processing for message:', message.id);
-                entities = await extractEntities(
+                const rawEntities = await extractEntities(
                     contentData.clean,  // Use clean text for analysis
                     null,
                     {
@@ -358,6 +555,13 @@ export async function processMessage({ message, db, channelMapping }) {
                         rtAuthor: contentData.rtAuthor || ''
                     }
                 );
+                
+                // Normalize and validate the entity structure
+                entities = normalizeEntityStructure(rawEntities);
+                
+                if (!entities) {
+                    return { skip: true, reason: 'entity_normalization_failed' };
+                }
 
                 // Clean up entities before saving
                 if (entities?.headline) {
@@ -425,7 +629,7 @@ export async function processMessage({ message, db, channelMapping }) {
 
                 // Validate JSON before saving
                 const stringifiedContent = JSON.stringify(contentToSave);
-                JSON.parse(stringifiedContent); // Test parse to ensure it's valid
+                safeParseJSON(stringifiedContent); // Test parse to ensure it's valid
 
                 await db.query(`
                     INSERT INTO ${channelMapping.table}
