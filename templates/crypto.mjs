@@ -13,6 +13,7 @@ CRITICAL REQUIREMENTS:
 6. If multiple symbols are mentioned, choose the primary one based on context and relevance
 7. Set impact=0 only for non-news, promotional, or completely irrelevant content
 8. Set category to IGNORED for clearly irrelevant content (non-financial tech news, politics without market impact, etc.)
+9. EXTRACT ONLY ONE PRIMARY SYMBOL - the most relevant symbol that represents what the content is about
 
 TASK: Create a JSON object with the structured data extracted from the content.
 
@@ -149,17 +150,6 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
    - Never invent symbols or guess from vague context
    - Only set a primary_symbol for financial instruments explicitly mentioned in the content
    - If in doubt, set primary_symbol to null
-
-3. RELATED_SYMBOLS Rules:
-   - Include ALL relevant financial symbols mentioned in the message 
-   - For crypto: Use token symbols like "BTC", "ETH", "SOL", etc.
-   - For stocks: Use ticker symbols like "AAPL", "TSLA", "MSFT", etc.
-   - For indices: Use full names like "S&P 500", "Nasdaq", "Dow Jones", etc.
-   - Include ALL valid symbols even if not the primary focus
-   - Exclude irrelevant or passing mentions
-   - If primary_symbol exists, it MUST also appear in related_symbols
-   - If primary_symbol is null, related_symbols can still contain relevant symbols
-   - Never invent symbols not mentioned in the content
 
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
@@ -598,8 +588,7 @@ OUTPUT FORMAT:
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_SYMBOL" // Can be crypto, stock, or index (e.g., "BTC", "AAPL", "S&P 500")
-        },
-        "related": ["RELATED"]
+        }
     },
     "event": {
         "category": "CATEGORY", // MARKET, DATA, or NEWS
