@@ -46,6 +46,8 @@ CRITICAL FORMAT RULES:
 4. NO text outside the JSON structure
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
+7. CRITICAL: For tokens, ALWAYS use the format: "primary": {"symbol": "TOKEN_SYMBOL"} - not just "primary": "TOKEN_SYMBOL"
+8. For less common tokens (like TARA, PEPE, etc.), ensure they are properly formatted as {"symbol": "TARA"} in the JSON
 
 Message to analyze:
 {{message}}
@@ -592,7 +594,7 @@ OUTPUT FORMAT:
     "headline": "{{message}}",
     "tokens": {
         "primary": {
-            "symbol": "PRIMARY_SYMBOL" // Can be crypto, stock, or index (e.g., "BTC", "AAPL", "S&P 500")
+            "symbol": "PRIMARY_SYMBOL" // IMPORTANT: Must be a string like "BTC", "TARA", "AAPL" (not just "primary": "BTC")
         }
     },
     "event": {
