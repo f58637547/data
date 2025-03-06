@@ -44,9 +44,9 @@ HEADLINE FORMATTING RULES:
     - NEWS events: Use news style
 20. ALWAYS REMOVE clickbait prefixes and elements like "LATEST:", "BREAKING:", "JUST IN:", etc., and rewrite as a smooth, professional headline
 21. CRITICAL: COMPLETELY REWRITE AND REPHRASE THE HEADLINE - DO NOT COPY THE ORIGINAL TEXT
-    - For MARKET events: Rewrite as a trading/price headline format
-    - For DATA events: Rewrite as a data reporting headline format
-    - For NEWS events: Rewrite as a news headline format
+    - For MARKET events: Rewrite as a trading/price headline format (e.g., "BTC Forms Double Bottom Pattern Near $45K Support")
+    - For DATA events: Rewrite as a data reporting headline format (e.g., "Uniswap Trading Volume Surpasses $2.5T Since Launch")
+    - For NEWS events: Rewrite as a news headline format (e.g., "Burwick Law Files 11 Crypto Lawsuits Against Multiple Projects")
     - NEVER just remove prefixes/emojis and keep the rest of the original text
     - ALWAYS transform the content into the appropriate category style
 
