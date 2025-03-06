@@ -33,6 +33,15 @@ TRADING SETUP CLASSIFICATION RULE:
 - Trading signals and entry/exit recommendations should use category=MARKET, subcategory=TRADE
 - Never categorize price action or technical trading setups as NEWS events
 
+WHALE TRANSFER CLASSIFICATION RULE:
+- Large token transfers reported by Whale Alert or similar sources MUST be categorized as DATA events
+- Transfers of significant amounts (>$10 million) should use category=DATA, subcategory=WHALE_MOVE or FUND_FLOW
+- Transfers from/to exchanges should use category=DATA, subcategory=FUND_FLOW, type=EXCHANGE_FLOW
+- Transfers between wallets should use category=DATA, subcategory=WHALE_MOVE, type=LARGE_TRANSFER
+- Large transfers (>$50 million) should NEVER have impact=0 and should have impact of at least 60
+- Very large transfers (>$100 million) should have impact of at least 75
+- Messages containing 🚨 emoji and mentioning "transferred" are almost always DATA events
+
 For NON-financial content (tech news without market relevance, politics without economic impact, etc.):
 1. Set impact to 0
 2. Set category to IGNORED
@@ -298,21 +307,25 @@ CONTEXT SCORING GUIDELINES:
    - Major protocol exploits/hacks
    - Critical smart contract vulnerabilities
    - Significant fund movements (>10% of TVL)
+   - Extremely large transfers (>$500 million)
    
    70-84:
    - Large transfers relative to token liquidity
+   - Very large transfers (>$100 million)
    - Protocol parameter changes
    - Notable TVL changes (5-10%)
    
    55-69:
-   - Moderate fund movements
+   - Moderate fund movements ($10-100 million)
    - Regular protocol metrics changes
    - Standard governance activities
    
    40-54:
-   - Small transfers
+   - Small transfers (<$10 million)
    - Minor metric changes
    - Routine operations
+
+   CRITICAL: Whale Alert messages about large transfers should NEVER receive impact=0
 
    NEWS Events (Variable Priority):
    Regulatory/Legal (80-100):
@@ -531,6 +544,14 @@ DATA Events:
     c) ONCHAIN
        - EVENT_TYPE: DEX_POOL, LIQUIDITY_POOL, NETWORK_METRICS, GAS_METRICS
        - ACTION_TYPE: MINT, BURN, SWAP, UPGRADE, EXPLOIT
+       
+    SPECIAL CASE - WHALE ALERTS:
+    - Messages from Whale Alert or similar sources showing large transfers MUST be classified as DATA events
+    - If transfers involve exchanges, use subcategory=FUND_FLOW, type=EXCHANGE_FLOW
+    - If transfers are between unknown wallets, use subcategory=WHALE_MOVE, type=LARGE_TRANSFER
+    - Messages with 🚨 emoji showing large transfers (>$10M) should have impact scores of at least 60
+    - Very large transfers (>$100M) should have impact scores of at least 75
+    - These events should NEVER receive impact=0
 
 NEWS Events:
   - When CATEGORY = "NEWS":
