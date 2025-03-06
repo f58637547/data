@@ -32,6 +32,8 @@ HEADLINE FORMATTING RULES:
 14. REMOVE ALL emojis (🚨💥🔥) from the headline
 15. REMOVE ALL links and URLs from the headline
 16. PRESERVE ALL crypto symbols and hashtags ($BTC, #TRADE, etc.) in the headline
+17. NORMALIZE HEADLINE CASE - Convert all-uppercase headlines to proper case while preserving acronyms
+18. NEVER omit names, numbers, or other critical information - preserve ALL factual details from the original
 
 CRITICAL HEADLINE COMPLETENESS RULES:
 - NEVER truncate quotes or statements - include the COMPLETE message
@@ -41,6 +43,9 @@ CRITICAL HEADLINE COMPLETENESS RULES:
 - If a quote or statement has multiple sentences, include ALL sentences in the headline
 - When faced with a choice between completeness and brevity, ALWAYS prioritize completeness
 - REMOVE ALL emojis and links from the headline, but keep all other information intact
+- NORMALIZE CASE: Convert all-uppercase headlines to proper case (capitalize first letter of sentences and proper nouns)
+- PRESERVE ACRONYMS in their original form (e.g., "SUI", "WLFI", "CEO", "DeFi")
+- KEEP ALL NAMES, NUMBERS, and other critical information - never omit factual details
 
 TASK: Create a JSON object with the structured data extracted from the content.
 
@@ -644,7 +649,7 @@ When classifying, always ensure all combinations are valid according to the abov
 
 OUTPUT FORMAT:
 {
-    "headline": "DETAILED_CONCISE_HEADLINE", // REMOVE all emojis and links, but preserve hashtags (#TRADE) and crypto symbols ($BTC)
+    "headline": "DETAILED_CONCISE_HEADLINE", // REMOVE all emojis and links, NORMALIZE case, preserve hashtags (#TRADE) and crypto symbols ($BTC)
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_SYMBOL" // ONLY crypto tokens WITHOUT $ prefix (BTC, ETH, XRP, etc.) - not stocks or indices
