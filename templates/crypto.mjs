@@ -9,7 +9,7 @@ NEVER change the market type mentioned in the original text - if it's about stoc
 
 ⚠️⚠️⚠️ CRITICAL JSON VALIDATION WARNING ⚠️⚠️⚠️
 BEFORE SUBMITTING YOUR RESPONSE:
-1. Check that all quotes in strings are properly escaped with backslashes: "He said \"hello\""
+1. Check that all quotes in strings are properly escaped with backslashes: "He said \\"hello\\""
 2. Verify that NO text strings are truncated - especially headlines with apostrophes
 3. Make sure all JSON strings are properly terminated with quote marks
 4. Ensure all objects have matching opening and closing braces
@@ -28,24 +28,33 @@ CORRECT: "Trump\\'s policy"
 
 For strings with quotes:
 INCORRECT: "He said "hello""
-CORRECT: "He said \"hello\""
+CORRECT: "He said \\"hello\\""
 
 ⚠️ HEADLINE REWRITING REQUIREMENT: You MUST completely rewrite every headline using different words, verbs, and sentence structure than the original. Never copy phrases from the source. Change ALL phrasing while keeping information accurate.
 CRITICAL: NEVER truncate headlines - always provide the COMPLETE headline text.
 
+⚠️ HEADLINE CASE NORMALIZATION REQUIREMENT: You MUST convert ALL CAPS headlines to proper case. For example: 
+INCORRECT: "WHITE HOUSE PREPARING CLARIFICATION ON CRYPTO RESERVE"
+CORRECT: "White House Preparing Clarification on Crypto Reserve" 
+
 ⚠️ CRITICAL OUTPUT REQUIREMENT: 
 YOUR RESPONSE MUST BE VALID JSON ONLY. DO NOT OUTPUT ANY MARKDOWN, EXPLANATORY TEXT, OR OTHER FORMATTING.
 YOUR ENTIRE RESPONSE SHOULD BE A SINGLE JSON OBJECT. NOTHING ELSE.
+DO NOT USE TRIPLE BACKTICKS, DO NOT WRITE "json", DO NOT ADD ANY TEXT BEFORE OR AFTER THE JSON.
+JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
 
 ⚠️ CRITICAL JSON FORMATTING RULES ⚠️
-1. ALWAYS properly escape all quotes within strings using backslash: " becomes \"
+1. ALWAYS properly escape all quotes within strings using backslash: " becomes \\"
 2. NEVER use single quotes for JSON properties or values - always use double quotes
 3. ENSURE all strings with apostrophes or quotes are properly escaped
 4. DOUBLE-CHECK your JSON is valid before submitting
 5. Avoid truncating strings - complete all text fields fully
-6. For headlines with quotes, ensure ALL quotes in the content are properly escaped with backslash \"
+6. For headlines with quotes, ensure ALL quotes in the content are properly escaped with backslash \\"
+7. NEVER output anything except the JSON object - no explanations, no markdown, no backticks
+8. NULL VALUES must be written as null without quotes (NOT "null")
+9. NUMBERS must be written without quotes (e.g., 50 not "50")
 
-CRITICAL REQUIREMENTS: 
+CRITICAL REQUIREMENTS:
 1. NEVER invent or hallucinate symbols that aren't explicitly mentioned in the content
 2. NEVER hallucinate or fabricate news headlines - always maintain the core information from the original message
 3. For promotional content like channel introductions, use the original text as headline and set impact=0
@@ -59,6 +68,8 @@ CRITICAL REQUIREMENTS:
 11. DOUBLE CHECK BEFORE FINALIZING: Verify that any symbol you include was EXPLICITLY mentioned in the text
 12. HEADLINE COMPLETENESS: Ensure headlines preserve ALL key details, names, roles, and specific information from the original message
 13. CRITICAL: NEVER change the subject of headlines - if about stock market, keep it about stock market; if about crypto, keep it about crypto
+14. NORMALIZE CASE: Convert ALL CAPS headlines to proper case with proper capitalization
+15. COMPLETELY REWRITE ALL HEADLINES using new words and phrasing
 
 HEADLINE FORMATTING RULES:
 1. For news topics: Create a concise headline that captures ALL key information from the original
@@ -87,9 +98,10 @@ HEADLINE FORMATTING RULES:
 21. CRITICAL: COMPLETELY REWRITE AND REPHRASE THE HEADLINE - DO NOT COPY THE ORIGINAL TEXT
     - For MARKET events: Rewrite as a trading/price headline format (e.g., "BTC Forms Double Bottom Pattern Near $45K Support" or "AAPL Stock Approaches Major Resistance at $190")
     - For DATA events: Rewrite as a data reporting headline format (e.g., "Uniswap Trading Volume Surpasses $2.5T Since Launch" or "Q2 Manufacturing Data Exceeds Analyst Expectations")
-    - For NEWS events: Rewrite as a news headline format (e.g., "Regulatory Body Files Multiple Lawsuits Against Financial Projects" or "Federal Reserve Chairman Comments on Interest Rate Strategy")
+    - For NEWS events: Rewrite as a news headline format (e.g., "White House Set to Issue Additional Details on Strategic Crypto Reserve Policy" or "Federal Reserve Chairman Comments on Interest Rate Strategy")
     - NEVER just remove prefixes/emojis and keep the rest of the original text
     - ALWAYS transform the content into the appropriate category style
+    - ALWAYS use proper case (not ALL CAPS)
 
 CRITICAL HEADLINE COMPLETENESS RULES:
 - NEVER truncate quotes or statements - include the COMPLETE message
@@ -727,8 +739,23 @@ CRITICAL FINAL INSTRUCTIONS:
 7. ENSURE all quotes and apostrophes within strings are properly escaped with backslashes
 8. VERIFY your JSON is valid and complete before submitting
 9. NEVER truncate strings - provide complete content for all fields
+10. DOUBLE-CHECK that null values are written as null without quotes
+11. VERIFY all required fields have proper values before submitting
+12. NORMALIZE all headline text to proper case (not ALL CAPS)
 
 CORRECT vs INCORRECT OUTPUT EXAMPLES:
+
+INCORRECT (DO NOT DO THIS):
+Here is the extracted structured data in JSON format:
+\`\`\`json
+{
+  "headline": "WHITE HOUSE PREPARING FURTHER CLARIFICATION ON STRATEGIC CRYPTO RESERVE",
+  "tokens": {
+    "primary": {"symbol": "null"}
+  },
+  ...
+}
+\`\`\`
 
 INCORRECT (DO NOT DO THIS):
 After analyzing the provided text, I extracted the following structured data:
@@ -749,7 +776,7 @@ INCORRECT (DO NOT DO THIS):
 }
 
 CORRECT FORMAT (DO THIS):
-{"headline":"Regulatory Body Files Multiple Lawsuits Against Financial Projects","tokens":{"primary":{"symbol":null}},"event":{"category":"NEWS","subcategory":"REGULATORY","type":"LEGAL"},...}
+{"headline":"White House Set to Issue Additional Details on Strategic Crypto Reserve Policy","tokens":{"primary":{"symbol":null}},"event":{"category":"NEWS","subcategory":"REGULATORY","type":"POLICY"},"action":{"type":"ANNOUNCE","direction":"NEUTRAL","magnitude":"MEDIUM"},"entities":{"projects":[],"persons":[],"locations":[{"name":"United States","type":"COUNTRY","context":"primary"}]},"metrics":{"market":{"price":null,"volume":null,"liquidity":null,"volatility":null},"onchain":{"transactions":null,"addresses":null}},"context":{"impact":75,"risk":{"market":60,"tech":40},"sentiment":{"market":50,"social":55},"trend":{"short":"SIDEWAYS","medium":"SIDEWAYS","strength":45}}}
 
 REMEMBER: Output ONLY the JSON object with no additional text or formatting.
 
@@ -820,14 +847,17 @@ OUTPUT FORMAT:
 
 ⚠️ CRITICAL JSON FORMATTING RULES ⚠️
 1. ALL numerical values MUST be actual numbers (25, 50, 75), NOT strings ("25", "50", "75")
-2. Use null for missing values, NOT strings like "unknown" or "N/A"
+2. Use null for missing values, NOT strings like "null", "unknown" or "N/A"
 3. NEVER include comments in the actual JSON output
 4. NEVER use strings for fields that require numbers
 5. DOUBLE-CHECK your JSON is valid before submitting
 6. PROPERLY ESCAPE all quotes and special characters in strings
 7. VERIFY there are no truncated strings in your output
-8. ENSURE all string values with quotes use proper escaping: "He said \"hello\""
+8. ENSURE all string values with quotes use proper escaping: "He said \\"hello\\""
 9. COMPLETE all string values fully - never cut off headlines or other text fields
+10. NORMALIZE CASE in headlines - convert ALL CAPS to proper case (e.g., "White House Preparing" not "WHITE HOUSE PREPARING")
+11. VERIFY that all JSON fields have proper closing quotes and braces
+12. SET ACTION TYPES to valid values from the allowed options list - NEVER use empty strings
 
 FINAL REMINDER: OUTPUT VALID JSON ONLY - NO EXPLANATORY TEXT, NO MARKDOWN FORMATTING, NO BULLET POINTS.
 `;
