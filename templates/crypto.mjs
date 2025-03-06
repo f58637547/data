@@ -6,7 +6,7 @@ CRITICAL REQUIREMENTS:
 2. NEVER hallucinate or fabricate news headlines - always maintain the core information from the original message
 3. For promotional content like channel introductions, use the original text as headline and set impact=0
 4. PRESERVE ALL financial symbols in headline text exactly as they appear ($BTC, ETH, etc.)
-5. For primary_symbol extraction, identify the most relevant crypto token if mentioned
+5. For primary_symbol extraction, identify the most relevant crypto token if mentioned, removing any $ prefix
 6. If multiple symbols are mentioned, choose the primary one based on context and relevance
 7. Set impact=0 only for non-news, promotional, or completely irrelevant content
 8. Set category to IGNORED for clearly irrelevant content (non-financial tech news, politics without market impact, etc.)
@@ -29,6 +29,9 @@ HEADLINE FORMATTING RULES:
 11. PRESERVE FULL QUOTES - never truncate or shorten quoted statements
 12. For economic data: Include the actual, expected, AND previous values
 13. For comparative statements: Include BOTH parts of the comparison (e.g., "sold for X" AND "would be worth Y")
+14. REMOVE ALL emojis (🚨💥🔥) from the headline
+15. REMOVE ALL links and URLs from the headline
+16. PRESERVE ALL crypto symbols and hashtags ($BTC, #TRADE, etc.) in the headline
 
 CRITICAL HEADLINE COMPLETENESS RULES:
 - NEVER truncate quotes or statements - include the COMPLETE message
@@ -37,6 +40,7 @@ CRITICAL HEADLINE COMPLETENESS RULES:
 - For Twitter handles or usernames, ALWAYS preserve them exactly as written in the original
 - If a quote or statement has multiple sentences, include ALL sentences in the headline
 - When faced with a choice between completeness and brevity, ALWAYS prioritize completeness
+- REMOVE ALL emojis and links from the headline, but keep all other information intact
 
 TASK: Create a JSON object with the structured data extracted from the content.
 
@@ -84,7 +88,7 @@ CRITICAL FORMAT RULES:
 4. NO text outside the JSON structure
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
-7. CRITICAL: For tokens, ALWAYS use the format: "primary": {"symbol": "PRIMARY_SYMBOL"} where PRIMARY_SYMBOL is a crypto token (BTC, ETH, etc.)
+7. CRITICAL: For tokens, ALWAYS use the format: "primary": {"symbol": "PRIMARY_SYMBOL"} where PRIMARY_SYMBOL is a crypto token WITHOUT $ prefix (e.g., "BTC", "ETH", etc.)
 8. For less common tokens (like TARA, PEPE, etc.), ensure they are properly formatted as {"symbol": "TARA"} in the JSON
 9. ONLY extract crypto tokens for the primary_symbol field - do not include stocks or indices
 
@@ -178,6 +182,7 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
 - If a crypto symbol is explicitly mentioned (e.g., "BTC", "ETH", "SOL"), include it in the headline
 - When the message contains crypto symbols with $ prefix, preserve the $ in the headline
 - When extracting the primary symbol, only use explicitly mentioned crypto tokens
+- When setting the primary_symbol field, REMOVE any $ prefix (use "BTC" not "$BTC")
 - If no specific crypto symbol is mentioned, set primary_symbol to null
 - NEVER hallucinate symbols: DO NOT insert common symbols like "BTC" or "ETH" if they aren't specifically mentioned
 - Only include a primary_symbol if it's explicitly mentioned or clearly the main focus
@@ -185,7 +190,7 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
 
 2. PRIMARY_SYMBOL Rules:
    - Set primary_symbol to the most relevant CRYPTO token in the message
-   - For crypto: Use token symbols like "BTC", "ETH", "SOL", etc.
+   - For crypto: Use token symbols like "BTC", "ETH", "SOL", etc. (WITHOUT $ prefixes)
    - If no specific crypto token is mentioned, set primary_symbol to null
    - Never set a primary_symbol for content with impact = 0
    - CRITICAL: NEVER invent symbols or guess from vague context
@@ -354,7 +359,7 @@ CONTEXT SCORING GUIDELINES:
 
    CRITICAL: Whale Alert messages about large transfers should NEVER receive impact=0
 
-   NEWS Events (Variable Priority):
+   NEWS Events:
    Regulatory/Legal (80-100):
    - Major regulatory decisions affecting specific tokens
    - Legal precedents with direct crypto impact
@@ -639,10 +644,10 @@ When classifying, always ensure all combinations are valid according to the abov
 
 OUTPUT FORMAT:
 {
-    "headline": "DETAILED_CONCISE_HEADLINE",
+    "headline": "DETAILED_CONCISE_HEADLINE", // REMOVE all emojis and links, but preserve hashtags (#TRADE) and crypto symbols ($BTC)
     "tokens": {
         "primary": {
-            "symbol": "PRIMARY_SYMBOL"
+            "symbol": "PRIMARY_SYMBOL" // ONLY crypto tokens WITHOUT $ prefix (BTC, ETH, XRP, etc.) - not stocks or indices
         }
     },
     "event": {
