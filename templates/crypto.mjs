@@ -16,16 +16,17 @@ CRITICAL REQUIREMENTS:
 9. EXTRACT ONLY ONE PRIMARY SYMBOL - the most relevant symbol that represents what the content is about
 10. CRITICAL: If no financial symbol is mentioned, set primary_symbol to null. NEVER insert AAPL, BTC, ETH or other common symbols if they're not in the message
 11. DOUBLE CHECK BEFORE FINALIZING: Verify that any symbol you include was EXPLICITLY mentioned in the text
+12. HEADLINE COMPLETENESS: Ensure headlines preserve ALL key details, names, roles, and specific information from the original message
 
 HEADLINE FORMATTING RULES:
-1. For news topics: Create a concise 1-2 sentence headline that captures the key information
-2. Preserve ALL symbols (e.g., $BTC, ETH) exactly as they appear in the original message
-3. Preserve ALL names and entities mentioned in the original message
-4. Format the headline in an informative way that highlights the most important aspects
-5. For promotional content or irrelevant messages: Use the original message text
-6. For market/price updates: Focus on the key price action, support/resistance levels, or trend
-7. For project announcements: Include the project name and the nature of the announcement
-8. For whale/fund transfers: Include the amount, token, and source/destination
+1. For news topics: Create a concise headline that captures ALL key information from the original
+2. PRESERVE ALL key details - names of people, companies, projects, specific metrics, and relationships
+3. NEVER remove important specifics like people's names, titles, company affiliations, or unique details
+4. Include ALL important topics mentioned (e.g., if multiple topics are discussed, include all of them)
+5. Format the headline in an informative way that highlights the complete context
+6. For interviews/discussions: Include who interviewed whom, their roles, and ALL topics discussed
+7. For project announcements: Include the project name, announcement nature, AND specific features/metrics
+8. For whale/fund transfers: Include the exact amount, token, source/destination, and any context
 
 TASK: Create a JSON object with the structured data extracted from the content.
 
@@ -630,7 +631,7 @@ When classifying, always ensure all combinations are valid according to the abov
 
 OUTPUT FORMAT:
 {
-    "headline": "CONCISE_1-2_SENTENCE_HEADLINE",
+    "headline": "DETAILED_CONCISE_HEADLINE",
     "tokens": {
         "primary": {
             "symbol": "PRIMARY_SYMBOL"
