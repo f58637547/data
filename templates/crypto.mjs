@@ -31,9 +31,13 @@ HEADLINE FORMATTING RULES:
 13. For comparative statements: Include BOTH parts of the comparison (e.g., "sold for X" AND "would be worth Y")
 14. REMOVE ALL emojis (🚨💥🔥) from the headline
 15. REMOVE ALL links and URLs from the headline
-16. PRESERVE ALL crypto symbols and hashtags ($BTC, #TRADE, etc.) in the headline
+16. PRESERVE ALL crypto symbols and hashtags ($BTC, #TRADE, etc.) in the headline ONLY if they were in the original
 17. NORMALIZE HEADLINE CASE - Convert all-uppercase headlines to proper case while preserving acronyms
 18. NEVER omit names, numbers, or other critical information - preserve ALL factual details from the original
+19. MATCH HEADLINE STYLE TO EVENT CATEGORY: 
+    - MARKET events: Use trading/price style (e.g., "BTC Tests $45K Resistance") 
+    - DATA events: Use data reporting style (e.g., "$240M in ETH Moved from Binance") 
+    - NEWS events: Use news style (e.g., "Sui Network Partners with WLFI")
 
 CRITICAL HEADLINE COMPLETENESS RULES:
 - NEVER truncate quotes or statements - include the COMPLETE message
