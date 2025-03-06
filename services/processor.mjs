@@ -428,7 +428,8 @@ function normalizeEntityStructure(entities) {
                 }
             },
             context: {
-                impact: entities.context?.impact || 0,
+                // Apply smart default impact scores based on category
+                impact: getDefaultImpactScore(entities),
                 risk: {
                     market: entities.context?.risk?.market || 0,
                     tech: entities.context?.risk?.tech || 0
@@ -534,7 +535,8 @@ function normalizeEntityStructure(entities) {
         
         // Ensure impact score is a number between 0-100
         if (normalized.context.impact === null || isNaN(normalized.context.impact)) {
-            normalized.context.impact = 0;
+            // Apply smart default scoring if null or NaN
+            normalized.context.impact = getDefaultImpactScore(normalized);
         } else {
             normalized.context.impact = Math.max(0, Math.min(100, normalized.context.impact));
         }
@@ -544,6 +546,87 @@ function normalizeEntityStructure(entities) {
         console.error('Error normalizing entity structure:', error);
         return entities; // Return original on error
     }
+}
+
+// Helper function to determine default impact score based on category
+function getDefaultImpactScore(entities) {
+    // If impact was explicitly set to 0, respect that
+    if (entities.context?.impact === 0) return 0;
+    
+    // If impact is provided and not null/NaN, use it
+    if (entities.context?.impact && !isNaN(entities.context.impact)) {
+        return Math.max(0, Math.min(100, entities.context.impact));
+    }
+    
+    const category = entities.event?.category || 'IGNORED';
+    const subcategory = entities.event?.subcategory || '';
+    const type = entities.event?.type || '';
+    const headline = entities.headline || '';
+    
+    // Apply category-based scoring based on template guidelines
+    
+    // NEWS event scoring - more moderate defaults
+    if (category === 'NEWS') {
+        // Special case for Bitcoin reserve news
+        if (subcategory === 'REGULATORY' && headline.toLowerCase().includes('bitcoin reserve')) {
+            return 70; // High impact for Bitcoin reserve regulatory news
+        }
+        // Regular Regulatory/Legal news
+        else if (subcategory === 'REGULATORY') {
+            return 50; // Medium impact for regulatory news by default
+        }
+        // Business/Adoption news
+        else if (subcategory === 'FUNDAMENTAL' || subcategory === 'BUSINESS') {
+            return 45; // Medium impact for business/adoption news
+        }
+        // Technical/Development news
+        else if (subcategory === 'TECHNICAL') {
+            return 40; // Medium-low impact for technical/dev news
+        }
+        // Security-related news
+        else if (subcategory === 'SECURITY') {
+            return 55; // Medium-high impact for security news
+        }
+        // Political news
+        else if (subcategory === 'POLITICAL') {
+            return 35; // Low-medium impact for political news
+        }
+        // Default NEWS impact - just above threshold
+        return 35;
+    }
+    
+    // MARKET event scoring
+    else if (category === 'MARKET') {
+        if (subcategory === 'PRICE' && ['BREAKOUT', 'REVERSAL'].includes(type)) {
+            return 50; // Medium-high impact for significant price movements
+        }
+        else if (subcategory === 'VOLUME' && ['SPIKE', 'SURGE'].includes(type)) {
+            return 45; // Medium impact for volume events
+        }
+        else if (subcategory === 'TRADE' || subcategory === 'POSITION') {
+            return 40; // Medium-low for trade signals
+        }
+        // Default MARKET impact
+        return 35;
+    }
+    
+    // DATA event scoring
+    else if (category === 'DATA') {
+        if (subcategory === 'WHALE_MOVE') {
+            return 45; // Medium impact for whale movements
+        }
+        else if (subcategory === 'FUND_FLOW') {
+            return 40; // Medium-low impact for fund flows
+        }
+        else if (subcategory === 'ONCHAIN') {
+            return 35; // Just above threshold for on-chain metrics
+        }
+        // Default DATA impact
+        return 33;
+    }
+    
+    // Default for all other categories
+    return 0;
 }
 
 export async function processMessage({ message, db, channelMapping }) {
@@ -667,6 +750,19 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('Original:', contentData.original);
                 console.log('Processed:', entities?.headline);
                 return { skip: true, reason: 'missing_category' };
+            }
+
+            // Apply category-based impact scoring before validation
+            // This is a safety net in case normalization didn't apply proper scores
+            if (entities.context.impact === 0) {
+                // Special case for Bitcoin/crypto reserve news which should have high impact
+                if (entities.event.category === 'NEWS' && 
+                    entities.event.subcategory === 'REGULATORY' &&
+                    entities.headline.toLowerCase().includes('bitcoin reserve')) {
+                    
+                    console.log('⚠️ Adjusting impact score for significant Bitcoin reserve news');
+                    entities.context.impact = 80;
+                }
             }
 
             if (!entities?.context?.impact || entities.context.impact <= 30) {
