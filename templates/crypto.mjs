@@ -7,25 +7,58 @@ BEFORE RESPONDING: Verify that your headline and all extracted data directly rel
 If you find yourself writing about topics not mentioned in the input, STOP and reconsider.
 NEVER change the market type mentioned in the original text - if it's about stocks, keep it about stocks; if about crypto, keep it about crypto.
 
-⚠️ HEADLINE REWRITING REQUIREMENT: You MUST completely rewrite every headline using different words, verbs, and sentence structure than the original. Never copy phrases from the source. Change ALL phrasing while keeping information accurate.
+⚠️⚠️⚠️ CRITICAL JSON VALIDATION WARNING ⚠️⚠️⚠️
+BEFORE SUBMITTING YOUR RESPONSE:
+1. Check that all quotes in strings are properly escaped with backslashes: "He said \"hello\""
+2. Verify that NO text strings are truncated - especially headlines with apostrophes
+3. Make sure all JSON strings are properly terminated with quote marks
+4. Ensure all objects have matching opening and closing braces
+5. Verify that all arrays have matching square brackets
+6. Confirm that required fields have valid values and are not missing
+7. Check that all commas are properly placed between JSON elements
+8. Perform a final validation to ensure your JSON is properly formatted and complete
 
-CRITICAL OUTPUT REQUIREMENT: 
+For headlines with apostrophes or quotes:
+INCORRECT: {"headline":"U.S. President Trump says the country will not defend NATO countries if they don',"...}
+CORRECT: {"headline":"U.S. President Trump says the country will not defend NATO countries if they don't pay their fair share","...}
+
+For strings with apostrophes:
+INCORRECT: "Trump's policy" or 'Trump's policy'
+CORRECT: "Trump\\'s policy"
+
+For strings with quotes:
+INCORRECT: "He said "hello""
+CORRECT: "He said \"hello\""
+
+⚠️ HEADLINE REWRITING REQUIREMENT: You MUST completely rewrite every headline using different words, verbs, and sentence structure than the original. Never copy phrases from the source. Change ALL phrasing while keeping information accurate.
+CRITICAL: NEVER truncate headlines - always provide the COMPLETE headline text.
+
+⚠️ CRITICAL OUTPUT REQUIREMENT: 
 YOUR RESPONSE MUST BE VALID JSON ONLY. DO NOT OUTPUT ANY MARKDOWN, EXPLANATORY TEXT, OR OTHER FORMATTING.
 YOUR ENTIRE RESPONSE SHOULD BE A SINGLE JSON OBJECT. NOTHING ELSE.
+
+⚠️ CRITICAL JSON FORMATTING RULES ⚠️
+1. ALWAYS properly escape all quotes within strings using backslash: " becomes \"
+2. NEVER use single quotes for JSON properties or values - always use double quotes
+3. ENSURE all strings with apostrophes or quotes are properly escaped
+4. DOUBLE-CHECK your JSON is valid before submitting
+5. Avoid truncating strings - complete all text fields fully
+6. For headlines with quotes, ensure ALL quotes in the content are properly escaped with backslash \"
 
 CRITICAL REQUIREMENTS: 
 1. NEVER invent or hallucinate symbols that aren't explicitly mentioned in the content
 2. NEVER hallucinate or fabricate news headlines - always maintain the core information from the original message
 3. For promotional content like channel introductions, use the original text as headline and set impact=0
-4. PRESERVE ALL financial symbols in headline text exactly as they appear ($BTC, ETH, AAPL, etc.)
-5. For primary_symbol extraction, identify the most relevant crypto symbol if mentioned, removing any $ prefix
+4. PRESERVE ALL financial symbols in headline text exactly as they appear ($BTC, ETH, etc.)
+5. For primary_symbol extraction, identify the most relevant crypto token if mentioned, removing any $ prefix
 6. If multiple symbols are mentioned, choose the primary one based on context and relevance
 7. Set impact=0 only for non-news, promotional, or completely irrelevant content
 8. Set category to IGNORED for clearly irrelevant content (non-financial tech news, politics without market impact, etc.)
-9. ALWAYS KEEP ALL FINANCIAL SYMBOLS in the headline text exactly as they appear in the original message
-10. CRITICAL: If no financial symbol is mentioned, set primary_symbol to null. NEVER insert common symbols if they're not in the message
+9. ALWAYS KEEP ALL SYMBOLS in the headline text exactly as they appear in the original message
+10. CRITICAL: If no crypto symbol is mentioned, set primary_symbol to null. NEVER insert common symbols if they're not in the message
 11. DOUBLE CHECK BEFORE FINALIZING: Verify that any symbol you include was EXPLICITLY mentioned in the text
 12. HEADLINE COMPLETENESS: Ensure headlines preserve ALL key details, names, roles, and specific information from the original message
+13. CRITICAL: NEVER change the subject of headlines - if about stock market, keep it about stock market; if about crypto, keep it about crypto
 
 HEADLINE FORMATTING RULES:
 1. For news topics: Create a concise headline that captures ALL key information from the original
@@ -104,10 +137,17 @@ PROJECT ANNOUNCEMENT CLASSIFICATION RULE:
 - Do not categorize project announcements without price action as MARKET events
 
 For NON-financial content (tech news without market relevance, politics without economic impact, etc.):
-1. Set impact to 0
-2. Set category to IGNORED
-3. Still extract entities and provide headline
-4. Set primary symbol to null
+1. For political news without direct financial impact:
+   a) Set category to NEWS
+   b) Set subcategory to POLITICAL
+   c) Choose appropriate EVENT_TYPE (POLICY, GOVERNMENT, INTERNATIONAL, STATEMENT, ELECTION)
+   d) Choose appropriate ACTION_TYPE (ANNOUNCE, DECLARE, PROPOSE, OPPOSE, COMMENT, ADDRESS)
+   e) Set impact based on potential indirect market effects (usually 30-50)
+2. For completely non-financial content:
+   a) Set impact to 0
+   b) Set category to IGNORED
+   c) Still extract entities and provide headline
+   d) Set primary symbol to null
 
 CRITICAL FORMAT RULES:
 1. Output ONLY valid JSON - nothing else
@@ -217,6 +257,7 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
 - NEVER hallucinate symbols: DO NOT insert common symbols like "BTC" or "ETH" if they aren't specifically mentioned
 - Only include a primary_symbol if it's explicitly mentioned or clearly the main focus
 - When in doubt, set primary_symbol to null rather than guessing
+- NEVER change the subject matter of the headline - if the original is about stocks, the headline must be about stocks, not crypto
 
 2. PRIMARY_SYMBOL Rules:
    - Set primary_symbol to the most relevant CRYPTO token in the message
@@ -364,7 +405,7 @@ CONTEXT SCORING GUIDELINES:
    - Normal trading activity
    - Expected volatility events
 
-   DATA Events (Medium-High Priority):
+   DATA Events:
    85-100:
    - Major protocol exploits/hacks
    - Critical smart contract vulnerabilities
@@ -638,6 +679,10 @@ NEWS Events:
        - EVENT_TYPE: IPO, LISTING, MERGER, ADOPTION, PRODUCT
        - ACTION_TYPE: EXPAND, ACQUIRE, INVEST, COLLABORATE, INTEGRATE, LAUNCH
        
+    f) POLITICAL
+       - EVENT_TYPE: POLICY, GOVERNMENT, INTERNATIONAL, STATEMENT, ELECTION
+       - ACTION_TYPE: ANNOUNCE, DECLARE, PROPOSE, OPPOSE, COMMENT, ADDRESS
+       
     NOTE: "MARKET" is NOT a valid subcategory for NEWS events. Price action, technical analysis, and trading setups 
     should be categorized as MARKET events with the appropriate subcategory (PRICE, VOLUME, TRADE, or POSITION).
 
@@ -679,6 +724,9 @@ CRITICAL FINAL INSTRUCTIONS:
 4. Follow the exact OUTPUT FORMAT structure below
 5. NEVER respond with bulleted lists, headings, or markdown formatting
 6. NEVER include phrases like "here's the JSON" or "I've analyzed the text"
+7. ENSURE all quotes and apostrophes within strings are properly escaped with backslashes
+8. VERIFY your JSON is valid and complete before submitting
+9. NEVER truncate strings - provide complete content for all fields
 
 CORRECT vs INCORRECT OUTPUT EXAMPLES:
 
@@ -701,7 +749,7 @@ INCORRECT (DO NOT DO THIS):
 }
 
 CORRECT FORMAT (DO THIS):
-{"headline":"Burwick Law Pursues 11 Crypto Lawsuits Out of 60+ Investigations Including Against Libra, Pump Fun, and STAKX","tokens":{"primary":{"symbol":null}},"event":{"category":"NEWS","subcategory":"REGULATORY","type":"LEGAL"},...}
+{"headline":"Regulatory Body Files Multiple Lawsuits Against Financial Projects","tokens":{"primary":{"symbol":null}},"event":{"category":"NEWS","subcategory":"REGULATORY","type":"LEGAL"},...}
 
 REMEMBER: Output ONLY the JSON object with no additional text or formatting.
 
@@ -776,6 +824,10 @@ OUTPUT FORMAT:
 3. NEVER include comments in the actual JSON output
 4. NEVER use strings for fields that require numbers
 5. DOUBLE-CHECK your JSON is valid before submitting
+6. PROPERLY ESCAPE all quotes and special characters in strings
+7. VERIFY there are no truncated strings in your output
+8. ENSURE all string values with quotes use proper escaping: "He said \"hello\""
+9. COMPLETE all string values fully - never cut off headlines or other text fields
 
 FINAL REMINDER: OUTPUT VALID JSON ONLY - NO EXPLANATORY TEXT, NO MARKDOWN FORMATTING, NO BULLET POINTS.
 `;
