@@ -5,16 +5,13 @@ CRITICAL REQUIREMENTS:
 1. NEVER invent or hallucinate symbols that aren't explicitly mentioned in the content
 2. NEVER hallucinate or fabricate news headlines - always maintain the core information from the original message
 3. For promotional content like channel introductions, use the original text as headline and set impact=0
-4. Extract ALL financial symbols mentioned, including:
-   - Cryptocurrency tokens (e.g., $BTC, Bitcoin, ETH)
-   - Stock tickers (e.g., $AAPL, $TSLA, $MSFT)
-   - Market indices (e.g., S&P 500, Nasdaq, Dow Jones)
-5. For primary_symbol, extract the MOST RELEVANT financial symbol whether it's crypto, stock, or index
+4. PRESERVE ALL financial symbols in headline text exactly as they appear ($BTC, ETH, etc.)
+5. For primary_symbol extraction, identify the most relevant crypto token if mentioned
 6. If multiple symbols are mentioned, choose the primary one based on context and relevance
 7. Set impact=0 only for non-news, promotional, or completely irrelevant content
 8. Set category to IGNORED for clearly irrelevant content (non-financial tech news, politics without market impact, etc.)
-9. EXTRACT ONLY ONE PRIMARY SYMBOL - the most relevant symbol that represents what the content is about
-10. CRITICAL: If no financial symbol is mentioned, set primary_symbol to null. NEVER insert AAPL, BTC, ETH or other common symbols if they're not in the message
+9. ALWAYS KEEP ALL CRYPTO SYMBOLS in the headline text ($BTC, ETH, etc.) exactly as they appear in the original message
+10. CRITICAL: If no financial symbol is mentioned, set primary_symbol to null. NEVER insert common symbols if they're not in the message
 11. DOUBLE CHECK BEFORE FINALIZING: Verify that any symbol you include was EXPLICITLY mentioned in the text
 12. HEADLINE COMPLETENESS: Ensure headlines preserve ALL key details, names, roles, and specific information from the original message
 
@@ -27,6 +24,19 @@ HEADLINE FORMATTING RULES:
 6. For interviews/discussions: Include who interviewed whom, their roles, and ALL topics discussed
 7. For project announcements: Include the project name, announcement nature, AND specific features/metrics
 8. For whale/fund transfers: Include the exact amount, token, source/destination, and any context
+9. PRESERVE ALL Twitter handles/usernames exactly as they appear (e.g., @username)
+10. INCLUDE ALL numerical data points and comparisons (actual, expected, previous values)
+11. PRESERVE FULL QUOTES - never truncate or shorten quoted statements
+12. For economic data: Include the actual, expected, AND previous values
+13. For comparative statements: Include BOTH parts of the comparison (e.g., "sold for X" AND "would be worth Y")
+
+CRITICAL HEADLINE COMPLETENESS RULES:
+- NEVER truncate quotes or statements - include the COMPLETE message
+- For statements with multiple parts (e.g., "X happened" and "Y would have resulted"), ALWAYS include BOTH parts
+- For economic data, ALWAYS include all three values: actual, expected, and previous
+- For Twitter handles or usernames, ALWAYS preserve them exactly as written in the original
+- If a quote or statement has multiple sentences, include ALL sentences in the headline
+- When faced with a choice between completeness and brevity, ALWAYS prioritize completeness
 
 TASK: Create a JSON object with the structured data extracted from the content.
 
@@ -74,8 +84,9 @@ CRITICAL FORMAT RULES:
 4. NO text outside the JSON structure
 5. Follow the OUTPUT FORMAT at the end of this template exactly
 6. ALL impact and sentiment values MUST be numbers (0-100), not strings or words
-7. CRITICAL: For tokens, ALWAYS use the format: "primary": {"symbol": "TOKEN_SYMBOL"} - not just "primary": "TOKEN_SYMBOL"
+7. CRITICAL: For tokens, ALWAYS use the format: "primary": {"symbol": "PRIMARY_SYMBOL"} where PRIMARY_SYMBOL is a crypto token (BTC, ETH, etc.)
 8. For less common tokens (like TARA, PEPE, etc.), ensure they are properly formatted as {"symbol": "TARA"} in the JSON
+9. ONLY extract crypto tokens for the primary_symbol field - do not include stocks or indices
 
 Message to analyze:
 {{message}}
@@ -163,28 +174,25 @@ CONTENT VALIDATION RULES:
    - Consider relevance to the broader financial markets
 
 IMPORTANT - SYMBOL EXTRACTION RULES:
-- Extract the most relevant financial symbol (crypto, stock, or index) as primary_symbol
-- If a message mentions multiple symbols, choose the primary one based on relevance and context
-- If a symbol is explicitly mentioned (e.g., "BTC", "AAPL", "S&P 500"), use it as the primary_symbol
-- For stocks, use the ticker symbol (e.g., "AAPL" for Apple)
-- For indices, use the full name (e.g., "S&P 500", "Nasdaq", "Dow Jones")
-- For crypto, use the token symbol (e.g., "BTC", "ETH", "SOL")
-- MUST FOLLOW: If no specific symbol is mentioned, set primary_symbol to null
-- NEVER hallucinate symbols: DO NOT insert common symbols like "AAPL", "BTC", or "ETH" if they aren't specifically mentioned
+- ALWAYS PRESERVE ALL CRYPTO SYMBOLS IN THE HEADLINE exactly as they appear ($BTC, ETH, etc.)
+- If a crypto symbol is explicitly mentioned (e.g., "BTC", "ETH", "SOL"), include it in the headline
+- When the message contains crypto symbols with $ prefix, preserve the $ in the headline
+- When extracting the primary symbol, only use explicitly mentioned crypto tokens
+- If no specific crypto symbol is mentioned, set primary_symbol to null
+- NEVER hallucinate symbols: DO NOT insert common symbols like "BTC" or "ETH" if they aren't specifically mentioned
 - Only include a primary_symbol if it's explicitly mentioned or clearly the main focus
 - When in doubt, set primary_symbol to null rather than guessing
 
 2. PRIMARY_SYMBOL Rules:
-   - Set primary_symbol to the most relevant financial symbol in the message
+   - Set primary_symbol to the most relevant CRYPTO token in the message
    - For crypto: Use token symbols like "BTC", "ETH", "SOL", etc.
-   - For stocks: Use ticker symbols like "AAPL", "TSLA", "MSFT", etc.
-   - For indices: Use full names like "S&P 500", "Nasdaq", "Dow Jones", etc.
-   - If no specific symbol is mentioned or the primary focus, set primary_symbol to null
+   - If no specific crypto token is mentioned, set primary_symbol to null
    - Never set a primary_symbol for content with impact = 0
    - CRITICAL: NEVER invent symbols or guess from vague context
    - VERIFY: Double-check that any symbol you assign as primary_symbol actually appears in the text
-   - Only set a primary_symbol for financial instruments explicitly mentioned in the content
+   - Only set a primary_symbol for crypto tokens explicitly mentioned in the content
    - If in doubt, set primary_symbol to null
+   - Do not include stock tickers or market indices in primary_symbol field
 
 IMPORTANT - PROJECTS EXTRACTION RULES:
 1. Primary Project/Protocol:
