@@ -42,6 +42,14 @@ WHALE TRANSFER CLASSIFICATION RULE:
 - Very large transfers (>$100 million) should have impact of at least 75
 - Messages containing 🚨 emoji and mentioning "transferred" are almost always DATA events
 
+PROJECT ANNOUNCEMENT CLASSIFICATION RULE:
+- Litepaper/whitepaper releases MUST be categorized as NEWS events (not MARKET events)
+- Announcements of new projects, protocols, or platforms should use category=NEWS, subcategory=TECHNICAL or FUNDAMENTAL
+- For litepaper/whitepaper releases, use category=NEWS, subcategory=TECHNICAL, type=DEVELOPMENT or PROTOCOL
+- For project launches, use category=NEWS, subcategory=FUNDAMENTAL, type=LAUNCH
+- Messages containing terms like "litepaper is LIVE", "whitepaper released", "documentation published" are always NEWS events
+- Do not categorize project announcements without price action as MARKET events
+
 For NON-financial content (tech news without market relevance, politics without economic impact, etc.):
 1. Set impact to 0
 2. Set category to IGNORED
