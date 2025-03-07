@@ -629,6 +629,170 @@ function getDefaultImpactScore(entities) {
     return 0;
 }
 
+// Define valid category-subcategory-action mappings based on the template
+const VALID_CATEGORY_MAPPINGS = {
+    'MARKET': {
+        'PRICE': {
+            eventTypes: ['BREAKOUT', 'REVERSAL', 'SUPPORT', 'RESISTANCE', 'CONSOLIDATION', 'TREND', 'DIVERGENCE'],
+            actionTypes: ['BREAK_UP', 'BREAK_DOWN', 'BOUNCE', 'RANGE', 'RECORD', 'DROP', 'RISE']
+        },
+        'VOLUME': {
+            eventTypes: ['SPIKE', 'DECLINE', 'ACCUMULATION', 'DISTRIBUTION', 'IMBALANCE'],
+            actionTypes: ['INCREASE', 'DECREASE', 'SURGE', 'DUMP']
+        },
+        'TRADE': {
+            eventTypes: ['SPOT_ENTRY', 'FUTURES_ENTRY', 'LEVERAGE_ENTRY', 'HEDGE_POSITION', 'ARBITRAGE'],
+            actionTypes: ['BUY', 'SELL', 'HOLD', 'ENTRY', 'EXIT', 'LIQUIDATE']
+        },
+        'POSITION': {
+            eventTypes: ['TAKE_PROFIT', 'STOP_LOSS', 'POSITION_EXIT', 'LIQUIDATION'],
+            actionTypes: ['OPEN', 'CLOSE', 'MODIFY', 'LIQUIDATE']
+        }
+    },
+    'DATA': {
+        'WHALE_MOVE': {
+            eventTypes: ['LARGE_TRANSFER', 'ACCUMULATION', 'DISTRIBUTION'],
+            actionTypes: ['DEPOSIT', 'WITHDRAW', 'TRANSFER']
+        },
+        'FUND_FLOW': {
+            eventTypes: ['EXCHANGE_FLOW', 'BRIDGE_FLOW', 'PROTOCOL_FLOW'],
+            actionTypes: ['INFLOW', 'OUTFLOW', 'BRIDGE', 'STAKE']
+        },
+        'ONCHAIN': {
+            eventTypes: ['DEX_POOL', 'LIQUIDITY_POOL', 'NETWORK_METRICS', 'GAS_METRICS'],
+            actionTypes: ['MINT', 'BURN', 'SWAP', 'UPGRADE', 'EXPLOIT']
+        }
+    },
+    'NEWS': {
+        'TECHNICAL': {
+            eventTypes: ['DEVELOPMENT', 'INFRASTRUCTURE', 'PROTOCOL', 'SECURITY', 'SCALING'],
+            actionTypes: ['UPDATE', 'UPGRADE', 'RELEASE', 'FORK', 'OPTIMIZE', 'SECURE']
+        },
+        'FUNDAMENTAL': {
+            eventTypes: ['LAUNCH', 'ETF_FILING', 'LISTING', 'DELISTING', 'INTEGRATION'],
+            actionTypes: ['LAUNCH', 'EXPAND', 'ACQUIRE', 'INVEST', 'COLLABORATE', 'INTEGRATE']
+        },
+        'REGULATORY': {
+            eventTypes: ['COMPLIANCE', 'POLICY', 'LEGAL', 'INVESTIGATION', 'LICENSE'],
+            actionTypes: ['APPROVE', 'REJECT', 'INVESTIGATE', 'REGULATE', 'BAN', 'PERMIT']
+        },
+        'SECURITY': {
+            eventTypes: ['HACK', 'EXPLOIT', 'RUGPULL', 'SCAM', 'VULNERABILITY'],
+            actionTypes: ['HACK', 'EXPLOIT', 'MITIGATE', 'PATCH', 'RECOVER', 'COMPENSATE']
+        },
+        'BUSINESS': {
+            eventTypes: ['IPO', 'LISTING', 'MERGER', 'ADOPTION', 'PRODUCT'],
+            actionTypes: ['EXPAND', 'ACQUIRE', 'INVEST', 'COLLABORATE', 'INTEGRATE', 'LAUNCH']
+        },
+        'POLITICAL': {
+            eventTypes: ['POLICY', 'GOVERNMENT', 'INTERNATIONAL', 'STATEMENT', 'ELECTION'],
+            actionTypes: ['ANNOUNCE', 'DECLARE', 'PROPOSE', 'OPPOSE', 'COMMENT', 'ADDRESS']
+        }
+    }
+};
+
+// Default values for each category
+const DEFAULT_VALUES = {
+    'MARKET': {
+        subcategory: 'PRICE',
+        eventType: 'BREAKOUT',
+        actionType: 'BREAK_UP'
+    },
+    'DATA': {
+        subcategory: 'FUND_FLOW',
+        eventType: 'EXCHANGE_FLOW',
+        actionType: 'TRANSFER'
+    },
+    'NEWS': {
+        subcategory: 'TECHNICAL',
+        eventType: 'DEVELOPMENT',
+        actionType: 'UPDATE'
+    },
+    'IGNORED': {
+        subcategory: 'TECHNICAL',
+        eventType: 'DEVELOPMENT',
+        actionType: 'UPDATE'
+    }
+};
+
+// Function to validate and fix event and action types
+function validateAndFixEventAction(entities) {
+    if (!entities) return null;
+    
+    try {
+        // First, handle the case where action is nested inside event (common LLM error)
+        if (entities.event?.action && !entities.action) {
+            console.log('Moving nested action from event to top level');
+            entities.action = entities.event.action;
+            delete entities.event.action;
+        }
+        
+        // Ensure we have an event category
+        const category = entities.event?.category || 'NEWS';
+        
+        // If we don't have a subcategory, set a default based on category
+        if (!entities.event.subcategory) {
+            entities.event.subcategory = DEFAULT_VALUES[category].subcategory;
+            console.log(`Setting default subcategory ${entities.event.subcategory} for category ${category}`);
+        }
+        
+        const subcategory = entities.event.subcategory;
+        
+        // Check if this is a valid subcategory for this category
+        if (!VALID_CATEGORY_MAPPINGS[category] || !VALID_CATEGORY_MAPPINGS[category][subcategory]) {
+            console.log(`Invalid subcategory ${subcategory} for category ${category}, setting default`);
+            entities.event.subcategory = DEFAULT_VALUES[category].subcategory;
+        }
+        
+        // Now we have a valid category and subcategory
+        const validSubcategory = entities.event.subcategory;
+        
+        // Validate event type
+        if (!entities.event.type || 
+            !VALID_CATEGORY_MAPPINGS[category][validSubcategory].eventTypes.includes(entities.event.type)) {
+            console.log(`Invalid event type ${entities.event.type} for ${category}/${validSubcategory}, setting default`);
+            entities.event.type = DEFAULT_VALUES[category].eventType;
+        }
+        
+        // Ensure we have an action object
+        if (!entities.action) {
+            console.log('Missing action object, creating default');
+            entities.action = {
+                type: DEFAULT_VALUES[category].actionType,
+                direction: 'NEUTRAL',
+                magnitude: 'MEDIUM'
+            };
+        }
+        
+        // Validate action type
+        if (!entities.action.type || 
+            !VALID_CATEGORY_MAPPINGS[category][validSubcategory].actionTypes.includes(entities.action.type)) {
+            console.log(`Invalid action type ${entities.action.type} for ${category}/${validSubcategory}, setting default`);
+            entities.action.type = DEFAULT_VALUES[category].actionType;
+        }
+        
+        // Validate direction
+        if (!entities.action.direction || 
+            !['UP', 'DOWN', 'NEUTRAL'].includes(entities.action.direction)) {
+            console.log(`Invalid direction ${entities.action.direction}, setting default`);
+            entities.action.direction = 'NEUTRAL';
+        }
+        
+        // Validate magnitude
+        if (!entities.action.magnitude || 
+            !['SMALL', 'MEDIUM', 'LARGE'].includes(entities.action.magnitude)) {
+            console.log(`Invalid magnitude ${entities.action.magnitude}, setting default`);
+            entities.action.magnitude = 'MEDIUM';
+        }
+        
+        return entities;
+    } catch (error) {
+        console.error('Error validating event/action:', error);
+        return entities; // Return original on error
+    }
+}
+
+// Modify the processMessage function to use the new validation
 export async function processMessage({ message, db, channelMapping }) {
     // Add to single global queue
     return messageQueue.add(async () => {
@@ -714,6 +878,9 @@ export async function processMessage({ message, db, channelMapping }) {
                     console.log('❌ REJECTED - Entity normalization failed');
                     return { skip: true, reason: 'entity_normalization_failed' };
                 }
+                
+                // Validate and fix event and action types
+                entities = validateAndFixEventAction(entities);
 
                 // Clean up entities before saving
                 if (entities?.headline) {
@@ -753,7 +920,6 @@ export async function processMessage({ message, db, channelMapping }) {
             }
 
             // Apply category-based impact scoring before validation
-            // This is a safety net in case normalization didn't apply proper scores
             if (entities.context.impact === 0) {
                 // Special case for Bitcoin/crypto reserve news which should have high impact
                 if (entities.event.category === 'NEWS' && 
@@ -762,6 +928,15 @@ export async function processMessage({ message, db, channelMapping }) {
                     
                     console.log('⚠️ Adjusting impact score for significant Bitcoin reserve news');
                     entities.context.impact = 80;
+                }
+                
+                // Special case for cryptocurrency liquidations which should have high impact
+                if (entities.event.category === 'MARKET' && 
+                    contentData.clean.toLowerCase().includes('liquidat') &&
+                    contentData.clean.toLowerCase().includes('cryptocurrency')) {
+                    
+                    console.log('⚠️ Adjusting impact score for cryptocurrency liquidation news');
+                    entities.context.impact = 70;
                 }
             }
 
@@ -777,6 +952,9 @@ export async function processMessage({ message, db, channelMapping }) {
             console.log('✅ Validation passed:');
             console.log('Impact Score:', entities.context.impact);
             console.log('Category:', entities.event.category);
+            console.log('Subcategory:', entities.event.subcategory);
+            console.log('Event Type:', entities.event.type);
+            console.log('Action Type:', entities.action.type);
 
             // 4. Save to DB with embedding
             try {
@@ -794,7 +972,12 @@ export async function processMessage({ message, db, channelMapping }) {
 
                 // Validate JSON before saving
                 const stringifiedContent = JSON.stringify(contentToSave);
-                safeParseJSON(stringifiedContent); // Test parse to ensure it's valid
+                const parsedForValidation = safeParseJSON(stringifiedContent); // Test parse to ensure it's valid
+                
+                if (!parsedForValidation) {
+                    console.log('❌ REJECTED - Invalid JSON structure for saving');
+                    return { skip: true, reason: 'invalid_json_structure' };
+                }
 
                 await db.query(`
                     INSERT INTO ${channelMapping.table}
