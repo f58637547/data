@@ -1341,7 +1341,7 @@ export async function processMessage({ message, db, channelMapping }) {
                     return { skip: true, reason: 'severe_hallucination' };
                 }
                 
-                // Check if the headline is almost completely different from the original
+                // Calculate headline match percentage for logging purposes only
                 const significantWordsInHeadline = headline.split(' ')
                     .filter(word => word.length > 3) // Only consider significant words
                     .map(word => word.replace(/[^a-z0-9]/g, '')); // Remove punctuation
@@ -1354,13 +1354,10 @@ export async function processMessage({ message, db, channelMapping }) {
                     ? (matchCount / significantWordsInHeadline.length) * 100 
                     : 0;
                     
-                if (matchPercentage < 15 && entities.context?.impact > 30) {
-                    console.log('❌ REJECTED - Headline content differs too much from original text');
-                    console.log('  Match percentage:', matchPercentage.toFixed(2) + '%');
-                    console.log('  Original:', contentData.clean);
-                    console.log('  Generated:', entities.headline);
-                    return { skip: true, reason: 'headline_mismatch' };
-                }
+                // Log the match percentage but never reject based on it
+                console.log(`ℹ️ Headline match percentage: ${matchPercentage.toFixed(2)}% - keeping regardless of match`);
+                console.log(`  Original: ${contentData.clean}`);
+                console.log(`  Generated: ${entities.headline}`);
 
                 await db.query(`
                     INSERT INTO ${channelMapping.table}
