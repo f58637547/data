@@ -957,96 +957,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 // Check if extraction failed
                 if (!rawEntities) {
                     console.log('❌ LLM extraction failed');
-                    
-                    // Emergency fallback for whale alerts to ensure important transactions are processed
-                    const isWhaleAlert = contentData.author?.toLowerCase().includes('whale') ||
-                                      contentData.original.toLowerCase().includes('whale alert') ||
-                                      (contentData.original.includes('🚨') && contentData.original.toLowerCase().includes('transferred'));
-                    
-                    if (isWhaleAlert) {
-                        console.log('🐋 Detected whale alert - attempting emergency fallback processing');
-                        
-                        // Extract likely transaction details
-                        const amountMatch = contentData.original.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?) *#?([A-Z]{2,10})/);
-                        if (amountMatch) {
-                            const amount = amountMatch[1].replace(/,/g, '');
-                            const symbol = amountMatch[2];
-                            
-                            // Create fallback entity structure
-                            const fallbackEntities = {
-                                headline: `${amount} ${symbol} Transferred in Large Whale Transaction`,
-                                tokens: {
-                                    primary: { symbol },
-                                    related: []
-                                },
-                                event: {
-                                    category: "DATA",
-                                    subcategory: "FUND_FLOW",
-                                    type: "EXCHANGE_FLOW"
-                                },
-                                action: {
-                                    type: "TRANSFER",
-                                    direction: "NEUTRAL",
-                                    magnitude: "LARGE"
-                                },
-                                entities: {
-                                    projects: [],
-                                    persons: [],
-                                    locations: []
-                                },
-                                metrics: {
-                                    market: {
-                                        price: null,
-                                        volume: null,
-                                        liquidity: null,
-                                        volatility: null
-                                    },
-                                    onchain: {
-                                        transactions: parseFloat(amount),
-                                        addresses: null
-                                    }
-                                },
-                                context: {
-                                    impact: parseFloat(amount) >= 50000000 ? 80 : 65,
-                                    risk: {
-                                        market: 50,
-                                        tech: 30
-                                    },
-                                    sentiment: {
-                                        market: 50,
-                                        social: 50
-                                    },
-                                    trend: {
-                                        short: "SIDEWAYS",
-                                        medium: "SIDEWAYS",
-                                        strength: 45
-                                    }
-                                }
-                            };
-                            
-                            // Detect transfer direction if possible
-                            if (contentData.original.toLowerCase().includes('to exchange') || 
-                                contentData.original.toLowerCase().includes('to #coinbase') ||
-                                contentData.original.toLowerCase().includes('to binance')) {
-                                fallbackEntities.action.type = "DEPOSIT";
-                                fallbackEntities.event.type = "EXCHANGE_FLOW";
-                            } 
-                            else if (contentData.original.toLowerCase().includes('from exchange') ||
-                                    contentData.original.toLowerCase().includes('from #coinbase') ||
-                                    contentData.original.toLowerCase().includes('from binance')) {
-                                fallbackEntities.action.type = "WITHDRAW";
-                                fallbackEntities.event.type = "EXCHANGE_FLOW";
-                            }
-                            
-                            console.log('✅ Created fallback entity structure for whale alert');
-                            entities = fallbackEntities;
-                        } else {
-                            console.log('❌ Could not extract transaction details for fallback processing');
-                            return { skip: true, reason: 'extraction_failed' };
-                        }
-                    } else {
-                        return { skip: true, reason: 'extraction_failed' };
-                    }
+                    return { skip: true, reason: 'extraction_failed' };
                 } else {
                     // Normalize and validate the entity structure
                     entities = normalizeEntityStructure(rawEntities);
@@ -1089,38 +1000,119 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('\n=== Template Output ===');
                 console.log(JSON.stringify(entities, null, 2));
 
-                // Check for hallucinated content by comparing the headline to original content
+                // Validate locations but be more lenient
+                if (entities?.entities?.locations && entities.entities.locations.length > 0) {
+                    // Only validate critical locations for regulatory content
+                    if (entities.event.category === 'REGULATORY') {
+                        let hasHallucinatedCriticalLocation = false;
+                        
+                        entities.entities.locations.forEach(location => {
+                            // Only check primary locations that are countries or major regions
+                            if (location.context === 'primary' && (location.type === 'COUNTRY' || location.type === 'REGION')) {
+                                const locationName = location.name.toLowerCase();
+                                // Check if this major location appears in the text
+                                if (!contentData.original.toLowerCase().includes(locationName)) {
+                                    // For US-related content, check for common US terms
+                                    if (locationName === 'united states' || locationName === 'us' || locationName === 'usa') {
+                                        const usTerms = ['us ', 'u.s.', 'united states', 'usa', 'america', 'washington', 'federal', 'sec', 'cftc'];
+                                        const hasUsReference = usTerms.some(term => contentData.original.toLowerCase().includes(term));
+                                        
+                                        if (!hasUsReference) {
+                                            hasHallucinatedCriticalLocation = true;
+                                        }
+                                    } else {
+                                        // For non-regulatory content, only reject if it's a complete fabrication
+                                        // For other locations, check if it's a critical location fabrication
+                                        hasHallucinatedCriticalLocation = true;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        if (hasHallucinatedCriticalLocation) {
+                            console.log('⚠️ Warning - Hallucinated location but continuing process:');
+                            console.log('Original:', contentData.original);
+                            console.log('Claimed locations:', entities.entities.locations.map(l => l.name.toLowerCase()).join(', '));
+                            
+                            // For non-critical news, don't reject due to location hallucination
+                            if (entities.event.category === 'REGULATORY' && isRegulatoryConcrete(entities)) {
+                                console.log('❌ REJECTED - Hallucinated location in concrete regulatory news:');
+                                return { skip: true, reason: 'hallucinated_location' };
+                            }
+                            
+                            // For other content, just remove the hallucinated locations
+                            entities.entities.locations = entities.entities.locations.filter(location => {
+                                const locationName = location.name.toLowerCase();
+                                return contentData.original.toLowerCase().includes(locationName);
+                            });
+                        }
+                    }
+                }
+                
+                // Check for headline hallucination but be more lenient
                 if (entities?.headline) {
-                    // Detect completely hallucinated content by checking if key terms from the headline appear in the original text
-                    const headlineKeyTerms = entities.headline.toLowerCase().split(' ');
-                    const significantTerms = headlineKeyTerms.filter(term => 
-                        term.length > 4 && 
-                        !['about', 'with', 'from', 'that', 'this', 'these', 'those', 'will', 'have', 'been', 'were', 'when', 'what', 'policy', 'update'].includes(term)
-                    );
+                    // Extract significant terms from the headline (excluding common words)
+                    const headlineTerms = extractSignificantTerms(entities.headline);
                     
-                    // Calculate how many significant terms from the headline appear in the original content
-                    const originalTextLower = contentData.original.toLowerCase();
-                    const matchingTerms = significantTerms.filter(term => originalTextLower.includes(term));
-                    const matchPercentage = matchingTerms.length / (significantTerms.length || 1);
+                    // Check how many significant terms from the headline appear in the original content
+                    let matchCount = 0;
+                    let totalTerms = headlineTerms.length;
                     
-                    if (matchPercentage < 0.15 && significantTerms.length >= 3) {
-                        console.log('❌ REJECTED - Likely hallucinated content:');
+                    headlineTerms.forEach(term => {
+                        if (contentData.original.toLowerCase().includes(term.toLowerCase())) {
+                            matchCount++;
+                        }
+                    });
+                    
+                    // Calculate match percentage, but don't require a high threshold
+                    const matchPercentage = totalTerms > 0 ? (matchCount / totalTerms) * 100 : 0;
+                    console.log(`Headline match percentage: ${matchPercentage.toFixed(1)}% (${matchCount}/${totalTerms} terms)`);
+                    
+                    // Only reject completely hallucinated headlines with zero matching terms for critical content
+                    if (matchPercentage < 5 && entities.event.category === 'REGULATORY' && isRegulatoryConcrete(entities)) {
+                        console.log('❌ REJECTED - Completely hallucinated headline in concrete regulatory news:');
                         console.log('Original:', contentData.original);
-                        console.log('Hallucinated headline:', entities.headline);
-                        console.log('Matching terms:', matchingTerms.join(', '));
-                        console.log('Match percentage:', (matchPercentage * 100).toFixed(1) + '%');
-                        return { skip: true, reason: 'hallucinated_content' };
+                        console.log('Headline:', entities.headline);
+                        console.log('Terms:', headlineTerms.join(', '));
+                        console.log(`Match: ${matchPercentage.toFixed(1)}%`);
+                        return { skip: true, reason: 'hallucinated_headline' };
+                    }
+                }
+                
+                // For business news about major crypto companies, ensure proper impact
+                if (entities.event.category === 'NEWS' && 
+                    (entities.event.subcategory === 'BUSINESS' || entities.event.subcategory === 'FUNDAMENTAL')) {
+                    
+                    // Check for major crypto company mentions
+                    const majorCompanies = ['coinbase', 'binance', 'kraken', 'ftx', 'ripple', 'circle', 'tether', 
+                                         'bakkt', 'robinhood', 'gemini', 'opensea', 'consensys', 'blockfi',
+                                         'celsius', 'microstrategy', 'square', 'paypal', 'venmo', 'revolut',
+                                         'dydx', 'uniswap', 'aave', 'compound'];
+                    
+                    const companyMentions = majorCompanies.filter(company => 
+                        contentData.original.toLowerCase().includes(company));
+                    
+                    if (companyMentions.length > 0) {
+                        console.log(`🏢 Major crypto company mentioned: ${companyMentions.join(', ')}`);
+                        if (entities.context.impact < 40) {
+                            console.log(`⬆️ Boosting impact score for major crypto company news (was ${entities.context.impact})`);
+                            entities.context.impact = Math.max(entities.context.impact, 40);
+                        }
                     }
                     
-                    // Extra check for "White House" hallucination which seems common
-                    if (entities.headline.toLowerCase().includes('white house') && 
-                        !contentData.original.toLowerCase().includes('white house') &&
-                        !contentData.original.toLowerCase().includes('whitehouse')) {
+                    // For venture capital news
+                    if (contentData.original.toLowerCase().includes('venture') || 
+                        contentData.original.toLowerCase().includes('funding') ||
+                        contentData.original.toLowerCase().includes('investment') ||
+                        contentData.original.toLowerCase().includes('raised') ||
+                        contentData.original.toLowerCase().includes('billion') ||
+                        contentData.original.toLowerCase().includes('million')) {
                         
-                        console.log('❌ REJECTED - White House hallucination detected:');
-                        console.log('Original:', contentData.original);
-                        console.log('Hallucinated headline:', entities.headline);
-                        return { skip: true, reason: 'white_house_hallucination' };
+                        console.log('💰 Venture capital or funding news detected');
+                        if (entities.context.impact < 30) {
+                            console.log(`⬆️ Boosting impact score for VC/funding news (was ${entities.context.impact})`);
+                            entities.context.impact = Math.max(entities.context.impact, 30);
+                        }
                     }
                 }
 
@@ -1443,4 +1435,35 @@ export async function processMessage({ message, db, channelMapping }) {
             return { skip: true, reason: 'processing_error' };
         }
     });
+}
+
+// Function to extract significant terms from text (for headline validation)
+function extractSignificantTerms(text) {
+    if (!text) return [];
+    
+    // Remove common words and keep only significant terms
+    const commonWords = ['a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 
+                      'about', 'as', 'and', 'or', 'but', 'if', 'because', 'as', 'until', 
+                      'while', 'of', 'during', 'set', 'issue', 'additional', 'details',
+                      'from', 'after', 'before', 'when', 'where', 'why', 'how', 'all', 
+                      'any', 'both', 'each', 'few', 'more', 'most', 'some', 'such', 'no', 
+                      'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 
+                      'can', 'will', 'just', 'should', 'now'];
+    
+    // Split by spaces, punctuation, and other separators
+    const words = text.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')  // Replace non-word chars with spaces
+        .split(/\s+/)               // Split by whitespace
+        .filter(word => word.length > 2 && !commonWords.includes(word));
+    
+    return words;
+}
+
+// Function to check if regulatory news mentions concrete actions
+function isRegulatoryConcrete(entities) {
+    if (entities.event.category !== 'REGULATORY') return false;
+    
+    // Check if this is concrete regulatory news with a specific action
+    const actionTypes = ['APPROVE', 'REJECT', 'ENFORCE', 'FINE', 'SANCTION', 'AUTHORIZE', 'RESTRICT'];
+    return actionTypes.includes(entities.action?.type);
 }
