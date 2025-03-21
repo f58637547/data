@@ -175,7 +175,7 @@ function extractTwitterUsername(text) {
 }
 
 // Check similarity with vector search across all relevant tables
-async function findSimilarMessages(db, embedding) {
+async function findSimilarMessages(db, embedding, contentText, category) {
     try {
         // Query to check similarity only in the crypto table
         const query = `
@@ -235,11 +235,23 @@ async function findSimilarMessages(db, embedding) {
                 console.log('-'.repeat(80));
             }
             
-            // If very similar content found (>90% similarity)
-            const hasVerySimilar = result.rows.some(row => row.vector_similarity > 0.65);
+            // Higher similarity threshold for DATA category content
+            // Use a high threshold (92%) for DATA category content, 65% for all other content
+            const similarityThreshold = category === 'DATA' ? 0.92 : 0.65;
+            
+            // Log the decision process
+            if (category === 'DATA') {
+                console.log(`📊 DATA category detected - using higher similarity threshold (92%)`);
+            }
+            
+            // If very similar content found (based on type-specific threshold)
+            const hasVerySimilar = result.rows.some(row => row.vector_similarity > similarityThreshold);
+            
             if (hasVerySimilar) {
-                console.log('❌ REJECTED - Nearly identical content found');
+                console.log(`❌ REJECTED - Nearly identical content found (>${similarityThreshold*100}% similarity)`);
                 return { isDuplicate: true, matches: result.rows };
+            } else if (category === 'DATA' && result.rows.some(row => row.vector_similarity > 0.65)) {
+                console.log('✅ Similar DATA content found but below threshold - allowing this message');
             }
         } else {
             console.log('✅ No similar content found');
@@ -340,6 +352,12 @@ function safeParseJSON(text) {
         try {
             // Remove any markdown code block markers
             let cleaned = text.replace(/```json|```/g, '').trim();
+            
+            // Fix double quotes in headline values (common LLM error)
+            cleaned = cleaned.replace(/"headline":""([^"]+)/g, '"headline":"$1');
+            
+            // Fix malformed hashtags like #[#Symbol]
+            cleaned = cleaned.replace(/#\[#([^\]]+)\]/g, '#$1');
             
             // Check if the JSON is incomplete (missing closing braces)
             let openBraces = (cleaned.match(/{/g) || []).length;
@@ -859,16 +877,51 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'insufficient_content' };
             }
 
+            // Special check for high-quality data events like whale alerts that should never be filtered as duplicates
+            const originalTextLower = contentData.original.toLowerCase();
+            const isImportantDataEvent = 
+                // Detect Whale Alert patterns
+                (originalTextLower.includes('whale alert') && originalTextLower.match(/\$\d+[,.]?\d*\s*(million|m\b)/i)) ||
+                // Detect large transfers
+                (originalTextLower.includes('transferred') && originalTextLower.match(/\$\d+[,.]?\d*\s*(million|m\b)/i) && originalTextLower.includes('to')) ||
+                // Detect specific large transaction patterns
+                (originalTextLower.includes('🚨') && originalTextLower.match(/\d{1,3}(,\d{3})*(\.\d+)?\s*[A-Z]{3,10}/));
+            
+            // Always process very large fund movements (>$50M) regardless of similarity
+            const largeAmountMatch = originalTextLower.match(/\$(\d+)(\.\d+)?\s*(million|m\b)/i);
+            const isVeryLargeTransfer = largeAmountMatch && parseFloat(largeAmountMatch[1]) >= 50;
+            
+            if (isVeryLargeTransfer) {
+                console.log('💰 Very large transfer detected (>$50M) - bypassing duplicate check');
+            }
+            
             // Generate embedding and check similarity early
             console.log('\n=== Checking Uniqueness ===');
             let embedding;
             try {
                 embedding = await generateEmbedding(contentData.original);
                 
-                // Check for similar content before processing
-                const similarityResult = await findSimilarMessages(db, embedding);
-                if (similarityResult.isDuplicate) {
-                    return { skip: true, reason: 'duplicate_content' };
+                // Check for similar content before processing (but skip for very large transfers)
+                if (!isVeryLargeTransfer) {
+                    // Process with LLM to get category first - this is needed to decide similarity threshold
+                    console.log('🔍 Determining content category to set appropriate similarity threshold');
+                    let tempCategory = null;
+                    
+                    // Quick analysis for DATA content without full LLM processing
+                    if (originalTextLower.includes('whale alert') || 
+                        originalTextLower.includes('transferred') || 
+                        originalTextLower.includes('🚨') ||
+                        (originalTextLower.includes('moved') && originalTextLower.match(/\$\d+|[0-9,]+\s*[A-Z]{3,}/))) {
+                        tempCategory = 'DATA';
+                        console.log('📊 Detected likely DATA category content');
+                    }
+                    
+                    const similarityResult = await findSimilarMessages(db, embedding, contentData.clean, tempCategory);
+                    if (similarityResult.isDuplicate) {
+                        return { skip: true, reason: 'duplicate_content' };
+                    }
+                } else {
+                    console.log('✅ Bypassing similarity check for very large transfer');
                 }
             } catch (error) {
                 console.error('Error generating embedding:', error);
@@ -903,20 +956,119 @@ export async function processMessage({ message, db, channelMapping }) {
                 
                 // Check if extraction failed
                 if (!rawEntities) {
-                    console.log('❌ REJECTED - LLM extraction failed');
-                    return { skip: true, reason: 'extraction_failed' };
+                    console.log('❌ LLM extraction failed');
+                    
+                    // Emergency fallback for whale alerts to ensure important transactions are processed
+                    const isWhaleAlert = contentData.author?.toLowerCase().includes('whale') ||
+                                      contentData.original.toLowerCase().includes('whale alert') ||
+                                      (contentData.original.includes('🚨') && contentData.original.toLowerCase().includes('transferred'));
+                    
+                    if (isWhaleAlert) {
+                        console.log('🐋 Detected whale alert - attempting emergency fallback processing');
+                        
+                        // Extract likely transaction details
+                        const amountMatch = contentData.original.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?) *#?([A-Z]{2,10})/);
+                        if (amountMatch) {
+                            const amount = amountMatch[1].replace(/,/g, '');
+                            const symbol = amountMatch[2];
+                            
+                            // Create fallback entity structure
+                            const fallbackEntities = {
+                                headline: `${amount} ${symbol} Transferred in Large Whale Transaction`,
+                                tokens: {
+                                    primary: { symbol },
+                                    related: []
+                                },
+                                event: {
+                                    category: "DATA",
+                                    subcategory: "FUND_FLOW",
+                                    type: "EXCHANGE_FLOW"
+                                },
+                                action: {
+                                    type: "TRANSFER",
+                                    direction: "NEUTRAL",
+                                    magnitude: "LARGE"
+                                },
+                                entities: {
+                                    projects: [],
+                                    persons: [],
+                                    locations: []
+                                },
+                                metrics: {
+                                    market: {
+                                        price: null,
+                                        volume: null,
+                                        liquidity: null,
+                                        volatility: null
+                                    },
+                                    onchain: {
+                                        transactions: parseFloat(amount),
+                                        addresses: null
+                                    }
+                                },
+                                context: {
+                                    impact: parseFloat(amount) >= 50000000 ? 80 : 65,
+                                    risk: {
+                                        market: 50,
+                                        tech: 30
+                                    },
+                                    sentiment: {
+                                        market: 50,
+                                        social: 50
+                                    },
+                                    trend: {
+                                        short: "SIDEWAYS",
+                                        medium: "SIDEWAYS",
+                                        strength: 45
+                                    }
+                                }
+                            };
+                            
+                            // Detect transfer direction if possible
+                            if (contentData.original.toLowerCase().includes('to exchange') || 
+                                contentData.original.toLowerCase().includes('to #coinbase') ||
+                                contentData.original.toLowerCase().includes('to binance')) {
+                                fallbackEntities.action.type = "DEPOSIT";
+                                fallbackEntities.event.type = "EXCHANGE_FLOW";
+                            } 
+                            else if (contentData.original.toLowerCase().includes('from exchange') ||
+                                    contentData.original.toLowerCase().includes('from #coinbase') ||
+                                    contentData.original.toLowerCase().includes('from binance')) {
+                                fallbackEntities.action.type = "WITHDRAW";
+                                fallbackEntities.event.type = "EXCHANGE_FLOW";
+                            }
+                            
+                            console.log('✅ Created fallback entity structure for whale alert');
+                            entities = fallbackEntities;
+                        } else {
+                            console.log('❌ Could not extract transaction details for fallback processing');
+                            return { skip: true, reason: 'extraction_failed' };
+                        }
+                    } else {
+                        return { skip: true, reason: 'extraction_failed' };
+                    }
+                } else {
+                    // Normalize and validate the entity structure
+                    entities = normalizeEntityStructure(rawEntities);
+                    
+                    if (!entities) {
+                        console.log('❌ REJECTED - Entity normalization failed');
+                        return { skip: true, reason: 'entity_normalization_failed' };
+                    }
+                    
+                    // Validate and fix event and action types
+                    entities = validateAndFixEventAction(entities);
                 }
-                
-                // Normalize and validate the entity structure
-                entities = normalizeEntityStructure(rawEntities);
-                
-                if (!entities) {
-                    console.log('❌ REJECTED - Entity normalization failed');
-                    return { skip: true, reason: 'entity_normalization_failed' };
+
+                // Double-check similarity with actual category if it's DATA
+                if (entities.event?.category === 'DATA') {
+                    console.log('📊 Confirmed DATA category - checking similarity with higher threshold');
+                    const detailedSimilarityCheck = await findSimilarMessages(db, embedding, contentData.clean, 'DATA');
+                    if (detailedSimilarityCheck.isDuplicate) {
+                        console.log('❌ REJECTED - Duplicated DATA content detected after full processing');
+                        return { skip: true, reason: 'duplicate_data_content' };
+                    }
                 }
-                
-                // Validate and fix event and action types
-                entities = validateAndFixEventAction(entities);
 
                 // Clean up entities before saving
                 if (entities?.headline) {
