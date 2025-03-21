@@ -414,12 +414,12 @@ IMPORTANT - SYMBOL EXTRACTION RULES:
 2. PRIMARY_SYMBOL Rules:
    - Set primary_symbol to the most relevant CRYPTO token in the message
    - For crypto: Use token symbols like "BTC", "ETH", "SOL", etc. (WITHOUT $ prefixes)
-   - If no specific crypto token is mentioned, set primary_symbol to null
+   - If no specific crypto token is mentioned, ALWAYS set primary_symbol to null
    - Never set a primary_symbol for content with impact = 0
    - CRITICAL: NEVER invent symbols or guess from vague context
    - VERIFY: Double-check that any symbol you assign as primary_symbol actually appears in the text
-   - Only set a primary_symbol for crypto tokens explicitly mentioned in the content
-   - If in doubt, set primary_symbol to null
+   - CRITICAL: ALWAYS use null (not the string "null") when no valid crypto symbol is mentioned
+   - If you're unsure about a symbol, use null instead of guessing
    - Do not include stock tickers or market indices in primary_symbol field
 
 IMPORTANT - PROJECTS EXTRACTION RULES:

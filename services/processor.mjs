@@ -414,7 +414,7 @@ function normalizeEntityStructure(entities) {
             headline: entities.headline || '',
             tokens: {
                 primary: { 
-                    symbol: entities.tokens?.primary?.symbol || null 
+                    symbol: entities.tokens?.primary?.symbol === "null" ? null : entities.tokens?.primary?.symbol || null 
                 },
                 related: []
             },
@@ -1145,14 +1145,19 @@ export async function processMessage({ message, db, channelMapping }) {
             // Validate basic content alignment
             if (entities?.tokens?.primary?.symbol) {
                 const symbol = entities.tokens.primary.symbol;
-                // Check if the symbol actually appears in the original text
-                const symbolRegex = new RegExp(`\\b${symbol}\\b|\\$${symbol}\\b`, 'i');
-                
-                if (!symbolRegex.test(contentData.original) && symbol !== 'BTC' && symbol !== 'ETH') {
-                    console.log('❌ REJECTED - Hallucinated symbol:');
-                    console.log('Original:', contentData.original);
-                    console.log('Claimed symbol:', symbol);
-                    return { skip: true, reason: 'hallucinated_symbol' };
+                // Don't validate if symbol is explicitly null
+                if (symbol === "null" || symbol === null) {
+                    console.log('ℹ️ No primary symbol found in content - this is valid');
+                } else {
+                    // Check if the symbol actually appears in the original text
+                    const symbolRegex = new RegExp(`\\b${symbol}\\b|\\$${symbol}\\b`, 'i');
+                    
+                    if (!symbolRegex.test(contentData.original) && symbol !== 'BTC' && symbol !== 'ETH') {
+                        console.log('❌ REJECTED - Hallucinated symbol:');
+                        console.log('Original:', contentData.original);
+                        console.log('Claimed symbol:', symbol);
+                        return { skip: true, reason: 'hallucinated_symbol' };
+                    }
                 }
             }
 
@@ -1187,6 +1192,20 @@ export async function processMessage({ message, db, channelMapping }) {
                     if (majorExchange) {
                         console.log('⚠️ Adjusting impact score for major exchange listing news');
                         entities.context.impact = 55;
+                    }
+                }
+                
+                // Special case for crypto businesses and exchanges
+                if (entities.event.category === 'NEWS' && 
+                    (entities.event.subcategory === 'BUSINESS' || entities.event.subcategory === 'FUNDAMENTAL')) {
+                    
+                    // Look for major crypto companies
+                    const majorCryptoCompanies = contentData.clean.toLowerCase().match(/coinbase|binance|kraken|bakkt|robinhood|ftx|gemini|bitmex|uniswap|aave|metamask/i);
+                    
+                    if (majorCryptoCompanies) {
+                        console.log('⚠️ Adjusting impact score for crypto business news');
+                        // Set moderate impact for significant crypto company news
+                        entities.context.impact = Math.max(entities.context.impact, 40);
                     }
                 }
             }
