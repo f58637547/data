@@ -7,6 +7,25 @@ BEFORE RESPONDING: Verify that your headline and all extracted data directly rel
 If you find yourself writing about topics not mentioned in the input, STOP and reconsider.
 NEVER change the market type mentioned in the original text - if it's about stocks, keep it about stocks; if about crypto, keep it about crypto.
 
+⚠️⚠️⚠️ CRITICAL REGULATORY ANTI-HALLUCINATION DIRECTIVE ⚠️⚠️⚠️
+NEVER HALLUCINATE GOVERNMENT AGENCIES OR REGULATORY BODIES that aren't mentioned in the original text.
+SPECIFICALLY, DO NOT MENTION "WHITE HOUSE" unless it's EXPLICITLY mentioned in the original text.
+- If the text doesn't mention "United States", "White House", "Biden", "US Government", do NOT include them
+- If the text doesn't mention "SEC", "CFTC", "Treasury", "Federal Reserve", do NOT include them
+- If the text doesn't mention specific countries, do NOT include country entities
+- NEVER claim content is about "policy", "regulations", or "announcements" unless explicitly stated
+- DOUBLE CHECK that any regulatory body or government you include is ACTUALLY IN THE TEXT
+- If in doubt, DO NOT categorize content as regulatory news - use the appropriate category based on what's actually in the text
+
+⚠️⚠️⚠️ ADDITIONAL CRITICAL DIRECTIVE ABOUT POLICY ⚠️⚠️⚠️
+- NEVER create a headline about "policy" when the word "policy" does not appear in the original text
+- NEVER categorize something as POLICY type news unless the text explicitly mentions policies, rules, or regulations
+- IF the text mentions "Treasury" or similar institutions but without mentioning policies, do NOT make it about policy
+- DO NOT combine unrelated facts from the text into a fictional regulatory headline
+- HEADLINES MUST directly relate to the exact information presented, not interpretations or combinations
+- If multiple topics are mentioned (like in a "Daily" news summary), pick ONE factual point rather than combining them
+- NEWS should be categorized as FUNDAMENTAL if about business/project developments, even if a government agency is mentioned
+
 ⚠️⚠️⚠️ CRITICAL JSON VALIDATION WARNING ⚠️⚠️⚠️
 BEFORE SUBMITTING YOUR RESPONSE:
 1. Check that all quotes in strings are properly escaped with backslashes: "He said \\"hello\\""
@@ -1009,6 +1028,23 @@ REGULATORY CONTENT CLASSIFICATION RULES:
    - When no concrete action or decision occurs
    - Mentions of regulators' names without actions
    - General mentions of "regulatory clarity" without specifics
+   
+3. DO NOT categorize as regulatory when:
+   - No specific government/regulatory body is mentioned
+   - No regulatory action is explicitly stated
+   - No policy or regulation is specifically referenced
+   - The text is about general crypto topics with no regulatory angle
+   - The text is about technical analysis, price action, or market movements
+   - The text is about project announcements with no regulatory component
+   - When in doubt, DO NOT classify as regulatory
+   
+4. NEVER hallucinate regulatory content:
+   - NEVER mention "White House" unless it appears in the original text
+   - NEVER mention "SEC", "CFTC", "Treasury" unless explicitly in the text
+   - NEVER assign POLICY as a type unless policy is specifically mentioned
+   - NEVER create policy announcements or regulatory news that isn't in the source
+   - NEVER assign United States or other countries as locations unless explicitly mentioned
+   - When text is unrelated to regulation, DO NOT force it into REGULATORY category
    
 CRITICAL: Content that merely lists participants in regulatory meetings, announces roundtables, or describes discussions MUST receive impact=0 and should be categorized as IGNORED rather than NEWS when there are no concrete actions or rulings.
 

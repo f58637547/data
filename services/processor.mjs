@@ -937,6 +937,41 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('\n=== Template Output ===');
                 console.log(JSON.stringify(entities, null, 2));
 
+                // Check for hallucinated content by comparing the headline to original content
+                if (entities?.headline) {
+                    // Detect completely hallucinated content by checking if key terms from the headline appear in the original text
+                    const headlineKeyTerms = entities.headline.toLowerCase().split(' ');
+                    const significantTerms = headlineKeyTerms.filter(term => 
+                        term.length > 4 && 
+                        !['about', 'with', 'from', 'that', 'this', 'these', 'those', 'will', 'have', 'been', 'were', 'when', 'what', 'policy', 'update'].includes(term)
+                    );
+                    
+                    // Calculate how many significant terms from the headline appear in the original content
+                    const originalTextLower = contentData.original.toLowerCase();
+                    const matchingTerms = significantTerms.filter(term => originalTextLower.includes(term));
+                    const matchPercentage = matchingTerms.length / (significantTerms.length || 1);
+                    
+                    if (matchPercentage < 0.15 && significantTerms.length >= 3) {
+                        console.log('❌ REJECTED - Likely hallucinated content:');
+                        console.log('Original:', contentData.original);
+                        console.log('Hallucinated headline:', entities.headline);
+                        console.log('Matching terms:', matchingTerms.join(', '));
+                        console.log('Match percentage:', (matchPercentage * 100).toFixed(1) + '%');
+                        return { skip: true, reason: 'hallucinated_content' };
+                    }
+                    
+                    // Extra check for "White House" hallucination which seems common
+                    if (entities.headline.toLowerCase().includes('white house') && 
+                        !contentData.original.toLowerCase().includes('white house') &&
+                        !contentData.original.toLowerCase().includes('whitehouse')) {
+                        
+                        console.log('❌ REJECTED - White House hallucination detected:');
+                        console.log('Original:', contentData.original);
+                        console.log('Hallucinated headline:', entities.headline);
+                        return { skip: true, reason: 'white_house_hallucination' };
+                    }
+                }
+
             } catch (error) {
                 console.log('❌ LLM Processing Error:', error.message);
                 return { skip: true, reason: 'llm_error' };
@@ -953,6 +988,20 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('Original:', contentData.original);
                 console.log('Processed:', entities?.headline);
                 return { skip: true, reason: 'missing_category' };
+            }
+
+            // Validate basic content alignment
+            if (entities?.tokens?.primary?.symbol) {
+                const symbol = entities.tokens.primary.symbol;
+                // Check if the symbol actually appears in the original text
+                const symbolRegex = new RegExp(`\\b${symbol}\\b|\\$${symbol}\\b`, 'i');
+                
+                if (!symbolRegex.test(contentData.original) && symbol !== 'BTC' && symbol !== 'ETH') {
+                    console.log('❌ REJECTED - Hallucinated symbol:');
+                    console.log('Original:', contentData.original);
+                    console.log('Claimed symbol:', symbol);
+                    return { skip: true, reason: 'hallucinated_symbol' };
+                }
             }
 
             // Apply category-based impact scoring before validation
@@ -992,6 +1041,32 @@ export async function processMessage({ message, db, channelMapping }) {
 
             // Explicitly check for regulatory discussions and set impact to 0 regardless of what the LLM returned
             if (entities.event.category === 'NEWS' && entities.event.subcategory === 'REGULATORY') {
+                // Verify locations actually exist in the original content
+                if (entities.entities?.locations?.length > 0) {
+                    const locationNames = entities.entities.locations.map(loc => loc.name.toLowerCase());
+                    const contentLower = contentData.original.toLowerCase();
+                    
+                    // Check if any location mentioned actually appears in the content
+                    const locationExists = locationNames.some(location => {
+                        if (location === 'united states') {
+                            return contentLower.includes('united states') || 
+                                contentLower.includes('us ') || 
+                                contentLower.includes('u.s.') || 
+                                contentLower.includes('american') ||
+                                contentLower.includes('america');
+                        }
+                        return contentLower.includes(location);
+                    });
+                    
+                    if (!locationExists) {
+                        console.log('❌ REJECTED - Hallucinated location in regulatory news:');
+                        console.log('Original:', contentData.original);
+                        console.log('Claimed locations:', locationNames.join(', '));
+                        return { skip: true, reason: 'hallucinated_location' };
+                    }
+                }
+                
+                // Check for regulatory discussions and set impact to 0
                 const regulatoryDiscussionTerms = /roundtable|discussion|panel|talk|forum|meeting|consider|review|workshop|conversation|dialogue|session|hearing|testimony|deliberation/i;
                 
                 if (regulatoryDiscussionTerms.test(contentData.original.toLowerCase()) || 
@@ -1002,6 +1077,76 @@ export async function processMessage({ message, db, channelMapping }) {
                     console.log('Headline:', entities.headline);
                     entities.context.impact = 0;
                     return { skip: true, reason: 'regulatory_discussion_no_action' };
+                }
+                
+                // Check if "policy" is mentioned but there's no concrete regulatory action
+                if (entities.event.type === 'POLICY') {
+                    const concreteActionTerms = /approve|reject|sign|implement|enforce|finalize|publish|issue|adopt|enact|announce|release|introduce|launch/i;
+                    const policyMentioned = contentData.original.toLowerCase().includes('policy') || 
+                                          contentData.original.toLowerCase().includes('regulation') ||
+                                          contentData.original.toLowerCase().includes('regulatory');
+                    
+                    // Strict policy news validation - must have the word "policy" in original text
+                    if (!contentData.original.toLowerCase().includes('policy') && entities.event.type === 'POLICY') {
+                        console.log('❌ REJECTED - Policy news hallucination - word "policy" not in original text:');
+                        console.log('Original:', contentData.original);
+                        console.log('Headline:', entities.headline);
+                        return { skip: true, reason: 'policy_hallucination' };
+                    }
+                    
+                    if (!concreteActionTerms.test(contentData.original.toLowerCase()) || !policyMentioned) {
+                        console.log('❌ REJECTED - Policy mentioned without concrete action:');
+                        console.log('Original:', contentData.original);
+                        console.log('Headline:', entities.headline);
+                        entities.context.impact = 0;
+                        return { skip: true, reason: 'policy_without_action' };
+                    }
+                }
+                
+                // Additional validation for WHITE HOUSE mentions (common hallucination)
+                if (entities.headline.toLowerCase().includes('white house')) {
+                    const whiteHouseMentioned = contentData.original.toLowerCase().includes('white house') || 
+                                              contentData.original.toLowerCase().includes('whitehouse');
+                    
+                    if (!whiteHouseMentioned) {
+                        console.log('❌ REJECTED - White House hallucination:');
+                        console.log('Original:', contentData.original);
+                        console.log('Headline:', entities.headline);
+                        return { skip: true, reason: 'white_house_hallucination' };
+                    }
+                }
+                
+                // Enforce impact score restrictions for various content types
+                if (entities.event.category === 'NEWS' && entities.event.subcategory === 'REGULATORY') {
+                    // Check if it's significant regulatory news affecting major tokens
+                    const affectsMajorToken = contentData.original.toLowerCase().match(/bitcoin|btc|ethereum|eth|usdt|usdc/);
+                    const majorAction = contentData.original.toLowerCase().match(/ban|approve|reject|legalize|illegalize|fine|penalize|enforce|sanction/);
+                    
+                    // Cap policy news impact unless it's truly significant
+                    if (entities.event.type === 'POLICY') {
+                        if (!affectsMajorToken || !majorAction) {
+                            if (entities.context.impact > 50) {
+                                console.log('⚠️ Reducing impact score for policy news without major token impact');
+                                console.log('Original score:', entities.context.impact);
+                                entities.context.impact = 45; // Cap at moderate impact
+                            }
+                        }
+                    }
+                    
+                    // Specifically for news that contains OFAC or Treasury
+                    if (contentData.original.toLowerCase().includes('treasury') || 
+                        contentData.original.toLowerCase().includes('ofac')) {
+                        
+                        // If it's about sanctions or listing, it might be important
+                        if (contentData.original.toLowerCase().match(/sanction|list|delist|ban/)) {
+                            console.log('ℹ️ Moderate impact score for Treasury/OFAC news');
+                            entities.context.impact = Math.min(entities.context.impact, 60);
+                        } else {
+                            // Other treasury news should be lower priority
+                            console.log('⚠️ Reducing impact score for general Treasury/OFAC news');
+                            entities.context.impact = Math.min(entities.context.impact, 40);
+                        }
+                    }
                 }
             }
 
@@ -1056,6 +1201,44 @@ export async function processMessage({ message, db, channelMapping }) {
                 if (!parsedForValidation) {
                     console.log('❌ REJECTED - Invalid JSON structure for saving');
                     return { skip: true, reason: 'invalid_json_structure' };
+                }
+
+                // Detect severe hallucinations before saving
+                const headline = entities.headline?.toLowerCase() || '';
+                const originalText = contentData.clean?.toLowerCase() || '';
+                
+                // Check if headline mentions entities not in the original text
+                const criticalTerms = ['white house', 'strategic', 'reserve', 'policy clarification'];
+                const isSevereHallucination = criticalTerms.some(term => 
+                    headline.includes(term) && !originalText.includes(term)
+                );
+                
+                if (isSevereHallucination) {
+                    console.log('❌ REJECTED - Severe hallucination detected in headline');
+                    console.log('  Original:', contentData.clean);
+                    console.log('  Hallucinated:', entities.headline);
+                    return { skip: true, reason: 'severe_hallucination' };
+                }
+                
+                // Check if the headline is almost completely different from the original
+                const significantWordsInHeadline = headline.split(' ')
+                    .filter(word => word.length > 3) // Only consider significant words
+                    .map(word => word.replace(/[^a-z0-9]/g, '')); // Remove punctuation
+                
+                const matchCount = significantWordsInHeadline.filter(word => 
+                    originalText.includes(word)
+                ).length;
+                
+                const matchPercentage = significantWordsInHeadline.length > 0 
+                    ? (matchCount / significantWordsInHeadline.length) * 100 
+                    : 0;
+                    
+                if (matchPercentage < 15 && entities.context?.impact > 30) {
+                    console.log('❌ REJECTED - Headline content differs too much from original text');
+                    console.log('  Match percentage:', matchPercentage.toFixed(2) + '%');
+                    console.log('  Original:', contentData.clean);
+                    console.log('  Generated:', entities.headline);
+                    return { skip: true, reason: 'headline_mismatch' };
                 }
 
                 await db.query(`
