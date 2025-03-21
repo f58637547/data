@@ -23,17 +23,60 @@ function safeParseJSON(text) {
         
         // Attempt to clean and fix common issues
         try {
-            // Extract just the first complete JSON object if there's additional text
-            const jsonObjectMatch = text.match(/(\{(?:[^{}]|(?:\{[^{}]*\}))*\})/);
-            if (jsonObjectMatch && jsonObjectMatch[1]) {
-                const jsonCandidate = jsonObjectMatch[1];
+            // Try to extract JSON from markdown code blocks first
+            const codeBlockMatch = text.match(/```(?:json)?\n([\s\S]*?)\n```/);
+            if (codeBlockMatch && codeBlockMatch[1]) {
                 try {
-                    // Try parsing just this first complete JSON object
-                    console.log('Attempting to parse first complete JSON object');
-                    return JSON.parse(jsonCandidate);
-                } catch (firstObjectError) {
-                    console.log('Failed to parse first JSON object, continuing with cleanup');
-                    // Continue with regular cleanup if this fails
+                    console.log('Found JSON in code block, attempting to parse');
+                    return JSON.parse(codeBlockMatch[1]);
+                } catch (codeBlockError) {
+                    console.log('Failed to parse code block JSON: ' + codeBlockError.message);
+                    // Continue with other recovery methods
+                }
+            }
+            
+            // Extract all complete JSON objects, sorted by size (largest first)
+            const jsonRegex = /(\{(?:[^{}]|(?:\{[^{}]*\}))*\})/g;
+            const matches = [...text.matchAll(jsonRegex)]
+                .sort((a, b) => b[0].length - a[0].length); // Sort by length (largest first)
+                
+            // Try each match, starting with the largest
+            if (matches.length > 0) {
+                console.log(`Found ${matches.length} potential JSON objects, trying largest first`);
+                
+                // First pass: look for objects with required fields
+                for (const match of matches) {
+                    try {
+                        const candidate = match[0];
+                        console.log(`Trying JSON candidate (${candidate.length} chars)`);
+                        const parsed = JSON.parse(candidate);
+                        
+                        // Check if this looks like a complete entity
+                        const requiredKeys = ['headline', 'tokens', 'event'];
+                        const hasRequiredKeys = requiredKeys.some(key => key in parsed);
+                        
+                        if (hasRequiredKeys) {
+                            console.log('Found valid JSON with required fields');
+                            return parsed;
+                        } else {
+                            console.log('Found valid but incomplete JSON, continuing search');
+                        }
+                    } catch (e) {
+                        console.log(`JSON candidate failed: ${e.message}`);
+                        // Continue to next candidate
+                    }
+                }
+                
+                // Second pass: just take the largest valid JSON
+                for (const match of matches) {
+                    try {
+                        const candidate = match[0];
+                        const parsed = JSON.parse(candidate);
+                        console.log('Using largest valid JSON object');
+                        return parsed;
+                    } catch (e) {
+                        // Continue to next
+                    }
                 }
             }
             
@@ -197,47 +240,82 @@ export async function extractEntities(text, _, authorInfo = {}) {
         // Find the JSON object - try multiple approaches
         let jsonStr = '';
         
-        // First try: extract complete JSON objects
-        const jsonRegex = /\{(?:[^{}]|(?:\{[^{}]*\}))*\}/g;
-        const jsonMatches = [...rawContent.matchAll(jsonRegex)];
-        
-        if (jsonMatches.length > 0) {
-            // If multiple JSON objects, take the first one that parses successfully
-            for (const match of jsonMatches) {
-                try {
-                    const candidate = match[0];
-                    console.log(`Trying JSON candidate (${candidate.length} chars)`);
-                    const parsed = JSON.parse(candidate);
-                    if (parsed && typeof parsed === 'object') {
-                        console.log('Found valid JSON object');
-                        jsonStr = candidate;
-                        break;
+        // Look for JSON inside code blocks first (most common format)
+        const codeBlockMatch = rawContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
+        if (codeBlockMatch && codeBlockMatch[1]) {
+            console.log('Found JSON in code block');
+            jsonStr = codeBlockMatch[1];
+        } else {
+            // First try: extract complete JSON objects (largest first)
+            const jsonRegex = /\{(?:[^{}]|(?:\{[^{}]*\}))*\}/g;
+            const jsonMatches = [...rawContent.matchAll(jsonRegex)]
+                .sort((a, b) => b[0].length - a[0].length); // Sort by length (largest first)
+            
+            if (jsonMatches.length > 0) {
+                // If multiple JSON objects, take the largest one first (most likely the full structure)
+                for (const match of jsonMatches) {
+                    try {
+                        const candidate = match[0];
+                        console.log(`Trying JSON candidate (${candidate.length} chars)`);
+                        const parsed = JSON.parse(candidate);
+                        if (parsed && typeof parsed === 'object') {
+                            // Check if this looks like a complete entity object by checking for required fields
+                            // We want the most complete JSON object, not just any valid JSON
+                            const requiredKeys = ['headline', 'tokens', 'event'];
+                            const hasRequiredKeys = requiredKeys.some(key => key in parsed);
+                            
+                            if (hasRequiredKeys) {
+                                console.log('Found valid JSON object with required fields');
+                                jsonStr = candidate;
+                                break;
+                            } else {
+                                console.log('Found valid but incomplete JSON object, continuing search');
+                            }
+                        }
+                    } catch (e) {
+                        console.log(`JSON candidate failed: ${e.message}`);
+                        // Continue to next candidate
                     }
-                } catch (e) {
-                    console.log(`JSON candidate failed: ${e.message}`);
-                    // Continue to next candidate
+                }
+                
+                // If we didn't find a JSON with required fields, use the largest valid one
+                if (!jsonStr && jsonMatches.length > 0) {
+                    for (const match of jsonMatches) {
+                        try {
+                            const candidate = match[0];
+                            console.log(`Trying largest JSON candidate (${candidate.length} chars)`);
+                            const parsed = JSON.parse(candidate);
+                            if (parsed && typeof parsed === 'object') {
+                                console.log('Using largest valid JSON object');
+                                jsonStr = candidate;
+                                break;
+                            }
+                        } catch (e) {
+                            // Continue to next candidate
+                        }
+                    }
                 }
             }
-        }
-        
-        // If no valid JSON found with regex, try the old approach
-        if (!jsonStr) {
-            // Fallback: extract text between first { and last }
-            const fullMatch = rawContent.match(/\{[\s\S]*\}/);
-            if (fullMatch) {
-                jsonStr = fullMatch[0];
-            } 
-            // Second attempt: if we don't have a complete object, look for partial JSON
-            else {
-                // If there's an opening brace but no closing, try to extract and fix
-                const openBraceIndex = rawContent.indexOf('{');
-                if (openBraceIndex !== -1) {
-                    jsonStr = rawContent.substring(openBraceIndex);
-                    // We'll let safeParseJSON handle the missing closing braces
-                } else {
-                    console.error('No JSON object structure found in response');
-                    console.error('Raw content:', rawContent);
-                    return null;
+            
+            // If no valid JSON found with regex, try the old approach
+            if (!jsonStr) {
+                // Fallback: extract text between first { and last }
+                const fullMatch = rawContent.match(/\{[\s\S]*\}/);
+                if (fullMatch) {
+                    jsonStr = fullMatch[0];
+                } 
+                // Second attempt: if we don't have a complete object, look for partial JSON
+                else {
+                    // If there's an opening brace but no closing, try to extract and fix
+                    const openBraceIndex = rawContent.indexOf('{');
+                    if (openBraceIndex !== -1) {
+                        jsonStr = rawContent.substring(openBraceIndex);
+                        // We'll let safeParseJSON handle the missing closing braces
+                    } else {
+                        console.error('No JSON object structure found in response');
+                        console.error('Raw content:', rawContent);
+                        return null;
+                    }
                 }
             }
         }
