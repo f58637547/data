@@ -1049,4 +1049,11 @@ REGULATORY CONTENT CLASSIFICATION RULES:
 CRITICAL: Content that merely lists participants in regulatory meetings, announces roundtables, or describes discussions MUST receive impact=0 and should be categorized as IGNORED rather than NEWS when there are no concrete actions or rulings.
 
 REMEMBER: Output ONLY the JSON object with no additional text or formatting.
+
+CRITICAL - IMPACT SCORE RULES:
+- Give impact=0 for all general trading advice, educational content, and personal opinions
+- Any content that is merely discussing trading techniques, strategies, or observations with no specific news should be impact=0
+- Marketing content, promotional material, or general advice should have impact=0 
+- Content should only have impact above 0 if it contains specific market-moving information
+- Remember: educational content, trading tips, and general observations = impact ZERO
 `;

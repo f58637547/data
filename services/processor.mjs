@@ -359,6 +359,12 @@ function safeParseJSON(text) {
             // Fix malformed hashtags like #[#Symbol]
             cleaned = cleaned.replace(/#\[#([^\]]+)\]/g, '#$1');
             
+            // Fix malformed token fields - common pattern is "secondary","ETH" instead of "secondary":{"symbol":"ETH"}
+            cleaned = cleaned.replace(/"(\w+)","([^"]+)"/g, '"$1":{"symbol":"$2"}');
+            
+            // Fix tokens with Chinese/non-Latin characters
+            cleaned = cleaned.replace(/"symbol":"[^"]*[\u4e00-\u9fa5][^"]*"/g, '"symbol":"null"');
+            
             // Check if the JSON is incomplete (missing closing braces)
             let openBraces = (cleaned.match(/{/g) || []).length;
             let closeBraces = (cleaned.match(/}/g) || []).length;
@@ -1466,4 +1472,48 @@ function isRegulatoryConcrete(entities) {
     // Check if this is concrete regulatory news with a specific action
     const actionTypes = ['APPROVE', 'REJECT', 'ENFORCE', 'FINE', 'SANCTION', 'AUTHORIZE', 'RESTRICT'];
     return actionTypes.includes(entities.action?.type);
+}
+
+// Function to attempt JSON recovery for common LLM syntax errors
+function attemptJSONRecovery(jsonStr) {
+    try {
+        let cleaned = jsonStr.trim();
+        
+        // Fix malformed token fields (common issue)
+        // Fix "secondary","ETH" pattern to "secondary":{"symbol":"ETH"}
+        cleaned = cleaned.replace(/"(\w+)","([^"]+)"/g, '"$1":{"symbol":"$2"}');
+        
+        // Fix double quotes in headline values
+        cleaned = cleaned.replace(/"headline":""([^"]+)/g, '"headline":"$1');
+        
+        // Fix malformed hashtags
+        cleaned = cleaned.replace(/#\[#([^\]]+)\]/g, '#$1');
+        
+        // Fix tokens with Chinese/non-Latin characters
+        cleaned = cleaned.replace(/"symbol":"[^"]*[\u4e00-\u9fa5][^"]*"/g, '"symbol":"null"');
+        
+        // Check if the JSON is incomplete (missing closing braces)
+        let openBraces = (cleaned.match(/{/g) || []).length;
+        let closeBraces = (cleaned.match(/}/g) || []).length;
+        
+        if (openBraces !== closeBraces) {
+            console.log(`JSON is incomplete: ${openBraces} opening braces, ${closeBraces} closing braces`);
+            
+            // Add missing closing braces if needed
+            if (openBraces > closeBraces) {
+                cleaned += '}'.repeat(openBraces - closeBraces);
+            }
+        }
+        
+        // Fix trailing commas before closing braces (common issue)
+        cleaned = cleaned.replace(/,\s*\}/g, '}');
+        
+        // Fix Chinese/other language characters that might appear
+        cleaned = cleaned.replace(/[\u4e00-\u9fa5]+/g, '');
+        
+        return cleaned;
+    } catch (error) {
+        console.log('Error during JSON recovery:', error);
+        return jsonStr;
+    }
 }
