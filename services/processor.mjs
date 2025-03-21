@@ -571,28 +571,60 @@ function getDefaultImpactScore(entities) {
         if (subcategory === 'REGULATORY' && headline.toLowerCase().includes('bitcoin reserve')) {
             return 70; // High impact for Bitcoin reserve regulatory news
         }
-        // Regular Regulatory/Legal news
+        // Regulatory/Legal news
         else if (subcategory === 'REGULATORY') {
-            return 50; // Medium impact for regulatory news by default
+            // Give impact score 0 to regulatory talks, roundtables, discussions, and policy forums
+            const zeroImpactRegex = /roundtable|discussion|panel|talk|forum|meeting|consider|review|workshop|conversation|dialogue|comment period|feedback|q&a|seminar|session|public comment|hearing|testimony|deliberation/i;
+            if (zeroImpactRegex.test(headline.toLowerCase())) {
+                console.log('⚠️ Setting impact to 0 for regulatory discussion/roundtable');
+                return 0; // Zero impact for regulatory discussions, roundtables
+            }
+            
+            // Low impact for other routine regulatory news
+            const routine = headline.toLowerCase().match(/consideration|propose|inquiry|oversight|framework|guidance/);
+            if (routine) {
+                return 25; // Below threshold for routine regulatory news
+            }
+            
+            // Policy-related content without concrete action
+            if (type === 'POLICY' && !headline.toLowerCase().match(/approve|reject|sign|implement|enforce|finalize|publish|issue|adopt|enact/)) {
+                console.log('⚠️ Setting impact to 0 for vague policy content without concrete action');
+                return 0; // Zero impact for vague policy discussions
+            }
+            
+            return 40; // Reduce impact for most regulatory news
         }
         // Business/Adoption news
         else if (subcategory === 'FUNDAMENTAL' || subcategory === 'BUSINESS') {
-            return 45; // Medium impact for business/adoption news
+            // Lower impact for launches that aren't major
+            if (type === 'LAUNCH' && !headline.toLowerCase().match(/major|significant|revolutionary|first-ever/)) {
+                return 25; // Below threshold for routine launches
+            }
+            return 40; // Reduced impact for business/adoption news
         }
         // Technical/Development news
         else if (subcategory === 'TECHNICAL') {
-            return 40; // Medium-low impact for technical/dev news
+            // Lower impact for updates and minor releases
+            if (type === 'UPDATE' || type === 'RELEASE') {
+                return 25; // Below threshold for routine updates
+            }
+            return 35; // Reduced impact for technical/dev news
         }
         // Security-related news
         else if (subcategory === 'SECURITY') {
-            return 55; // Medium-high impact for security news
+            return 55; // Keep medium-high impact for security news
         }
         // Political news
         else if (subcategory === 'POLITICAL') {
+            // Check if directly related to markets
+            const marketRelated = headline.toLowerCase().match(/crypto|market|exchange|token|bitcoin|ethereum|regulation|ban|approve/);
+            if (!marketRelated) {
+                return 25; // Below threshold for non-market political news
+            }
             return 35; // Low-medium impact for political news
         }
         // Default NEWS impact - just above threshold
-        return 35;
+        return 31;
     }
     
     // MARKET event scoring
@@ -619,10 +651,14 @@ function getDefaultImpactScore(entities) {
             return 40; // Medium-low impact for fund flows
         }
         else if (subcategory === 'ONCHAIN') {
-            return 35; // Just above threshold for on-chain metrics
+            // Lower impact for trend-related data that isn't dramatic
+            if (type === 'NETWORK_METRICS' || type === 'GAS_METRICS') {
+                return 25; // Below threshold for routine metrics
+            }
+            return 32; // Just above threshold for on-chain metrics
         }
         // Default DATA impact
-        return 33;
+        return 31;
     }
     
     // Default for all other categories
@@ -938,8 +974,38 @@ export async function processMessage({ message, db, channelMapping }) {
                     console.log('⚠️ Adjusting impact score for cryptocurrency liquidation news');
                     entities.context.impact = 70;
                 }
+                
+                // Special case for major exchange listings which should have medium impact
+                if (entities.event.category === 'NEWS' && 
+                    entities.event.subcategory === 'FUNDAMENTAL' &&
+                    entities.event.type === 'LISTING' &&
+                    entities.tokens?.primary?.symbol) {
+                    
+                    // Check if listing on major exchange
+                    const majorExchange = contentData.clean.toLowerCase().match(/binance|coinbase|kraken|bitfinex|huobi|kucoin|okex|gemini/);
+                    if (majorExchange) {
+                        console.log('⚠️ Adjusting impact score for major exchange listing news');
+                        entities.context.impact = 55;
+                    }
+                }
             }
 
+            // Explicitly check for regulatory discussions and set impact to 0 regardless of what the LLM returned
+            if (entities.event.category === 'NEWS' && entities.event.subcategory === 'REGULATORY') {
+                const regulatoryDiscussionTerms = /roundtable|discussion|panel|talk|forum|meeting|consider|review|workshop|conversation|dialogue|session|hearing|testimony|deliberation/i;
+                
+                if (regulatoryDiscussionTerms.test(contentData.original.toLowerCase()) || 
+                    regulatoryDiscussionTerms.test(entities.headline.toLowerCase())) {
+                    
+                    console.log('❌ REJECTED - Regulatory discussion/roundtable without concrete action:');
+                    console.log('Original:', contentData.original);
+                    console.log('Headline:', entities.headline);
+                    entities.context.impact = 0;
+                    return { skip: true, reason: 'regulatory_discussion_no_action' };
+                }
+            }
+
+            // Filter out low impact news more aggressively
             if (!entities?.context?.impact || entities.context.impact <= 30) {
                 console.log('❌ REJECTED - Low Impact:');
                 console.log('Original:', contentData.original);
@@ -947,6 +1013,19 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('Impact Score:', entities?.context?.impact);
                 console.log('Category:', entities?.event?.category);
                 return { skip: true, reason: 'low_impact' };
+            }
+            
+            // Additional filtering for regulatory news that's not directly market-impacting
+            if (entities.event.category === 'NEWS' && 
+                entities.event.subcategory === 'REGULATORY' && 
+                entities.context.impact < 45 &&
+                !contentData.clean.toLowerCase().match(/bitcoin|ethereum|crypto|usdt|usdc|bnb|xrp|sol|ada/)) {
+                
+                console.log('❌ REJECTED - Low relevance regulatory news:');
+                console.log('Original:', contentData.original);
+                console.log('Processed:', entities?.headline);
+                console.log('Impact Score:', entities?.context?.impact);
+                return { skip: true, reason: 'low_relevance_regulatory' };
             }
 
             console.log('✅ Validation passed:');

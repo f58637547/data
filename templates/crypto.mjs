@@ -232,6 +232,127 @@ SPAM DETECTION AND SCORING:
       - Generic business announcements without token impact
       - Future technology speculation without current market effect
       - Industry trends not specifically about crypto
+      
+   f) Regulatory Discussions Without Action:
+      - Regulatory roundtables without decisions
+      - Policy discussion forums without outcomes
+      - Industry/regulator conversations
+      - SEC/CFTC meetings or panels without rulings
+      - Committee hearings without votes
+      - Regulatory listening sessions
+      - Public comment periods
+      - Regulatory workshops or seminars
+      - Agency Q&A sessions
+      - Testimony without policy announcements
+      - Regulatory frameworks under consideration
+      - Discussion of potential future regulations
+      - General regulatory updates without specific token impact
+      - Names of regulators/officials involved in discussions
+      - Oversight hearing announcements
+
+2. LOW IMPACT Content (Impact = 1-30):
+
+   a) Routine Regulatory News:
+      - Discussion periods or review announcements
+      - Consideration of regulations without decisions
+      - Regulatory meetings without outcomes
+      - Proposals without significant market impact
+      - Comment periods or inquiries
+      - Routine compliance updates
+      - Minor regulatory developments
+      - Regional regulations in smaller markets
+      - Statements without policy changes
+
+   b) Minor Technical Updates:
+      - Routine software updates or patches
+      - Minor feature releases
+      - Non-critical bug fixes
+      - Small UI/UX improvements
+      - Minor protocol changes
+      - Documentation updates
+      - Regular maintenance announcements
+      - Testnet updates without mainnet implications
+
+   c) Standard Product Launches:
+      - Non-major product releases
+      - Standard feature rollouts
+      - Routine version updates
+      - Small project launches
+      - Incremental improvements
+      - Launches without significant innovation
+
+   d) Trend Information Without Significant Changes:
+      - Routine network metrics
+      - Regular gas price updates
+      - Standard trading volume updates
+      - Minor price movements
+      - Regular technical indicator updates
+      - Sideways market analysis
+      - Regular market updates without notable changes
+      - Standard liquidity reports
+
+IMPACT SCORING GUIDELINES:
+
+1. NEWS Category Impact Scoring:
+   - Regulatory News: 40 base score (or 25 for routine matters, 0 for discussions/roundtables)
+      * Major regulatory decisions: 60-75
+      * Bitcoin/crypto reserve regulations: 70-85
+      * Bans or approvals: 60-80
+      * Routine guidance/frameworks: 25 (below threshold)
+      * Regulatory roundtables/discussions: 0 (ZERO IMPACT)
+      * Policy talks without concrete actions: 0 (ZERO IMPACT)
+      * Meetings between regulators and industry: 0 (ZERO IMPACT)
+      * Committee hearings without outcomes: 0 (ZERO IMPACT)
+   
+   - Technical/Development News: 35 base score (or 25 for minor updates)
+      * Major protocol upgrades: 50-65
+      * Security enhancements: 45-60
+      * Routine updates/patches: 25 (below threshold)
+      * Documentation/minor releases: 20 (below threshold)
+   
+   - Fundamental/Business News: 40 base score (or 25 for standard launches)
+      * Major exchange listings: 55-70
+      * Significant partnerships: 50-65
+      * Standard product launches: 25-30
+      * Non-major releases: 20-25 (below threshold)
+   
+   - Security News: 55 base score
+      * Major hacks/exploits: 70-90
+      * Vulnerabilities: 60-75
+      * Security breaches: 65-80
+   
+   - Political News: 35 base score (or 25 if not directly market-related)
+      * Major policy affecting crypto: 50-65
+      * Non-market related politics: 25 (below threshold)
+
+2. MARKET Category Impact Scoring:
+   - Price Events: 50 base score
+      * Major breakouts/reversals: 60-80
+      * Support/resistance tests: 45-65
+   
+   - Volume Events: 45 base score
+      * Major spikes/surges: 55-70
+      * Significant declines: 50-65
+   
+   - Trade Signals: 40 base score
+      * Major entry/exit points: 50-65
+      * Position recommendations: 45-60
+
+3. DATA Category Impact Scoring:
+   - Whale Movements: 45 base score
+      * Very large transfers (>$100M): 70-85
+      * Large transfers (>$50M): 60-75
+      * Medium transfers ($10-50M): 45-60
+   
+   - Fund Flows: 40 base score
+      * Major exchange inflows/outflows: 50-65
+      * Bridge flows: 45-60
+   
+   - Onchain Data: 32 base score (or 25 for routine metrics)
+      * Significant network changes: 45-60
+      * Liquidity pool changes: 40-55
+      * Routine network metrics: 25 (below threshold)
+      * Standard gas metrics: 25 (below threshold)
 
 CONTENT VALIDATION RULES:
 
@@ -860,4 +981,36 @@ OUTPUT FORMAT:
 12. SET ACTION TYPES to valid values from the allowed options list - NEVER use empty strings
 
 FINAL REMINDER: OUTPUT VALID JSON ONLY - NO EXPLANATORY TEXT, NO MARKDOWN FORMATTING, NO BULLET POINTS.
+
+REGULATORY CONTENT CLASSIFICATION RULES:
+1. Regulatory content WITH impact (30+):
+   - Final regulatory decisions
+   - Formal approvals/rejections
+   - Enforcement actions
+   - Fines or penalties
+   - New laws or rules published
+   - Official guidelines implemented
+   - Court rulings on crypto
+   - Final regulatory frameworks
+   - Specific actions against named entities
+   
+2. Regulatory content with ZERO impact:
+   - Discussions or roundtables
+   - Preliminary talks
+   - Consideration of regulations
+   - Panels or forums
+   - Educational workshops
+   - Regulator-industry meetings
+   - Public comments or feedback
+   - Lists of participants in regulatory events
+   - Review sessions
+   - Announcements of future discussions
+   - Hearing schedules
+   - When no concrete action or decision occurs
+   - Mentions of regulators' names without actions
+   - General mentions of "regulatory clarity" without specifics
+   
+CRITICAL: Content that merely lists participants in regulatory meetings, announces roundtables, or describes discussions MUST receive impact=0 and should be categorized as IGNORED rather than NEWS when there are no concrete actions or rulings.
+
+REMEMBER: Output ONLY the JSON object with no additional text or formatting.
 `;
