@@ -204,3 +204,107 @@ export async function extractEntities(text, _, authorInfo = {}) {
         return null;  // Return null instead of throwing to allow processing to continue
     }
 }
+
+// Extract entities from a message
+export async function extractEntities(message, context, messageMetadata = {}) {
+    try {
+        // Validate inputs
+        if (!message) {
+            console.log('Empty message provided to extractEntities');
+            return null;
+        }
+        
+        // Logging the inputs for debugging
+        const { author, rtAuthor } = messageMetadata;
+        console.log('=== Template Input ===');
+        console.log('Text:', message);
+        console.log('Author:', author || 'none');
+        console.log('RT:', rtAuthor || '');
+        
+        // Construct the prompt
+        const template = await getTemplate('crypto');
+        
+        // Execute the model
+        const response = await getCompletion(template, message, author, rtAuthor);
+        
+        // Log the response for debugging
+        console.log('=== Raw LLM Response ===');
+        console.log(response);
+        
+        // Check if response is invalid (asking for input when it was already provided)
+        if (response.includes('provide the text to analyze') || response.includes('Please provide') || response.length < 50) {
+            console.log('⚠️ LLM responded as if no input was provided. Retrying with modified template...');
+            
+            // Add an explicit instruction to process the given text
+            const enhancedTemplate = template + `\n\nIMPORTANT: You MUST process this text: "${message}"\nDo NOT ask for the text - it has already been provided above. Return ONLY JSON.`;
+            
+            // Retry with enhanced template
+            const retryResponse = await getCompletion(enhancedTemplate, message, author, rtAuthor);
+            console.log('=== Retry LLM Response ===');
+            console.log(retryResponse);
+            
+            // Extract JSON from the response
+            return extractJSON(retryResponse);
+        }
+        
+        // Extract JSON from the response
+        return extractJSON(response);
+    } catch (error) {
+        console.error('Error extracting entities:', error);
+        return null;
+    }
+}
+
+// Extract JSON from a text response
+function extractJSON(text) {
+    try {
+        if (!text) return null;
+        
+        // First, try to find a JSON code block
+        const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/;
+        const jsonBlockMatch = text.match(jsonBlockRegex);
+        
+        if (jsonBlockMatch && jsonBlockMatch[1]) {
+            try {
+                return JSON.parse(jsonBlockMatch[1]);
+            } catch (error) {
+                console.log('Failed to parse JSON from code block:', error.message);
+                console.log('Attempting to recover...');
+                // Continue to try other methods
+            }
+        }
+        
+        // Second, try to find any JSON object in the text
+        const jsonObjectRegex = /(\{[\s\S]*\})/;
+        const jsonObjectMatch = text.match(jsonObjectRegex);
+        
+        if (jsonObjectMatch && jsonObjectMatch[1]) {
+            try {
+                return JSON.parse(jsonObjectMatch[1]);
+            } catch (error) {
+                console.log('Failed to parse JSON object:', error.message);
+                // Try cleaning the JSON string
+                const cleanedJson = jsonObjectMatch[1]
+                    .replace(/```/g, '')
+                    .replace(/^```json/gm, '')
+                    .replace(/```$/gm, '')
+                    .trim();
+                
+                try {
+                    return JSON.parse(cleanedJson);
+                } catch (innerError) {
+                    console.log('Failed to parse cleaned JSON:', innerError.message);
+                }
+            }
+        }
+        
+        // If no JSON found, log error and raw content
+        console.log('No JSON object structure found in response');
+        console.log('Raw content:', text.substring(0, 200));
+        
+        return null;
+    } catch (error) {
+        console.error('Error extracting JSON:', error);
+        return null;
+    }
+}
