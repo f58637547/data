@@ -125,7 +125,32 @@ export async function extractEntities(text, _, authorInfo = {}) {
         console.log(response.choices[0].message.content);
 
         // Get raw response and clean it
-        const rawContent = response.choices[0].message.content;
+        let rawContent = response.choices[0].message.content;
+        
+        // Check if the LLM is asking for text that was already provided
+        if (rawContent.includes('provide the text to analyze') || 
+            rawContent.includes('Please provide') || 
+            (rawContent.length < 50 && !rawContent.includes('{'))) {
+            
+            console.log('⚠️ LLM responded as if no input was provided. Retrying...');
+            
+            // Create enhanced template with explicit instructions
+            const enhancedTemplate = cryptoTemplate + 
+                `\n\nIMPORTANT: You MUST process this text: "${text}"\nDo NOT ask for the text - it is already provided above. Return ONLY JSON.`;
+            
+            // Retry with enhanced template
+            const retryResponse = await getLLMResponse(enhancedTemplate, {
+                message: text,
+                author: authorInfo.author || 'none',
+                rtAuthor: authorInfo.rtAuthor || ''
+            });
+            
+            console.log('\n=== Retry LLM Response ===');
+            console.log(retryResponse.choices[0].message.content);
+            
+            // Use retry content instead
+            rawContent = retryResponse.choices[0].message.content;
+        }
         
         // Skip if content too short
         if (!rawContent || rawContent.length < 10) {
