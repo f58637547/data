@@ -1006,56 +1006,28 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log('\n=== Template Output ===');
                 console.log(JSON.stringify(entities, null, 2));
 
-                // Validate locations but be more lenient
+                // Validate locations but never reject based on hallucination
                 if (entities?.entities?.locations && entities.entities.locations.length > 0) {
-                    // Only validate critical locations for regulatory content
-                    if (entities.event.category === 'REGULATORY') {
-                        let hasHallucinatedCriticalLocation = false;
+                    // Check for hallucinated locations
+                    const hallucinated = entities.entities.locations.filter(location => {
+                        const locationName = location.name.toLowerCase();
+                        return !contentData.original.toLowerCase().includes(locationName);
+                    });
+                    
+                    if (hallucinated.length > 0) {
+                        console.log('⚠️ Warning - Removing hallucinated locations:');
+                        console.log('Original:', contentData.original);
+                        console.log('Removed locations:', hallucinated.map(l => l.name).join(', '));
                         
-                        entities.entities.locations.forEach(location => {
-                            // Only check primary locations that are countries or major regions
-                            if (location.context === 'primary' && (location.type === 'COUNTRY' || location.type === 'REGION')) {
-                                const locationName = location.name.toLowerCase();
-                                // Check if this major location appears in the text
-                                if (!contentData.original.toLowerCase().includes(locationName)) {
-                                    // For US-related content, check for common US terms
-                                    if (locationName === 'united states' || locationName === 'us' || locationName === 'usa') {
-                                        const usTerms = ['us ', 'u.s.', 'united states', 'usa', 'america', 'washington', 'federal', 'sec', 'cftc'];
-                                        const hasUsReference = usTerms.some(term => contentData.original.toLowerCase().includes(term));
-                                        
-                                        if (!hasUsReference) {
-                                            hasHallucinatedCriticalLocation = true;
-                                        }
-                                    } else {
-                                        // For non-regulatory content, only reject if it's a complete fabrication
-                                        // For other locations, check if it's a critical location fabrication
-                                        hasHallucinatedCriticalLocation = true;
-                                    }
-                                }
-                            }
+                        // Remove hallucinated locations instead of rejecting
+                        entities.entities.locations = entities.entities.locations.filter(location => {
+                            const locationName = location.name.toLowerCase();
+                            return contentData.original.toLowerCase().includes(locationName);
                         });
-                        
-                        if (hasHallucinatedCriticalLocation) {
-                            console.log('⚠️ Warning - Hallucinated location but continuing process:');
-                            console.log('Original:', contentData.original);
-                            console.log('Claimed locations:', entities.entities.locations.map(l => l.name.toLowerCase()).join(', '));
-                            
-                            // For non-critical news, don't reject due to location hallucination
-                            if (entities.event.category === 'REGULATORY' && isRegulatoryConcrete(entities)) {
-                                console.log('❌ REJECTED - Hallucinated location in concrete regulatory news:');
-                                return { skip: true, reason: 'hallucinated_location' };
-                            }
-                            
-                            // For other content, just remove the hallucinated locations
-                            entities.entities.locations = entities.entities.locations.filter(location => {
-                                const locationName = location.name.toLowerCase();
-                                return contentData.original.toLowerCase().includes(locationName);
-                            });
-                        }
                     }
                 }
                 
-                // Check for headline hallucination but be more lenient
+                // Check for headline hallucination but don't reject
                 if (entities?.headline) {
                     // Extract significant terms from the headline (excluding common words)
                     const headlineTerms = extractSignificantTerms(entities.headline);
@@ -1070,54 +1042,34 @@ export async function processMessage({ message, db, channelMapping }) {
                         }
                     });
                     
-                    // Calculate match percentage, but don't require a high threshold
+                    // Calculate match percentage, but don't reject based on it
                     const matchPercentage = totalTerms > 0 ? (matchCount / totalTerms) * 100 : 0;
                     console.log(`Headline match percentage: ${matchPercentage.toFixed(1)}% (${matchCount}/${totalTerms} terms)`);
                     
-                    // Only reject completely hallucinated headlines with zero matching terms for critical content
-                    if (matchPercentage < 5 && entities.event.category === 'REGULATORY' && isRegulatoryConcrete(entities)) {
-                        console.log('❌ REJECTED - Completely hallucinated headline in concrete regulatory news:');
-                        console.log('Original:', contentData.original);
-                        console.log('Headline:', entities.headline);
-                        console.log('Terms:', headlineTerms.join(', '));
-                        console.log(`Match: ${matchPercentage.toFixed(1)}%`);
-                        return { skip: true, reason: 'hallucinated_headline' };
+                    // For very low match percentage, set impact score lower but don't reject
+                    if (matchPercentage < 10) {
+                        console.log('⚠️ Warning - Low headline match percentage - reducing impact score');
+                        entities.context.impact = Math.min(entities.context.impact, 30);
                     }
                 }
                 
-                // For business news about major crypto companies, ensure proper impact
-                if (entities.event.category === 'NEWS' && 
-                    (entities.event.subcategory === 'BUSINESS' || entities.event.subcategory === 'FUNDAMENTAL')) {
-                    
-                    // Check for major crypto company mentions
-                    const majorCompanies = ['coinbase', 'binance', 'kraken', 'ftx', 'ripple', 'circle', 'tether', 
-                                         'bakkt', 'robinhood', 'gemini', 'opensea', 'consensys', 'blockfi',
-                                         'celsius', 'microstrategy', 'square', 'paypal', 'venmo', 'revolut',
-                                         'dydx', 'uniswap', 'aave', 'compound'];
-                    
-                    const companyMentions = majorCompanies.filter(company => 
-                        contentData.original.toLowerCase().includes(company));
-                    
-                    if (companyMentions.length > 0) {
-                        console.log(`🏢 Major crypto company mentioned: ${companyMentions.join(', ')}`);
-                        if (entities.context.impact < 40) {
-                            console.log(`⬆️ Boosting impact score for major crypto company news (was ${entities.context.impact})`);
-                            entities.context.impact = Math.max(entities.context.impact, 40);
-                        }
-                    }
-                    
-                    // For venture capital news
-                    if (contentData.original.toLowerCase().includes('venture') || 
-                        contentData.original.toLowerCase().includes('funding') ||
-                        contentData.original.toLowerCase().includes('investment') ||
-                        contentData.original.toLowerCase().includes('raised') ||
-                        contentData.original.toLowerCase().includes('billion') ||
-                        contentData.original.toLowerCase().includes('million')) {
+                // Handle hallucinated symbols but don't reject
+                if (entities?.tokens?.primary?.symbol) {
+                    const symbol = entities.tokens.primary.symbol;
+                    // Don't validate if symbol is explicitly null
+                    if (symbol === "null" || symbol === null) {
+                        console.log('ℹ️ No primary symbol found in content - this is valid');
+                    } else {
+                        // Check if the symbol actually appears in the original text
+                        const symbolRegex = new RegExp(`\\b${symbol}\\b|\\$${symbol}\\b`, 'i');
                         
-                        console.log('💰 Venture capital or funding news detected');
-                        if (entities.context.impact < 30) {
-                            console.log(`⬆️ Boosting impact score for VC/funding news (was ${entities.context.impact})`);
-                            entities.context.impact = Math.max(entities.context.impact, 30);
+                        if (!symbolRegex.test(contentData.original)) {
+                            console.log('⚠️ Warning - Symbol not found in content, setting to null:');
+                            console.log('Original:', contentData.original);
+                            console.log('Claimed symbol:', symbol);
+                            
+                            // Set symbol to null instead of rejecting
+                            entities.tokens.primary.symbol = null;
                         }
                     }
                 }
