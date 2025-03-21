@@ -23,8 +23,44 @@ function safeParseJSON(text) {
         
         // Attempt to clean and fix common issues
         try {
-            // Remove any markdown code block markers
+            // Extract just the first complete JSON object if there's additional text
+            const jsonObjectMatch = text.match(/(\{(?:[^{}]|(?:\{[^{}]*\}))*\})/);
+            if (jsonObjectMatch && jsonObjectMatch[1]) {
+                const jsonCandidate = jsonObjectMatch[1];
+                try {
+                    // Try parsing just this first complete JSON object
+                    console.log('Attempting to parse first complete JSON object');
+                    return JSON.parse(jsonCandidate);
+                } catch (firstObjectError) {
+                    console.log('Failed to parse first JSON object, continuing with cleanup');
+                    // Continue with regular cleanup if this fails
+                }
+            }
+            
+            // Remove any markdown code block markers and additional commentary
             let cleaned = text.replace(/```json|```/g, '').trim();
+            
+            // If there's text after a complete JSON object, remove it
+            const bracketStack = [];
+            let endPos = -1;
+            
+            for (let i = 0; i < cleaned.length; i++) {
+                const char = cleaned[i];
+                if (char === '{') {
+                    bracketStack.push('{');
+                } else if (char === '}') {
+                    bracketStack.pop();
+                    if (bracketStack.length === 0) {
+                        endPos = i + 1;
+                        break;
+                    }
+                }
+            }
+            
+            if (endPos > 0) {
+                console.log('Found complete JSON object, trimming additional content');
+                cleaned = cleaned.substring(0, endPos);
+            }
             
             // Check if the JSON is incomplete (missing closing braces)
             let openBraces = (cleaned.match(/{/g) || []).length;
@@ -161,22 +197,48 @@ export async function extractEntities(text, _, authorInfo = {}) {
         // Find the JSON object - try multiple approaches
         let jsonStr = '';
         
-        // First attempt: extract text between first { and last }
-        const fullMatch = rawContent.match(/\{[\s\S]*\}/);
-        if (fullMatch) {
-            jsonStr = fullMatch[0];
-        } 
-        // Second attempt: if we don't have a complete object, look for partial JSON
-        else {
-            // If there's an opening brace but no closing, try to extract and fix
-            const openBraceIndex = rawContent.indexOf('{');
-            if (openBraceIndex !== -1) {
-                jsonStr = rawContent.substring(openBraceIndex);
-                // We'll let safeParseJSON handle the missing closing braces
-            } else {
-                console.error('No JSON object structure found in response');
-                console.error('Raw content:', rawContent);
-                return null;
+        // First try: extract complete JSON objects
+        const jsonRegex = /\{(?:[^{}]|(?:\{[^{}]*\}))*\}/g;
+        const jsonMatches = [...rawContent.matchAll(jsonRegex)];
+        
+        if (jsonMatches.length > 0) {
+            // If multiple JSON objects, take the first one that parses successfully
+            for (const match of jsonMatches) {
+                try {
+                    const candidate = match[0];
+                    console.log(`Trying JSON candidate (${candidate.length} chars)`);
+                    const parsed = JSON.parse(candidate);
+                    if (parsed && typeof parsed === 'object') {
+                        console.log('Found valid JSON object');
+                        jsonStr = candidate;
+                        break;
+                    }
+                } catch (e) {
+                    console.log(`JSON candidate failed: ${e.message}`);
+                    // Continue to next candidate
+                }
+            }
+        }
+        
+        // If no valid JSON found with regex, try the old approach
+        if (!jsonStr) {
+            // Fallback: extract text between first { and last }
+            const fullMatch = rawContent.match(/\{[\s\S]*\}/);
+            if (fullMatch) {
+                jsonStr = fullMatch[0];
+            } 
+            // Second attempt: if we don't have a complete object, look for partial JSON
+            else {
+                // If there's an opening brace but no closing, try to extract and fix
+                const openBraceIndex = rawContent.indexOf('{');
+                if (openBraceIndex !== -1) {
+                    jsonStr = rawContent.substring(openBraceIndex);
+                    // We'll let safeParseJSON handle the missing closing braces
+                } else {
+                    console.error('No JSON object structure found in response');
+                    console.error('Raw content:', rawContent);
+                    return null;
+                }
             }
         }
 
