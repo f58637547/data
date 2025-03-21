@@ -1010,6 +1010,8 @@ export async function processMessage({ message, db, channelMapping }) {
                 if (entities?.entities?.locations && entities.entities.locations.length > 0) {
                     // Check for hallucinated locations
                     const hallucinated = entities.entities.locations.filter(location => {
+                        // Check if location.name exists before trying to use toLowerCase()
+                        if (!location.name) return true; // Consider null/undefined names as hallucinated
                         const locationName = location.name.toLowerCase();
                         return !contentData.original.toLowerCase().includes(locationName);
                     });
@@ -1017,10 +1019,12 @@ export async function processMessage({ message, db, channelMapping }) {
                     if (hallucinated.length > 0) {
                         console.log('⚠️ Warning - Removing hallucinated locations:');
                         console.log('Original:', contentData.original);
-                        console.log('Removed locations:', hallucinated.map(l => l.name).join(', '));
+                        console.log('Removed locations:', hallucinated.map(l => l.name || 'unnamed').join(', '));
                         
                         // Remove hallucinated locations instead of rejecting
                         entities.entities.locations = entities.entities.locations.filter(location => {
+                            // Check if location.name exists before trying to use toLowerCase()
+                            if (!location.name) return false; // Remove locations with null/undefined names
                             const locationName = location.name.toLowerCase();
                             return contentData.original.toLowerCase().includes(locationName);
                         });
@@ -1036,11 +1040,14 @@ export async function processMessage({ message, db, channelMapping }) {
                     let matchCount = 0;
                     let totalTerms = headlineTerms.length;
                     
-                    headlineTerms.forEach(term => {
-                        if (contentData.original.toLowerCase().includes(term.toLowerCase())) {
-                            matchCount++;
-                        }
-                    });
+                    // Add safeguard for null terms
+                    if (headlineTerms && Array.isArray(headlineTerms)) {
+                        headlineTerms.forEach(term => {
+                            if (term && contentData.original.toLowerCase().includes(term.toLowerCase())) {
+                                matchCount++;
+                            }
+                        });
+                    }
                     
                     // Calculate match percentage, but don't reject based on it
                     const matchPercentage = totalTerms > 0 ? (matchCount / totalTerms) * 100 : 0;
@@ -1164,7 +1171,9 @@ export async function processMessage({ message, db, channelMapping }) {
             if (entities.event.category === 'NEWS' && entities.event.subcategory === 'REGULATORY') {
                 // Verify locations actually exist in the original content
                 if (entities.entities?.locations?.length > 0) {
-                    const locationNames = entities.entities.locations.map(loc => loc.name.toLowerCase());
+                    const locationNames = entities.entities.locations
+                        .filter(loc => loc.name) // Filter out null/undefined names
+                        .map(loc => loc.name.toLowerCase());
                     const contentLower = contentData.original.toLowerCase();
                     
                     // Check if any location mentioned actually appears in the content
@@ -1179,7 +1188,7 @@ export async function processMessage({ message, db, channelMapping }) {
                         return contentLower.includes(location);
                     });
                     
-                    if (!locationExists) {
+                    if (!locationExists && locationNames.length > 0) {
                         console.log('❌ REJECTED - Hallucinated location in regulatory news:');
                         console.log('Original:', contentData.original);
                         console.log('Claimed locations:', locationNames.join(', '));
