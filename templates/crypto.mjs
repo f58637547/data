@@ -30,7 +30,11 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
 13. COMPLETE all string values fully - never cut off headlines or other text fields
 14. NORMALIZE CASE in headlines - convert ALL CAPS to proper case (e.g., "White House Preparing" not "WHITE HOUSE PREPARING")
 15. VERIFY that all JSON fields have proper closing quotes and braces
-16. SET ACTION TYPES to valid values from the allowed options list - NEVER use empty strings
+16. SET ACTION_TYPES to valid values from the allowed options list - NEVER use empty strings
+17. ENSURE your JSON is EXACTLY matching the structure in OUTPUT FORMAT section below
+18. TRIPLE CHECK all JSON brackets and braces are properly closed and balanced
+19. INCLUDE ALL REQUIRED ROOT FIELDS: headline, tokens, event, action, entities, metrics, context
+20. MAGNITUDE values must be exactly: "SMALL", "MEDIUM", or "LARGE" (all caps, no spaces)
 
 ⚠️⚠️⚠️ CRITICAL HEADLINE REQUIREMENTS ⚠️⚠️⚠️
 1. REWRITING: COMPLETELY rewrite ALL headlines using different words, verbs, and sentence structure
@@ -98,6 +102,11 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
    - VERIFY all classifications match the allowed combinations
    - ENSURE impact score accurately reflects the content's market relevance
 
+⚠️⚠️⚠️ CRITICAL FIELD PLACEMENT WARNINGS ⚠️⚠️⚠️
+- "UPDATE" is an ACTION_TYPE, not an EVENT_TYPE for NEWS/TECHNICAL
+- For NEWS/TECHNICAL, valid EVENT_TYPES are: DEVELOPMENT, INFRASTRUCTURE, PROTOCOL, SECURITY, SCALING
+- Never mix up ACTION_TYPE and EVENT_TYPE values - use exactly as specified in the valid combinations
+
 Message to analyze:
 {{message}}
 
@@ -127,6 +136,8 @@ SPAM DETECTION AND SCORING:
       - Protocol comparisons without actionable data
       - Alert notifications that don't include transaction amounts, tokens, or addresses
       - Notifications that tell you to check elsewhere for information
+      - Joke tokens or meme coins without significant market impact or metrics
+      - References to fictional or parody coins without serious market data
 
    c) Off-Topic Content:
       - Gaming/sports without crypto context
@@ -377,7 +388,7 @@ OUTPUT FORMAT:
     "action": {
         "type": "ACTION_TYPE", // Must match allowed actions for category/subcategory
         "direction": "DIRECTION", // UP, DOWN, NEUTRAL
-        "magnitude": "MAGNITUDE" // SMALL, MEDIUM, LARGE
+        "magnitude": "MAGNITUDE" // SMALL, MEDIUM, LARGE (use exactly these values)
     },
     "entities": {
         "projects": [], // Only explicitly mentioned projects
@@ -415,4 +426,6 @@ OUTPUT FORMAT:
 }
 
 YOUR RESPONSE MUST BE VALID JSON ONLY - NO EXPLANATORY TEXT.
+DOUBLE CHECK THAT YOUR JSON OUTPUT IS COMPLETE AND PROPERLY STRUCTURED BEFORE SUBMITTING.
+VERIFY ALL FIELDS ARE INCLUDED AND ALL BRACES ARE PROPERLY CLOSED.
 `;
