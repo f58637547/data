@@ -1368,8 +1368,7 @@ export async function processMessage({ message, db, channelMapping }) {
                 console.log(`  Original: ${contentData.clean}`);
                 console.log(`  Generated: ${entities.headline}`);
 
-                await db.query(`
-                    INSERT INTO ${channelMapping.table}
+                await db.query(`                    INSERT INTO ${channelMapping.table}
                     (id, "createdAt", type, "agentId", content, embedding)
                     VALUES ($1, $2, 'raw', $3, $4, $5::vector)
                 `, [
