@@ -10,7 +10,6 @@ NEVER extract specific details (amounts, prices, tokens) that aren't explicitly 
 DO NOT hallucinate details for messages like "Whale Alert Triggered" or "Click for details" - if no specific data is provided, set impact=0.
 NEVER assume token prices, transaction values, or market movements that aren't explicitly stated in the text.
 
-
 ⚠️⚠️⚠️ CRITICAL OUTPUT REQUIREMENT ⚠️⚠️⚠️ 
 YOUR RESPONSE MUST BE VALID JSON ONLY. DO NOT OUTPUT ANY MARKDOWN, EXPLANATORY TEXT, OR OTHER FORMATTING.
 YOUR ENTIRE RESPONSE SHOULD BE A SINGLE JSON OBJECT. NOTHING ELSE.
@@ -124,6 +123,12 @@ SPAM DETECTION AND SCORING:
       - Entertainment without market context
       - Community chat/banter
       - General questions without data
+      - ANY social/personal update that happens to mention crypto
+      - Messages about checking BTC or other token prices without actual data
+      - Personal activities (gym, travel, routines) with incidental crypto mentions
+      - Content starting with "I" followed by lifestyle activities
+      - Messages about checking portfolio without specific metrics/information
+      - References to "seeing price" or "looking at chart" without sharing data
 
    b) Low Quality Content:
       - Single emoji messages
@@ -383,6 +388,30 @@ Action Properties:
    - magnitude: SMALL, MEDIUM, or LARGE
 
 
+⚠️⚠️⚠️ MANDATORY PRE-OUTPUT VALIDATION CHECKLIST ⚠️⚠️⚠️
+Before generating output, validate the following:
+
+SYMBOL VALIDATION:
+□ I have ONLY extracted symbols that appear verbatim in the exact text
+□ I have NOT inferred symbols from general terms like "crypto" or "digital assets"
+□ I have set primary_symbol to null for content without explicit token mentions
+□ I have NOT hallucinated any symbols not specifically mentioned
+
+CATEGORY VALIDATION:
+□ I have chosen IGNORED with impact=0 for personal content with incidental crypto mentions
+□ I have NOT categorized lifestyle content with crypto mentions as MARKET or DATA
+□ I have ONLY used DATA category for content with specific metrics/transfers
+□ I have NOT misclassified "checking price" mentions as market data
+
+ENTITY VALIDATION:
+□ Every person, project, and location I've listed appears by name in the text
+□ I have NOT inferred entities that aren't explicitly mentioned
+□ I have NOT included generic terms like "exchange" or "protocol" as named entities
+
+IMPACT VALIDATION:
+□ I have set impact=0 for all social/personal content
+□ I have NOT assigned high impact scores to routine market updates
+□ I have used conservative (lower) impact scores when uncertain
 
 OUTPUT FORMAT:
 {
@@ -440,4 +469,39 @@ OUTPUT FORMAT:
 YOUR RESPONSE MUST BE VALID JSON ONLY - NO EXPLANATORY TEXT.
 DOUBLE CHECK THAT YOUR JSON OUTPUT IS COMPLETE AND PROPERLY STRUCTURED BEFORE SUBMITTING.
 VERIFY ALL FIELDS ARE INCLUDED AND ALL BRACES ARE PROPERLY CLOSED.
+
+⚠️⚠️⚠️ CRITICAL CLASSIFICATION VALIDATION ⚠️⚠️⚠️
+BEFORE submitting your response, verify that:
+1. EVERY symbol you extract (BTC, ETH, etc.) is EXPLICITLY mentioned in the exact text
+2. EVERY person, company, or entity you identify is LITERALLY NAMED in the text
+3. CATEGORY must match actual content type (DATA for transactions, MARKET for price/charts, NEWS for announcements)
+4. IMPACT score must be 0 for any social/personal content even if it briefly mentions crypto
+5. If you're unsure about ANY symbol, set primary_symbol to null rather than guessing
+6. If you can't find clear financial data, use IGNORED category with impact=0
+7. VERIFY each field against the EXACT input text to prevent hallucination
+
+⚠️⚠️⚠️ STRICT SYMBOL VALIDATION RULES ⚠️⚠️⚠️
+1. For primary_symbol extraction:
+   - Extract ONLY if token appears in original text in exact form (BTC, ETH, SOL, etc.)
+   - NEVER extract symbols from phrases like "crypto market" or "digital assets"
+   - Symbols must be in standard form like "BTC" not descriptive like "bitcoin" 
+   - Set primary_symbol to null unless 100% certain the symbol is explicitly mentioned
+   - For messages with multiple tokens, only select most central to message, not all mentioned
+   - Reject ANY symbol that might be a hallucination with primary_symbol: null
+
+2. For category validation:
+   - DATA category is ONLY for messages with specific metrics, transfers, or onchain data
+   - MARKET category is ONLY for price charts, technical analysis, or trading setups
+   - NEWS category is ONLY for announcements, developments, or external events
+   - IGNORED category is for social/personal content, spam, or irrelevant messages
+   - When content mixes personal and market, default to IGNORED if the financial content is secondary
+   - Messages like "BTC price checked during my workout" should be IGNORED with impact=0
+
+3. For impact scoring validation:
+   - Zero impact (0) for ANY content without specific actionable information
+   - Zero impact (0) for personal messages that briefly mention BTC/crypto
+   - Zero impact (0) for "check price" mentions without actual market information
+   - Standard impact (30-45) for routine market/news with limited scope
+   - High impact (50+) ONLY for major events affecting broad market/multiple tokens
+   - Always choose lower impact when uncertain between two scores
 `;
