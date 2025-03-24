@@ -37,6 +37,8 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
 18. TRIPLE CHECK all JSON brackets and braces are properly closed and balanced
 19. INCLUDE ALL REQUIRED ROOT FIELDS: headline, tokens, event, action, entities, metrics, context
 20. MAGNITUDE values must be exactly: "SMALL", "MEDIUM", or "LARGE" (all caps, no spaces)
+21. ALWAYS use commas to separate array items and object properties, NEVER use semicolons like "projects": []; 
+22. Array items must be comma-separated: "projects": ["Project1", "Project2"], "persons": [], "locations": []
 
 ⚠️⚠️⚠️ CRITICAL HEADLINE REQUIREMENTS ⚠️⚠️⚠️
 1. REWRITING: COMPLETELY rewrite ALL headlines using different words, verbs, and sentence structure
@@ -129,6 +131,10 @@ SPAM DETECTION AND SCORING:
       - Content starting with "I" followed by lifestyle activities
       - Messages about checking portfolio without specific metrics/information
       - References to "seeing price" or "looking at chart" without sharing data
+      - Questions about crypto/markets without specific trading information
+      - Messages seeking information without providing financial data
+      - Discussions about politics/policies without direct crypto market impact analysis 
+      - Asking "what do you think" type questions about markets or coins
 
    b) Low Quality Content:
       - Single emoji messages
@@ -413,6 +419,12 @@ IMPACT VALIDATION:
 □ I have NOT assigned high impact scores to routine market updates
 □ I have used conservative (lower) impact scores when uncertain
 
+ACTION TYPE VALIDATION:
+□ I have ONLY used action types from the exact list provided for each category/subcategory
+□ I have NOT invented new action types like "INFORMATION-seeking" or "QUESTIONING"
+□ For questions/discussions with no clear category, I've used IGNORED with impact=0
+□ I have verified my action.type matches exactly one of the allowed values for the chosen subcategory
+
 OUTPUT FORMAT:
 {
     "headline": "DETAILED_CONCISE_HEADLINE", // Format based on event category, normalize case, remove emojis/links
@@ -504,4 +516,20 @@ BEFORE submitting your response, verify that:
    - Standard impact (30-45) for routine market/news with limited scope
    - High impact (50+) ONLY for major events affecting broad market/multiple tokens
    - Always choose lower impact when uncertain between two scores
+
+5. CRITICAL JSON FORMAT VALIDATION:
+
+   Always ensure your JSON response follows these strict formatting rules:
+   
+   a) Arrays MUST use commas as separators, NOT semicolons:
+      CORRECT: "projects": [], "persons": [], "locations": []
+      INCORRECT: "projects": []; "persons": []; "locations": []
+   
+   b) All property names and string values MUST be enclosed in double quotes
+   
+   c) Boolean values must be lowercase (true/false, not True/False)
+   
+   d) No trailing commas in arrays or objects
+   
+   e) Validate your JSON structure before submitting to ensure it is valid
 `;
