@@ -39,9 +39,13 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
 20. MAGNITUDE values must be exactly: "SMALL", "MEDIUM", or "LARGE" (all caps, no spaces)
 21. ALWAYS use commas to separate array items and object properties, NEVER use semicolons like "projects": []; 
 22. Array items must be comma-separated: "projects": ["Project1", "Project2"], "persons": [], "locations": []
-23. CRITICAL: Count the number of opening { braces and closing } braces to ensure they are EQUAL
-24. END your JSON with a FINAL CLOSING BRACE } - do not omit the last brace
-25. Before submitting, VERIFY the entire JSON is enclosed in a complete {} and has no missing braces
+23. CRITICAL: Your JSON MUST have exactly 7 opening { braces and 7 closing } braces
+24. CRITICAL: Count your braces before submitting:
+   - Opening braces { count: 7
+   - Closing braces } count: 7
+25. CRITICAL: The final closing brace must be on its own line
+26. CRITICAL: NEVER submit JSON with mismatched braces
+27. CRITICAL: If you can't count exactly 7 opening and 7 closing braces, your JSON is wrong
 
 CRITICAL JSON FORMAT VALIDATION:
 a) Arrays MUST use commas as separators, NOT semicolons:
@@ -67,6 +71,19 @@ e) Validate your JSON structure before submitting to ensure it is valid
 5. SYMBOLS: PRESERVE ALL financial symbols exactly as they appear ($BTC, ETH, etc.)
 6. COMPLETENESS: NEVER truncate quotes or statements - include the COMPLETE message
 7. CLEANUP: REMOVE ALL emojis, clickbait elements like "BREAKING:", and links from headlines
+
+⚠️⚠️⚠️ CRITICAL NUMBER FORMAT VALIDATION ⚠️⚠️⚠️
+1. Numbers with commas MUST be preserved exactly as written (e.g., "6,911", "$84,529")
+2. Numbers with M/B suffixes MUST be preserved exactly as written (e.g., "$584.10M", "$1.2B")
+3. Numbers with decimals MUST be preserved exactly as written (e.g., "$84,529", "$584.10M")
+4. NEVER modify or reformat numbers from the original text
+5. ALWAYS preserve the exact format of numbers in headlines and metrics
+6. For USD amounts with M/B suffixes:
+   - "$1M" = $1,000,000
+   - "$1.2M" = $1,200,000
+   - "$1B" = $1,000,000,000
+   - "$1.2B" = $1,200,000,000
+7. CRITICAL: When you see numbers like "$584.10M", this is a MANDATORY DATA/WHALE_MOVE category with impact 70-85
 
 ⚠️⚠️⚠️ CRITICAL EXTRACTION REQUIREMENTS ⚠️⚠️⚠️
 1. TOKEN SYMBOL EXTRACTION:
@@ -303,12 +320,16 @@ DATA Events:
     a) WHALE_MOVE
        - EVENT_TYPE: LARGE_TRANSFER, ACCUMULATION, DISTRIBUTION
        - ACTION_TYPE: DEPOSIT, WITHDRAW, TRANSFER
-       - CRITICAL: ANY content mentioning specific amounts of money being transferred/moved MUST be categorized as DATA/WHALE_MOVE
-       - CRITICAL: Messages with $1M-$10M transfers should have impact 35-45 (NEVER ZERO)
-       - CRITICAL: Messages with $10M-$50M transfers should have impact 45-60 (NEVER ZERO)
-       - CRITICAL: Messages with $50M-$100M transfers should have impact 60-75 (NEVER ZERO)
-       - CRITICAL: Messages with >$100M transfers should have impact 70-85 (NEVER ZERO)
-       - CRITICAL: Even if well-known people or companies are mentioned, large transfers take precedence over NEWS categorization
+       - CRITICAL: ANY message mentioning a transfer amount over $100M MUST have impact score 70-85 (NEVER zero)
+       - CRITICAL: ANY message mentioning a transfer amount $50M-$100M MUST have impact score 60-75 (NEVER zero)
+       - CRITICAL: ANY message mentioning a transfer amount $10M-$50M MUST have impact score 45-60 (NEVER zero)
+       - CRITICAL: ANY message mentioning a transfer amount $1M-$10M MUST have impact score 35-45 (NEVER zero)
+       - CRITICAL: For whale transfers, ALWAYS use:
+         * category: "DATA"
+         * subcategory: "WHALE_MOVE"
+         * type: "LARGE_TRANSFER"
+       - CRITICAL: The word "BITCOIN" or "BTC" in a transfer message ALWAYS means BTC is the primary symbol
+       - CRITICAL: NEVER set impact=0 for any message mentioning specific transfer amounts
        - CRITICAL: Matching action_type to message content is MANDATORY - "withdrew" = WITHDRAW, "deposited" = DEPOSIT
        - CRITICAL: When you see "$X million" or "$XM" next to token amounts, this REQUIRES non-zero impact scoring
     
@@ -385,6 +406,8 @@ USD AMOUNT VALIDATION:
 □ For ANY message with >$100M transfer amounts, I've set impact to 70-85 (NEVER ZERO)
 □ I have ensured transfer direction (WITHDRAW/DEPOSIT/TRANSFER) matches the message content
 □ I have set the correct action.type based on the transfer direction (withdraw = WITHDRAW)
+□ I have verified that the word "BITCOIN" or "BTC" in a transfer message means BTC is the primary symbol
+□ I have NEVER set impact=0 for any message mentioning specific transfer amounts
 
 ENTITY VALIDATION:
 □ Every person, project, and location I've listed appears by name in the text
