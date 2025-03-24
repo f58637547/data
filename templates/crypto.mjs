@@ -40,6 +40,19 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
 21. ALWAYS use commas to separate array items and object properties, NEVER use semicolons like "projects": []; 
 22. Array items must be comma-separated: "projects": ["Project1", "Project2"], "persons": [], "locations": []
 
+CRITICAL JSON FORMAT VALIDATION:
+a) Arrays MUST use commas as separators, NOT semicolons:
+   CORRECT: "projects": [], "persons": [], "locations": []
+   INCORRECT: "projects": []; "persons": []; "locations": []
+
+b) All property names and string values MUST be enclosed in double quotes
+
+c) Boolean values must be lowercase (true/false, not True/False)
+
+d) No trailing commas in arrays or objects
+
+e) Validate your JSON structure before submitting to ensure it is valid
+
 ⚠️⚠️⚠️ CRITICAL HEADLINE REQUIREMENTS ⚠️⚠️⚠️
 1. REWRITING: COMPLETELY rewrite ALL headlines using different words, verbs, and sentence structure
 2. COMPLETENESS: Preserve ALL key details - names (e.g., @username), metrics, relationships, specific facts
@@ -62,6 +75,12 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
    - If multiple tokens are mentioned, choose the most relevant one as primary_symbol
    - For content with impact=0, do not set a primary_symbol (use null)
    - When in doubt, use null instead of guessing
+   - Extract ONLY if token appears in original text in exact form (BTC, ETH, SOL, etc.)
+   - NEVER extract symbols from phrases like "crypto market" or "digital assets"
+   - Symbols must be in standard form like "BTC" not descriptive like "bitcoin" 
+   - Set primary_symbol to null unless 100% certain the symbol is explicitly mentioned
+   - For messages with multiple tokens, only select most central to message, not all mentioned
+   - Reject ANY symbol that might be a hallucination with primary_symbol: null
 
 2. ENTITY EXTRACTION:
    a) PROJECTS:
@@ -105,6 +124,11 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
    - DOUBLE CHECK that every extracted entity actually appears in the text
    - VERIFY all classifications match the allowed combinations
    - ENSURE impact score accurately reflects the content's market relevance
+   - EVERY symbol you extract must be EXPLICITLY mentioned in the exact text
+   - EVERY person, company, or entity must be LITERALLY NAMED in the text
+   - If unsure about ANY symbol, set primary_symbol to null instead of guessing
+   - If you can't find clear financial data, use IGNORED category with impact=0
+   - VERIFY each field against the EXACT input text to prevent hallucination
 
 ⚠️⚠️⚠️ CRITICAL FIELD PLACEMENT WARNINGS ⚠️⚠️⚠️
 - "UPDATE" is an ACTION_TYPE, not an EVENT_TYPE for NEWS/TECHNICAL
@@ -116,197 +140,109 @@ Message to analyze:
 
 SPAM DETECTION AND SCORING:
 
-1. ZERO IMPACT Content (Impact = 0):
-
-   a) Social/Personal Content:
-      - Personal conversations/greetings
-      - Social media drama/arguments
-      - Food/lifestyle content
-      - Entertainment without market context
-      - Community chat/banter
-      - General questions without data
-      - ANY social/personal update that happens to mention crypto
-      - Messages about checking BTC or other token prices without actual data
-      - Personal activities (gym, travel, routines) with incidental crypto mentions
-      - Content starting with "I" followed by lifestyle activities
-      - Messages about checking portfolio without specific metrics/information
-      - References to "seeing price" or "looking at chart" without sharing data
-      - Questions about crypto/markets without specific trading information
-      - Messages seeking information without providing financial data
-      - Discussions about politics/policies without direct crypto market impact analysis 
-      - Asking "what do you think" type questions about markets or coins
-
-   b) Low Quality Content:
-      - Single emoji messages
-      - Generic greetings/reactions
-      - Random links without context
-      - Copy-pasted promotional text
-      - Join channel/group invites
-      - Marketing announcements
-      - Generic ecosystem posts
-      - Hype messages without data
-      - Project stats/rankings without market impact
-      - Data aggregator links without trading signals
-      - Protocol comparisons without actionable data
-      - Alert notifications that don't include transaction amounts, tokens, or addresses
-      - Notifications that tell you to check elsewhere for information
-      - Joke tokens or meme coins without significant market impact or metrics
-      - References to fictional or parody coins without serious market data
-      - Messages containing phrases like "click for details", "view alert", "triggered - click" without actual data
-      - Any message that requires clicking an external link to see the actual information 
-      - Alerts/notifications without specific transaction details included directly in the message
-
-   c) Off-Topic Content:
-      - Gaming/sports without crypto context
-      - General tech news without crypto
-      - Politics without crypto impact
-      - Random videos/memes
-      - Non-market discussions
-      - General world news
-      - Unrelated project updates
-      - Tech industry news without crypto relevance
-      - General business news without direct crypto impact
-
-   d) No-Value Content:
-      - Token launches without metrics
-      - Project reviews without data
-      - AMAs/events without updates
-      - Educational content without news
-      - Opinion/commentary only
-      - Generic market comments
-      - Sponsorship announcements
-      - General promotional content
-      - Tech news not directly related to crypto
-
-   e) Promotional Content:
-      - Articles about technology without crypto tokens
-      - General AI/tech developments without crypto application
-      - Media mentions without crypto trading impact
-      - Press releases without market relevance
-      - Generic business announcements without token impact
-      - Future technology speculation without current market effect
-      - Industry trends not specifically about crypto
-      
-   f) Regulatory Discussions Without Action:
-      - Regulatory roundtables without decisions
-      - Policy discussion forums without outcomes
-      - Industry/regulator conversations
-      - SEC/CFTC meetings or panels without rulings
-      - Committee hearings without votes
-      - Regulatory listening sessions
-      - Public comment periods
-      - Regulatory workshops or seminars
-      - Agency Q&A sessions
-      - Testimony without policy announcements
-      - Regulatory frameworks under consideration
-      - Discussion of potential future regulations
-      - General regulatory updates without specific token impact
-      - Names of regulators/officials involved in discussions
-      - Oversight hearing announcements
-
-2. LOW IMPACT Content (Impact = 1-30):
-
-   a) Routine Regulatory News:
-      - Discussion periods or review announcements
-      - Consideration of regulations without decisions
-      - Regulatory meetings without outcomes
-      - Proposals without significant market impact
-      - Comment periods or inquiries
-      - Routine compliance updates
-      - Minor regulatory developments
-      - Regional regulations in smaller markets
-      - Statements without policy changes
-
-   b) Minor Technical Updates:
-      - Routine software updates or patches
-      - Minor feature releases
-      - Non-critical bug fixes
-      - Small UI/UX improvements
-      - Minor protocol changes
-      - Documentation updates
-      - Regular maintenance announcements
-      - Testnet updates without mainnet implications
-
-   c) Standard Product Launches:
-      - Non-major product releases
-      - Standard feature rollouts
-      - Routine version updates
-      - Small project launches
-      - Incremental improvements
-      - Launches without significant innovation
-
-   d) Trend Information Without Significant Changes:
-      - Routine network metrics
-      - Regular gas price updates
-      - Standard trading volume updates
-      - Minor price movements
-      - Regular technical indicator updates
-      - Sideways market analysis
-      - Regular market updates without notable changes
-      - Standard liquidity reports
-
 IMPACT SCORING GUIDELINES:
 
-1. DATA Category Impact Scoring:
-   - Whale Movements: 45 base score
-      * Very large transfers (>$100M): 70-85
-      * Large transfers (>$50M): 60-75
-      * Medium transfers ($10-50M): 45-60
-   
-   - Fund Flows: 40 base score
-      * Major exchange inflows/outflows: 50-65
-      * Bridge flows: 45-60
-   
-   - Onchain Data: 32 base score (or 25 for routine metrics)
-      * Significant network changes: 45-60
-      * Liquidity pool changes: 40-55
-      * Routine network metrics: 25 (below threshold)
-      * Standard gas metrics: 25 (below threshold)
+1. CONTENT IMPACT CLASSIFICATION:
 
-2. MARKET Category Impact Scoring:
-   - Price Events: 50 base score
-      * Major breakouts/reversals: 60-80
-      * Support/resistance tests: 45-65
-   
-   - Volume Events: 45 base score
-      * Major spikes/surges: 55-70
-      * Significant declines: 50-65
-   
-   - Trade Signals: 40 base score
-      * Major entry/exit points: 50-65
-      * Position recommendations: 45-60
+   a) ZERO IMPACT (0) Content:
+      - Personal conversations/greetings/social media drama
+      - Food/lifestyle content and entertainment without market context
+      - Community chat/banter and general questions without data
+      - Personal updates that incidentally mention crypto
+      - Messages about checking prices without sharing specific data
+      - Personal activities (gym, travel, routines) with incidental crypto mentions
+      - Content starting with "I" followed by lifestyle activities
+      - Questions about crypto/markets without trading information
+      - Messages seeking information without providing financial data
+      - Low quality content (emojis, greetings, random links, promotional text)
+      - Marketing announcements without specific token impact
+      - Alert notifications without transaction amounts or specific details
+      - Messages with "click for details" or "view alert" without actual data
+      - Off-topic content (gaming/sports/politics without crypto relevance)
+      - Regulatory discussions/roundtables/panels without decisions or outcomes
+      - Policy talks without concrete actions
+      - Committee hearings without votes or outcomes
 
-3. NEWS Category Impact Scoring:
-   - Regulatory News: 40 base score (or 25 for routine matters, 0 for discussions/roundtables)
-      * Major regulatory decisions: 60-75
-      * Bitcoin/crypto reserve regulations: 70-85
-      * Bans or approvals: 60-80
-      * Routine guidance/frameworks: 25 (below threshold)
-      * Regulatory roundtables/discussions: 0 (ZERO IMPACT)
-      * Policy talks without concrete actions: 0 (ZERO IMPACT)
-      * Meetings between regulators and industry: 0 (ZERO IMPACT)
-      * Committee hearings without outcomes: 0 (ZERO IMPACT)
-   
-   - Technical/Development News: 35 base score (or 25 for minor updates)
-      * Major protocol upgrades: 50-65
-      * Security enhancements: 45-60
-      * Routine updates/patches: 25 (below threshold)
-      * Documentation/minor releases: 20 (below threshold)
-   
-   - Fundamental/Business News: 40 base score (or 25 for standard launches)
-      * Major exchange listings: 55-70
-      * Significant partnerships: 50-65
-      * Standard product launches: 25-30
-      * Non-major releases: 20-25 (below threshold)
-   
-   - Security News: 55 base score
-      * Major hacks/exploits: 70-90
-      * Vulnerabilities: 60-75
-      * Security breaches: 65-80
-   
-   - Political News: 35 base score (or 25 if not directly market-related)
-      * Major policy affecting crypto: 50-65
-      * Non-market related politics: 25 (below threshold)
+   b) LOW IMPACT (1-30) Content:
+      - Routine regulatory news without major decisions
+      - Minor technical updates and patches
+      - Small UI/UX improvements and documentation updates
+      - Standard product launches without significant innovation
+      - Regular maintenance announcements
+      - Routine network metrics and gas price updates
+      - Standard trading volume updates and minor price movements
+      - Regular technical indicator updates
+      - Sideways market analysis without notable changes
+
+2. MEDIUM TO HIGH IMPACT CONTENT:
+
+   a) DATA Category (Base Scores):
+      - Whale Movements: 45 base score
+         * Very large transfers (>$100M): 70-85
+         * Large transfers (>$50M): 60-75
+         * Medium transfers ($10-50M): 45-60
+      - Fund Flows: 40 base score
+         * Major exchange inflows/outflows: 50-65
+         * Bridge flows: 45-60
+      - Onchain Data: 32 base score (or 25 for routine metrics)
+         * Significant network changes: 45-60
+         * Liquidity pool changes: 40-55
+
+   b) MARKET Category (Base Scores):
+      - Price Events: 50 base score
+         * Major breakouts/reversals: 60-80
+         * Support/resistance tests: 45-65
+      - Volume Events: 45 base score
+         * Major spikes/surges: 55-70
+         * Significant declines: 50-65
+      - Trade Signals: 40 base score
+         * Major entry/exit points: 50-65
+         * Position recommendations: 45-60
+
+   c) NEWS Category (Base Scores):
+      - Regulatory News: 40 base score
+         * Major regulatory decisions: 60-75
+         * Bitcoin/crypto reserve regulations: 70-85
+         * Bans or approvals: 60-80
+      - Technical/Development News: 35 base score
+         * Major protocol upgrades: 50-65
+         * Security enhancements: 45-60
+      - Fundamental/Business News: 40 base score
+         * Major exchange listings: 55-70
+         * Significant partnerships: 50-65
+         * Standard product launches: 35-45
+      - Security News: 55 base score
+         * Major hacks/exploits: 70-90
+         * Vulnerabilities: 60-75
+         * Security breaches: 65-80
+      - Political News: 35 base score
+         * Major policy affecting crypto: 50-65
+
+3. CRITICAL IMPACT SCORING RULES:
+
+   a) The following content types must NEVER receive zero impact:
+      - Stock market news and traditional finance developments
+      - Economic indicators and central bank announcements
+      - Governance updates for crypto protocols that mention specific tokens
+      - Protocol upgrades and feature launches that involve tokens
+      - News about token utility or tokenomics changes
+      - Product development news (launches, roadmaps, mobile apps)
+      - Messages that include specific token prices (e.g., "$BTC at 67,000")
+      - Business strategy updates about value capture mechanisms
+      - Project development announcements with milestone details
+
+   b) MANDATORY minimum scores:
+      - Project news + token price mentioned together: minimum impact 35
+      - Business strategy or value capture mechanisms: minimum impact 35
+      - Development milestones with token symbols: minimum impact 35
+      - Mobile app development or platform features: minimum impact 35
+      - Any message with specific token prices: minimum impact 35
+
+   c) General impact scoring principles:
+      - Base impact score on category, event type, and market importance
+      - Assign higher scores for major tokens and institutional involvement
+      - Use lower scores for small cap tokens and localized effects
+      - Choose lower impact when uncertain between two score ranges
 
 EVENT CLASSIFICATION RULES:
 
@@ -315,6 +251,16 @@ MAIN CATEGORY DEFINITIONS:
 - DATA: Use for raw on-chain data, transaction activity, fund flows, whale movements
 - NEWS: Use for announcements, developments, regulatory updates, fundamentals
 - IGNORED: Use for completely irrelevant content with zero market impact
+
+CRITICAL CATEGORY VALIDATION RULES:
+- DATA category is ONLY for messages with specific metrics, transfers, or onchain data
+- MARKET category is ONLY for price charts, technical analysis, or trading setups
+- NEWS category is ONLY for announcements, developments, or external events
+- IGNORED category is for social/personal content, spam, or irrelevant messages
+- When content mixes personal and market, default to IGNORED if the financial content is secondary
+- Messages like "BTC price checked during my workout" should be IGNORED with impact=0
+- CATEGORY must match actual content type (DATA for transactions, MARKET for price/charts, NEWS for announcements)
+- IMPACT score must be 0 for any social/personal content even if it briefly mentions crypto
 
 Valid Category Combinations:
 
@@ -415,9 +361,13 @@ ENTITY VALIDATION:
 □ I have NOT included generic terms like "exchange" or "protocol" as named entities
 
 IMPACT VALIDATION:
-□ I have set impact=0 for all social/personal content
+□ I have set impact=0 ONLY for social/personal content and spam without financial relevance
 □ I have NOT assigned high impact scores to routine market updates
 □ I have used conservative (lower) impact scores when uncertain
+□ I have assigned impact ≥35 to ANY product development news that includes token price information
+□ I have verified that project announcements with specific token prices are NEVER given zero impact
+□ I have checked that business strategy updates related to value capture are given appropriate impact scores
+□ I have followed all MANDATORY minimum score rules from the CRITICAL IMPACT SCORING RULES section
 
 ACTION TYPE VALIDATION:
 □ I have ONLY used action types from the exact list provided for each category/subcategory
@@ -481,55 +431,4 @@ OUTPUT FORMAT:
 YOUR RESPONSE MUST BE VALID JSON ONLY - NO EXPLANATORY TEXT.
 DOUBLE CHECK THAT YOUR JSON OUTPUT IS COMPLETE AND PROPERLY STRUCTURED BEFORE SUBMITTING.
 VERIFY ALL FIELDS ARE INCLUDED AND ALL BRACES ARE PROPERLY CLOSED.
-
-⚠️⚠️⚠️ CRITICAL CLASSIFICATION VALIDATION ⚠️⚠️⚠️
-BEFORE submitting your response, verify that:
-1. EVERY symbol you extract (BTC, ETH, etc.) is EXPLICITLY mentioned in the exact text
-2. EVERY person, company, or entity you identify is LITERALLY NAMED in the text
-3. CATEGORY must match actual content type (DATA for transactions, MARKET for price/charts, NEWS for announcements)
-4. IMPACT score must be 0 for any social/personal content even if it briefly mentions crypto
-5. If you're unsure about ANY symbol, set primary_symbol to null rather than guessing
-6. If you can't find clear financial data, use IGNORED category with impact=0
-7. VERIFY each field against the EXACT input text to prevent hallucination
-
-⚠️⚠️⚠️ STRICT SYMBOL VALIDATION RULES ⚠️⚠️⚠️
-1. For primary_symbol extraction:
-   - Extract ONLY if token appears in original text in exact form (BTC, ETH, SOL, etc.)
-   - NEVER extract symbols from phrases like "crypto market" or "digital assets"
-   - Symbols must be in standard form like "BTC" not descriptive like "bitcoin" 
-   - Set primary_symbol to null unless 100% certain the symbol is explicitly mentioned
-   - For messages with multiple tokens, only select most central to message, not all mentioned
-   - Reject ANY symbol that might be a hallucination with primary_symbol: null
-
-2. For category validation:
-   - DATA category is ONLY for messages with specific metrics, transfers, or onchain data
-   - MARKET category is ONLY for price charts, technical analysis, or trading setups
-   - NEWS category is ONLY for announcements, developments, or external events
-   - IGNORED category is for social/personal content, spam, or irrelevant messages
-   - When content mixes personal and market, default to IGNORED if the financial content is secondary
-   - Messages like "BTC price checked during my workout" should be IGNORED with impact=0
-
-3. For impact scoring validation:
-   - Zero impact (0) for ANY content without specific actionable information
-   - Zero impact (0) for personal messages that briefly mention BTC/crypto
-   - Zero impact (0) for "check price" mentions without actual market information
-   - Standard impact (30-45) for routine market/news with limited scope
-   - High impact (50+) ONLY for major events affecting broad market/multiple tokens
-   - Always choose lower impact when uncertain between two scores
-
-5. CRITICAL JSON FORMAT VALIDATION:
-
-   Always ensure your JSON response follows these strict formatting rules:
-   
-   a) Arrays MUST use commas as separators, NOT semicolons:
-      CORRECT: "projects": [], "persons": [], "locations": []
-      INCORRECT: "projects": []; "persons": []; "locations": []
-   
-   b) All property names and string values MUST be enclosed in double quotes
-   
-   c) Boolean values must be lowercase (true/false, not True/False)
-   
-   d) No trailing commas in arrays or objects
-   
-   e) Validate your JSON structure before submitting to ensure it is valid
 `;
