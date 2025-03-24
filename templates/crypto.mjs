@@ -39,6 +39,9 @@ JUST OUTPUT THE RAW JSON OBJECT STARTING WITH { AND ENDING WITH }.
 20. MAGNITUDE values must be exactly: "SMALL", "MEDIUM", or "LARGE" (all caps, no spaces)
 21. ALWAYS use commas to separate array items and object properties, NEVER use semicolons like "projects": []; 
 22. Array items must be comma-separated: "projects": ["Project1", "Project2"], "persons": [], "locations": []
+23. CRITICAL: Count the number of opening { braces and closing } braces to ensure they are EQUAL
+24. END your JSON with a FINAL CLOSING BRACE } - do not omit the last brace
+25. Before submitting, VERIFY the entire JSON is enclosed in a complete {} and has no missing braces
 
 CRITICAL JSON FORMAT VALIDATION:
 a) Arrays MUST use commas as separators, NOT semicolons:
@@ -129,6 +132,17 @@ e) Validate your JSON structure before submitting to ensure it is valid
    - If unsure about ANY symbol, set primary_symbol to null instead of guessing
    - If you can't find clear financial data, use IGNORED category with impact=0
    - VERIFY each field against the EXACT input text to prevent hallucination
+   - **CRITICAL WHALE TRANSFER VALIDATION**:
+     * ANY message mentioning whale/large transfers MUST be DATA/WHALE_MOVE
+     * EXACT TOKEN AMOUNT + USD VALUE = MANDATORY DATA CATEGORY
+     * $1M-$10M transfers MUST have impact 35-45 (NEVER zero)
+     * $10M-$50M transfers MUST have impact 45-60 (NEVER zero)
+     * $50M-$100M transfers MUST have impact 60-75 (NEVER zero)
+     * >$100M transfers MUST have impact 70-85 (NEVER zero)
+     * When $ amount appears, ALWAYS use DATA category regardless of other content
+     * For transfers, use WITHDRAW for outflows, DEPOSIT for inflows, TRANSFER for movements
+     * DOUBLE CHECK ACTION TYPE matches the direction in the message (withdraw/deposit/transfer)
+     * NEVER classify large transfers as having zero impact
 
 ⚠️⚠️⚠️ CRITICAL FIELD PLACEMENT WARNINGS ⚠️⚠️⚠️
 - "UPDATE" is an ACTION_TYPE, not an EVENT_TYPE for NEWS/TECHNICAL
@@ -290,11 +304,13 @@ DATA Events:
        - EVENT_TYPE: LARGE_TRANSFER, ACCUMULATION, DISTRIBUTION
        - ACTION_TYPE: DEPOSIT, WITHDRAW, TRANSFER
        - CRITICAL: ANY content mentioning specific amounts of money being transferred/moved MUST be categorized as DATA/WHALE_MOVE
-       - CRITICAL: Messages with $1M-$10M transfers should have impact 35-45
-       - CRITICAL: Messages with $10M-$50M transfers should have impact 45-60
-       - CRITICAL: Messages with $50M-$100M transfers should have impact 60-75
-       - CRITICAL: Messages with >$100M transfers should have impact 70-85
+       - CRITICAL: Messages with $1M-$10M transfers should have impact 35-45 (NEVER ZERO)
+       - CRITICAL: Messages with $10M-$50M transfers should have impact 45-60 (NEVER ZERO)
+       - CRITICAL: Messages with $50M-$100M transfers should have impact 60-75 (NEVER ZERO)
+       - CRITICAL: Messages with >$100M transfers should have impact 70-85 (NEVER ZERO)
        - CRITICAL: Even if well-known people or companies are mentioned, large transfers take precedence over NEWS categorization
+       - CRITICAL: Matching action_type to message content is MANDATORY - "withdrew" = WITHDRAW, "deposited" = DEPOSIT
+       - CRITICAL: When you see "$X million" or "$XM" next to token amounts, this REQUIRES non-zero impact scoring
     
     b) FUND_FLOW
        - EVENT_TYPE: EXCHANGE_FLOW, BRIDGE_FLOW, PROTOCOL_FLOW
@@ -354,6 +370,21 @@ CATEGORY VALIDATION:
 □ I have NOT categorized lifestyle content with crypto mentions as MARKET or DATA
 □ I have ONLY used DATA category for content with specific metrics/transfers
 □ I have NOT misclassified "checking price" mentions as market data
+
+TREND VALIDATION:
+□ I have verified trend.short and trend.medium are ONLY "UP", "DOWN", or "SIDEWAYS" (never "MEDIUM")
+□ I have set trend.short and trend.medium to "SIDEWAYS" if no clear directional indicators
+□ I have set trend.strength as a number between 0-100 (not a string)
+□ I have NOT confused trend direction values with magnitude values
+
+USD AMOUNT VALIDATION:
+□ I have checked if the message mentions specific USD amounts ($XM, $X million, etc.)
+□ For ANY message with $1M-$10M transfer amounts, I've set impact to 35-45 (NEVER ZERO)
+□ For ANY message with $10M-$50M transfer amounts, I've set impact to 45-60 (NEVER ZERO)
+□ For ANY message with $50M-$100M transfer amounts, I've set impact to 60-75 (NEVER ZERO)
+□ For ANY message with >$100M transfer amounts, I've set impact to 70-85 (NEVER ZERO)
+□ I have ensured transfer direction (WITHDRAW/DEPOSIT/TRANSFER) matches the message content
+□ I have set the correct action.type based on the transfer direction (withdraw = WITHDRAW)
 
 ENTITY VALIDATION:
 □ Every person, project, and location I've listed appears by name in the text
@@ -431,4 +462,17 @@ OUTPUT FORMAT:
 YOUR RESPONSE MUST BE VALID JSON ONLY - NO EXPLANATORY TEXT.
 DOUBLE CHECK THAT YOUR JSON OUTPUT IS COMPLETE AND PROPERLY STRUCTURED BEFORE SUBMITTING.
 VERIFY ALL FIELDS ARE INCLUDED AND ALL BRACES ARE PROPERLY CLOSED.
+
+⚠️⚠️⚠️ FINAL JSON VALIDATION REMINDER ⚠️⚠️⚠️
+CRITICAL: Before submitting your response, take these final validation steps:
+
+1. Count all opening { and closing } braces to ensure they match exactly
+2. Verify the JSON ends with a proper closing } brace
+3. Check that trend values are only UP, DOWN, or SIDEWAYS (never MEDIUM)
+4. Ensure your response is pure JSON without any explanation text
+5. Validate the full JSON structure matches the required format
+6. Check for any unclosed quotes or missing commas
+
+YOUR RESPONSE MUST BE VALID JSON ONLY - NO EXPLANATORY TEXT.
+DOUBLE CHECK THAT YOUR JSON OUTPUT IS COMPLETE AND PROPERLY STRUCTURED BEFORE SUBMITTING.
 `;
