@@ -488,6 +488,17 @@ export async function processMessage({ message, db, channelMapping }) {
                 return { skip: true, reason: 'insufficient_content' };
             }
 
+            // Check for alert notifications that just say "click for details" without actual data
+            const clickForDetailsRegex = /\b(click|view)\s+(for|the|to)\s+(detail|more|alert|notification)/i;
+            const triggerAlertRegex = /(triggered|alert|notification).{0,20}(click|view|check|see)/i;
+            
+            if ((clickForDetailsRegex.test(contentData.original) || triggerAlertRegex.test(contentData.original)) && 
+                !contentData.original.match(/\$\d+|\d{1,3}(,\d{3})*(\.\d+)?\s*[A-Z]{3,10}/)) {
+                console.log('❌ REJECTED - Alert notification without actual data (just "click for details")');
+                console.log('Content:', contentData.original);
+                return { skip: true, reason: 'notification_without_data' };
+            }
+
             // Special check for high-quality data events like whale alerts that should never be filtered as duplicates
             const originalTextLower = contentData.original.toLowerCase();
             const isImportantDataEvent = 

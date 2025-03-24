@@ -6,6 +6,9 @@ YOU MUST ONLY ANALYZE THE EXACT TEXT PROVIDED. NEVER invent or hallucinate conte
 BEFORE RESPONDING: Verify that your headline and all extracted data directly relate to the provided text.
 If you find yourself writing about topics not mentioned in the input, STOP and reconsider.
 NEVER change the market type mentioned in the original text - if it's about stocks, keep it about stocks; if about crypto, keep it about crypto.
+NEVER extract specific details (amounts, prices, tokens) that aren't explicitly mentioned in the text.
+DO NOT hallucinate details for messages like "Whale Alert Triggered" or "Click for details" - if no specific data is provided, set impact=0.
+NEVER assume token prices, transaction values, or market movements that aren't explicitly stated in the text.
 
 
 ⚠️⚠️⚠️ CRITICAL OUTPUT REQUIREMENT ⚠️⚠️⚠️ 
@@ -138,6 +141,9 @@ SPAM DETECTION AND SCORING:
       - Notifications that tell you to check elsewhere for information
       - Joke tokens or meme coins without significant market impact or metrics
       - References to fictional or parody coins without serious market data
+      - Messages containing phrases like "click for details", "view alert", "triggered - click" without actual data
+      - Any message that requires clicking an external link to see the actual information 
+      - Alerts/notifications without specific transaction details included directly in the message
 
    c) Off-Topic Content:
       - Gaming/sports without crypto context
@@ -326,6 +332,12 @@ DATA Events:
     a) WHALE_MOVE
        - EVENT_TYPE: LARGE_TRANSFER, ACCUMULATION, DISTRIBUTION
        - ACTION_TYPE: DEPOSIT, WITHDRAW, TRANSFER
+       - CRITICAL: ANY content mentioning specific amounts of money being transferred/moved MUST be categorized as DATA/WHALE_MOVE
+       - CRITICAL: Messages with $1M-$10M transfers should have impact 35-45
+       - CRITICAL: Messages with $10M-$50M transfers should have impact 45-60
+       - CRITICAL: Messages with $50M-$100M transfers should have impact 60-75
+       - CRITICAL: Messages with >$100M transfers should have impact 70-85
+       - CRITICAL: Even if well-known people or companies are mentioned, large transfers take precedence over NEWS categorization
     
     b) FUND_FLOW
        - EVENT_TYPE: EXCHANGE_FLOW, BRIDGE_FLOW, PROTOCOL_FLOW
